@@ -55,6 +55,8 @@ def image_health_check():
       A JSON response indicating the status of the health check.
   """
 
+  my_var = "test"
+  print(my_var)
   return {"status": "Success!"}
 
 

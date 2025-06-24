@@ -22,7 +22,15 @@ into a single, unified API.
 from dotenv import load_dotenv
 from fastapi import routing
 
-from api.endpoints import image_gen_routes, text_gen_routes, video_gen_routes
+from api.endpoints import (
+    image_gen_routes,
+    text_gen_routes,
+    video_gen_routes,
+    login_router,
+    agent_router,
+    scenario_router,
+)
+from api.admin import agents_crud, scenarios_crud, subagent_links_crud
 
 load_dotenv()
 
@@ -40,4 +48,13 @@ api_router.include_router(
 )
 api_router.include_router(
     text_gen_routes.text_gen_router, tags=["text_gen_routes"]
+)
+api_router.include_router(login_router.router, tags=["user"])
+api_router.include_router(agent_router.router, tags=["agent"])
+api_router.include_router(scenario_router.router, tags=["scenario"])
+api_router.include_router(agents_crud.router, tags=["admin-agents"])
+api_router.include_router(scenarios_crud.router, tags=["admin-scenarios"])
+api_router.include_router(
+    subagent_links_crud.router,
+    tags=["admin-subagent-links"],
 )

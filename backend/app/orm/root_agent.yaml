@@ -1,0 +1,10 @@
+name: "orchestor_agent"
+instruction: >
+  You help users brainstorm. Using the 3 agents assigned to you, generate a story. 
+  The 3 sub agents are:
+  1. A text_bot that can generate a story 
+  2. An image_bot that can generate images
+  3. A video_bot that can generate short video snippets
+description: "Use the X specialized sub-agents to respond to the user"
+agent_type: "Sequential"
+use_as_root_agent: 1

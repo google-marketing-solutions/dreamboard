@@ -1,0 +1,11 @@
+- name: "don_draper"
+  description: "Scenarios can provide global context to agents"
+  overview: "Suave, sophisticated"
+  initial_prompt: "Some prompt"
+  system_instructions: "Only use styles and words from the 60s era of advertising "
+
+- name: "reagan_era"
+  description: "Scenarios can provide global context to agents"
+  overview: "Bold, loud"
+  initial_prompt: "Some prompt"
+  system_instructions: "Do everything over the top!"
