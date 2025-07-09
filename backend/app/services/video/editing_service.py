@@ -22,6 +22,7 @@ transitions between video clips.
 
 import logging
 from moviepy import editor
+from services.video.text_service import TextService
 from services.video.transitions_service import TransitionsService
 from models.video import video_request_models
 
@@ -39,6 +40,7 @@ class EditingService:
         Initializes the EditingService.
         """
         self._transitions_service = TransitionsService()
+        self._text_service = TextService()
 
     def apply_transition(
         self,
@@ -102,13 +104,29 @@ class EditingService:
         # The caller is responsible for providing correct kwargs for the specific transition.
         return transition_func(clip1, clip2, **kwargs)
 
-    # Future methods for other editing functionalities can be added here
-    # For example:
-    # def apply_color_correction(self, clip: editor.VideoFileClip, ...):
-    #     pass
-    #
-    # def add_text_overlay(self, clip: editor.VideoFileClip, text: str, ...):
-    #     pass
+    def add_text_overlay(
+        self,
+        clip: editor.VideoClip,
+        text: str,
+        **kwargs
+    ) -> editor.CompositeVideoClip:
+        """
+        Adds a text overlay to a video clip.
+
+        This method acts as a facade for the TextService's add_text_overlay
+        method, passing all keyword arguments to it.
+
+        Args:
+            clip: The video clip to add text to.
+            text: The text content to display.
+            **kwargs: Additional keyword arguments for styling and timing,
+                      such as fontsize, color, font, position, start_time,
+                      duration, fade_duration, etc.
+
+        Returns:
+            A new CompositeVideoClip with the text overlay.
+        """
+        return self._text_service.add_text_overlay(clip, text, **kwargs)
 
 
 # Create a singleton instance of the EditingService for application-wide use.

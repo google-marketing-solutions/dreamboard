@@ -22,8 +22,9 @@ direction, and transitions.
 """
 
 from enum import Enum
+from typing import Optional, Tuple, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class VideoTransition(Enum):
@@ -43,6 +44,59 @@ class VideoTransition(Enum):
   SLIDE = "SLIDE"
   SLIDE_WARP = "SLIDE_WARP"
   FLICKER = "FLICKER"
+
+
+class TextOverlayOptions(BaseModel):
+  """
+  Defines the styling and timing options for a text overlay on a video.
+
+  Attributes:
+      fontsize: The font size of the text.
+      color: The color of the text (e.g., 'white', '#FF0000').
+      font: The font to use (e.g., 'Arial').
+      position: The position of the text. Can be a string ('center', 'left',
+                'top', etc.) or a tuple (x, y) in pixels or relative floats.
+      start_time: The time (in seconds) when the text should appear.
+      duration: The duration (in seconds) the text should be visible.
+      fade_duration: The duration (in seconds) for fade-in and fade-out effects.
+      bg_color: The background color of the text box.
+      stroke_color: The color of the text's stroke (outline).
+      stroke_width: The width of the text's stroke.
+  """
+
+  fontsize: Optional[int] = 50
+  color: Optional[str] = "white"
+  font: Optional[str] = "Arial"
+  position: Optional[
+      Union[str, Tuple[Union[int, float, str], Union[int, float, str]]]
+  ] = "center"
+  start_time: Optional[float] = 0
+  duration: Optional[float] = None
+  fade_duration: Optional[float] = 0
+  bg_color: Optional[str] = "transparent"
+  stroke_color: Optional[str] = None
+  stroke_width: Optional[float] = 1
+
+
+class TextOverlay(BaseModel):
+  """
+  Represents a single text overlay to be applied to a video.
+  """
+
+  text: str
+  options: TextOverlayOptions = Field(default_factory=TextOverlayOptions)
+
+
+class TextOverlayRequest(BaseModel):
+  """
+  Represents a request to apply text overlays to a video.
+
+  Attributes:
+      gcs_video_path: The GCS URI of the input video.
+      text_overlays: A list of `TextOverlay` objects to apply to the video.
+  """
+  gcs_video_path: str
+  text_overlays: list[TextOverlay]
 
 
 class VideoTransitionRequest(BaseModel):
