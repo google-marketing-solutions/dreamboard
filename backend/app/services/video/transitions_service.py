@@ -25,6 +25,7 @@ import numpy as np
 import subprocess
 import tempfile
 import os
+from imageio_ffmpeg import get_ffmpeg_exe
 from moviepy import editor
 from scipy import ndimage
 
@@ -68,7 +69,7 @@ class TransitionsService:
           if audioclip1_duration is not None:
             trimmed_audioclip1 = os.path.join(tmpdir, "trimmed_audioclip.mp4")
             subprocess.run([
-                "ffmpeg", "-y",
+                get_ffmpeg_exe(), "-y",
                 "-i", audioclip1_filename,
                 "-t", str(audioclip1_duration),  # Trim to this duration.
                 "-c", "copy", # Copy the audio codec without re-encoding.
@@ -87,7 +88,7 @@ class TransitionsService:
           output_audioclip.close()
 
           subprocess.run([
-              "ffmpeg", "-y",
+              get_ffmpeg_exe(), "-y",
               "-f", "concat",
               "-safe", "0", # Allow "unsafe" file paths (absolute paths).
               "-i", file_list_path,
