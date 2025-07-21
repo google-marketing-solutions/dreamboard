@@ -1,18 +1,32 @@
-<div class="video-container">
-  @if(generatedVideo) {
-  <video #finalVideo width="600px" height="400px" controls>
-    <source [src]="generatedVideo.signedUri" type="video/mp4" />
-  </video>
-  <div class="button-actions">
-    <button mat-flat-button>
-      <mat-icon>download</mat-icon>
-      <a
-        [href]="generatedVideo.signedUri"
-        [download]="generatedVideo.name"
-        target="_blank"
-        >Export</a
-      >
-    </button>
+<div class="post-video-production-container">
+  @if (story && story.generatedVideos) {
+  <p>Story Title: {{ story.title }}</p>
+  <p class="story-id">Story ID: {{ story.id }}</p>
+  <div class="generated-videos-container">
+    @for (video of story.generatedVideos; track video.name; let i = $index) {
+    <mat-card class="video-card" appearance="outlined">
+      <mat-card-header>
+        <div mat-card-avatar class="header-image"></div>
+        <mat-card-title>Video Name: {{ video.name }}</mat-card-title>
+        <mat-card-subtitle></mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <video #finalVideo width="600px" height="400px" controls>
+          <source [src]="video.signedUri" type="video/mp4" />
+        </video>
+
+        <div class="button-actions">
+          <button mat-flat-button>
+            <mat-icon>download</mat-icon>
+            <a [href]="video.signedUri" [download]="video.name" target="_blank"
+              >Export</a
+            >
+          </button>
+        </div>
+      </mat-card-content>
+      <mat-card-actions class="actions"> </mat-card-actions>
+    </mat-card>
+    }
   </div>
 
   } @else {

@@ -31,8 +31,8 @@ export interface Image {
 
 export interface ImageReference extends Image {
   referenceId?: number;
-  referenceType?: string; // Image reference flag.
-  referenceSubtype?: string; // Secondary flag (e.g. Subject Person, Subject animal).
+  referenceType: string; // Image reference flag.
+  referenceSubType: string; // Secondary flag (e.g. Subject Person, Subject animal).
   description?: string;
   maskMode?: string;
   maskDilation?: number;

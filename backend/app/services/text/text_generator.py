@@ -47,17 +47,12 @@ class TextGenerator:
     """Branstorms stories based on user inputs"""
     if stories_generation_request.creative_brief_idea is None:
       # TODO: use default prompt from prompt library instead.
-      return "No scene description."
+      return "No Creative Brief idea."
 
     # Define LLM parameters, including the response schema.
     llm_params = gemini_service.LLMParameters()
     if stories_generation_request.brand_guidelines:
-      llm_params.generation_config["response_schema"] = RESPONSE_SCHEMAS[
-          "CREATE_STORIES_WITH_BRAND_GUIDELINES"
-      ]
-      prompts = text_prompts_library.prompts["STORIES"][
-          "CREATE_STORIES_WITH_BRAND_GUIDELINES"
-      ]
+      prompt_template = text_prompts_library.prompts["STORIES"]
       prompt_args = {
           "num_stories": stories_generation_request.num_stories,
           "creative_brief_idea": stories_generation_request.creative_brief_idea,
@@ -66,11 +61,15 @@ class TextGenerator:
           "brand_guidelines": stories_generation_request.brand_guidelines,
           "num_scenes": stories_generation_request.num_scenes,
       }
-      prompt = prompts.format(**prompt_args)
-    else:
+      prompt = prompt_template["CREATE_STORIES_WITH_BRAND_GUIDELINES"].format(
+          **prompt_args
+      )
+      llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
       llm_params.generation_config["response_schema"] = RESPONSE_SCHEMAS[
-          "CREATE_STORIES"
+          "CREATE_STORIES_WITH_BRAND_GUIDELINES"
       ]
+    else:
+      prompt_template = text_prompts_library.prompts["STORIES"]
       prompt_args = {
           "num_stories": stories_generation_request.num_stories,
           "creative_brief_idea": stories_generation_request.creative_brief_idea,
@@ -78,9 +77,11 @@ class TextGenerator:
           "video_format": stories_generation_request.video_format,
           "num_scenes": stories_generation_request.num_scenes,
       }
-      prompt = text_prompts_library.prompts["STORIES"]["CREATE_STORIES"].format(
-          **prompt_args
-      )
+      prompt = prompt_template["CREATE_STORIES"].format(**prompt_args)
+      llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
+      llm_params.generation_config["response_schema"] = RESPONSE_SCHEMAS[
+          "CREATE_STORIES"
+      ]
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
@@ -431,6 +432,70 @@ class TextGenerator:
       video_prompts.append(self.create_video_prompt_from_scene(scene_desc))
 
     return video_prompts
+
+  def extract_brand_guidelines_from_file(self, file_gcs_uri: str) -> str:
+    """Extracts brand guidelines from a GCS file using Gemini LLM.
+
+    Args:
+      file_gcs_uri: The Google Cloud Storage URI of the brand guidelines file.
+
+    Returns:
+      The extracted brand guidelines text, or an empty string if extraction fails.
+    """
+    prompt_template = text_prompts_library.prompts["BRAND_GUIDELINES"]
+    prompt = prompt_template["EXTRACT_BRAND_GUIDELINES"]
+
+    # Define params for the LLM
+    llm_params = gemini_service.LLMParameters()
+    llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
+    # Set llm modality to document
+    llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})
+
+    # Execute the Gemini LLM call.
+    gemini = gemini_service.gemini_service
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
+
+    if response and response.parsed:
+      return response.parsed
+    else:
+      logging.info((
+          "DreamBoard - TEXT_GENERATOR: Gemini response was empty in "
+          "extract_brand_guidelines_from_file. Please check."
+      ))
+
+    return ""
+
+  def extract_creative_brief_from_file(self, file_gcs_uri: str) -> str:
+    """Extracts a creative brief from a GCS file using Gemini LLM.
+
+    Args:
+      file_gcs_uri: The Google Cloud Storage URI of the creative brief file.
+
+    Returns:
+      The extracted creative brief text, or an empty string if extraction fails.
+    """
+    prompt_template = text_prompts_library.prompts["CREATIVE_BRIEF"]
+    prompt = prompt_template["EXTRACT_CREATIVE_BRIEF"]
+
+    # Define params for the LLM
+    llm_params = gemini_service.LLMParameters()
+    llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
+    # Set llm modality to document
+    llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})
+
+    # Execute the Gemini LLM call.
+    gemini = gemini_service.gemini_service
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
+
+    if response and response.parsed:
+      return response.parsed
+    else:
+      logging.info((
+          "DreamBoard - TEXT_GENERATOR: Gemini response was empty in "
+          "extract_creative_brief_from_file. Please check."
+      ))
+
+    return ""
 
 
 # Create a singleton instance of the TextGenerator for application-wide use.

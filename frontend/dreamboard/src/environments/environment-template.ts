@@ -24,4 +24,5 @@ export const environment = {
   videoGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/video_generation',
   imageGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/image_generation',
   textGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/text_generation',
+  fileUploaderApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/file_uploader',
 };

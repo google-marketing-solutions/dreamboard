@@ -83,3 +83,15 @@ class TextRequest(BaseModel):
   prompt: str | None = ""
   scene: str | None = ""
   idea: str | None = ""
+
+
+class ExtractTextRequest(BaseModel):
+  """Represents a request to extract text from a file.
+
+  Attributes:
+    file_gcs_uri: The Google Cloud Storage URI of the file.
+    file_type: The type of the file (e.g., "CreativeBrief", "BrandGuidelines").
+  """
+
+  file_gcs_uri: str
+  file_type: str

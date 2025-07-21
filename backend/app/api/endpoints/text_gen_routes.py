@@ -22,10 +22,10 @@ generating/enhancing image and video prompts.
 
 import logging
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException
 from models.text import text_request_models
 from models.text.text_gen_models import SceneItem
+from models.text.text_request_models import ExtractTextRequest
 from services.text.text_generator import TextGenerator
 
 
@@ -355,3 +355,52 @@ def generate_video_prompts_from_scenes(
     raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
+
+
+@text_gen_router.post("/extract_text_from_file")
+async def extract_text_from_file(
+    extract_text_request: ExtractTextRequest,
+) -> str:
+  """Extracts text content from a file located in Google Cloud Storage based on its type.
+
+  This endpoint processes requests to extract text from files such as "CreativeBrief"
+  or "BrandGuidelines". It utilizes a `TextGenerator` to handle the specific
+  extraction logic for each file type.
+
+  Args:
+    extract_text_request: An instance of `ExtractTextRequest` containing
+      information about the file to be processed, including its type
+      (`file_type`) and its GCS URI (`file_gcs_uri`).
+
+  Returns:
+    A string containing the extracted text content from the file.
+    Returns an empty string if the `file_type` is not "CreativeBrief" or "BrandGuidelines".
+
+  Raises:
+    HTTPException: If an error occurs during the text extraction process,
+      an HTTPException with a 500 status code and the error detail is raised.
+  """
+  try:
+    text_generator = TextGenerator()
+
+    if extract_text_request.file_type == "CreativeBrief":
+      creative_brief = text_generator.extract_creative_brief_from_file(
+          extract_text_request.file_gcs_uri
+      )
+
+      return creative_brief
+
+    if extract_text_request.file_type == "BrandGuidelines":
+      brand_guidelines = text_generator.extract_brand_guidelines_from_file(
+          extract_text_request.file_gcs_uri
+      )
+
+      return brand_guidelines
+
+    return ""
+  except Exception as ex:
+    logging.error(
+        "DreamBoard - TEXT_GEN_ROUTES-extract_text_from_file: - ERROR: %s",
+        str(ex),
+    )
+    raise HTTPException(status_code=500, detail=str(ex)) from ex

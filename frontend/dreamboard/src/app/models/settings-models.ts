@@ -23,6 +23,8 @@ export enum UploadedFileType {
   UserProvidedImage = 'UserProvidedImage',
   ReferenceImage = 'ReferenceImage',
   Video = 'Video',
+  CreativeBrief = 'CreativeBrief',
+  BrandGuidelines = 'BrandGuidelines',
   None = 'None',
 }
 

@@ -27,8 +27,10 @@ export function getNewVideoStory() {
     id: uuidv4(),
     title: 'New Story',
     description: 'This is a new story',
+    brandGuidelinesAdherence: '',
     abcdAdherence: '',
     scenes: [],
+    generatedVideos: []
   };
 
   return videoStory;
