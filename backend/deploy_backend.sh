@@ -44,6 +44,7 @@ enable_services() {
     gcloud services enable servicemanagement.googleapis.com
     gcloud services enable servicecontrol.googleapis.com
     gcloud services enable iap.googleapis.com
+    gcloud services enable firestore.googleapis.com
     echo
 }
 
@@ -70,6 +71,9 @@ create_service_account() {
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
        --member "serviceAccount:$SERVICE_ACCOUNT" \
        --role roles/servicemanagement.serviceController
+    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+       --member "serviceAccount:$SERVICE_ACCOUNT" \
+       --role="roles/datastore.user"
     # Compute service account permissions
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
         --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
