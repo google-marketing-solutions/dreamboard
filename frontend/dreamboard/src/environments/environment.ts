@@ -24,4 +24,5 @@ export const environment = {
   videoGenerationApiURL: '/api/video_generation',
   imageGenerationApiURL: '/api/image_generation',
   textGenerationApiURL: '/api/text_generation',
+  fileUploaderApiURL: '/api/file_uploader',
 };

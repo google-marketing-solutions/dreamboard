@@ -787,7 +787,6 @@ class TransitionsService:
     final_clip = editor.CompositeVideoClip(
         [black_clip, clip1_fadeout, clip2_fadein]
     )
-
     final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
@@ -856,8 +855,7 @@ class TransitionsService:
 
     # Concatenate the (potentially trimmed) clips.
     final_clip = editor.concatenate_videoclips([clip1, clip2])
-    concatenated_audio = self.concatenate_audioclips(clip1.filename, clip2.filename)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(concatenated_audio))
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
 
@@ -1200,6 +1198,7 @@ class TransitionsService:
     # Create a new clip with the custom frame-making function.
     final_clip = editor.VideoClip(make_frame, duration=total_duration)
     final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, clip1.duration - duration)))
+
     return final_clip
 
   def slide_warp(

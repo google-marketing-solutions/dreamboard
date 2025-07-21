@@ -60,7 +60,6 @@ import {
 } from '../../video-utils';
 import { getNewVideoStory } from '../../story-utils';
 import { updateScenesWithGeneratedImages } from '../../image-utils';
-import { v4 as uuidv4 } from 'uuid';
 import { HttpResponse } from '@angular/common/http';
 import { SceneSettingsDialogComponent } from '../scene-settings-dialog/scene-settings-dialog.component';
 import { TransitionsSettingsDialogComponent } from '../transitions-settings-dialog/transitions-settings-dialog.component';
@@ -263,15 +262,15 @@ export class SceneBuilderComponent {
       .generateVideosFromScenes(this.story.id, videoGeneration)
       .subscribe(
         (resps: VideoGenerationResponse[]) => {
-          openSnackBar(
-            this._snackBar,
-            'Videos for scenes created successfully! Please check each scene individually.',
-            10
-          );
           // Find scenes in responses to update generated videos
           const executionStatus = updateScenesWithGeneratedVideos(
             resps,
             this.story.scenes
+          );
+          openSnackBar(
+            this._snackBar,
+            executionStatus['execution_message'],
+            20
           );
         },
         (error: any) => {
@@ -345,16 +344,17 @@ export class SceneBuilderComponent {
               10
             );
             const finalVideoReponse = response.videos[0];
-            const video = {
+            const video: Video = {
               name: finalVideoReponse.name,
               signedUri: finalVideoReponse.signed_uri,
               gcsUri: finalVideoReponse.gcs_uri,
               gcsFusePath: finalVideoReponse.gcs_fuse_path,
               mimeType: finalVideoReponse.mime_type,
               frameUris: [], // TODO (ae) include later
-            } as Video;
-            // Trigger component communication to share generated video with FinalVideoComponent
-            this.componentsCommunicationService.videoGenerated(video);
+            };
+            this.story.generatedVideos = [video];
+            // Trigger component communication to share story with generated video on Post Video Production
+            this.componentsCommunicationService.videoGenerated(this.story);
             this.componentsCommunicationService.tabChanged(2);
           }
         },

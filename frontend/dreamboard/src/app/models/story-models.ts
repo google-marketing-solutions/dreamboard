@@ -21,6 +21,7 @@
 
 import { Scene, SceneItem } from './scene-models';
 import { VideoScene } from './scene-models';
+import { Video } from './video-gen-models';
 
 export interface Story {
   id: string;
@@ -35,8 +36,10 @@ export interface VideoStory {
   id: string;
   title: string;
   description: string;
+  brandGuidelinesAdherence: string;
   abcdAdherence: string;
   scenes: VideoScene[];
+  generatedVideos: Video[];
 }
 
 export interface ExportStory {
@@ -63,4 +66,9 @@ export interface StoryItem {
   brand_guidelines_adherence: string;
   abcd_adherence: string;
   scenes: SceneItem[];
+}
+
+export interface ExtractTextItem {
+  file_gcs_uri: string;
+  file_type: string;
 }

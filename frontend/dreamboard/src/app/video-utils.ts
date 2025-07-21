@@ -159,7 +159,7 @@ export function updateScenesWithGeneratedVideos(
     } else {
       executionStatus[
         'execution_message'
-      ] += `ERROR: VideoScene ID ${scene.number} not found in backend responses. \n`;
+      ] += `Video for scene ${scene.number} not processed. 'The 'Regenerate video in bulk generation' option might be disabled. \n`;
     }
   });
 

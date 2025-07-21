@@ -56,9 +56,12 @@ import {
   StoryItem,
   StoriesGenerationRequest,
   ExportStory,
+  ExtractTextItem,
 } from '../../models/story-models';
+import { UploadedFile, UploadedFileType } from '../../models/settings-models';
 import { VideoScene } from '../../models/scene-models';
 import { v4 as uuidv4 } from 'uuid';
+import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
 
 @Component({
   selector: 'app-brainstorm',
@@ -70,6 +73,7 @@ import { v4 as uuidv4 } from 'uuid';
     MatIconModule,
     ReactiveFormsModule,
     StoriesComponent,
+    FileUploaderComponent,
   ],
   templateUrl: './brainstorm.component.html',
   styleUrl: './brainstorm.component.css',
@@ -103,6 +107,61 @@ export class BrainstormComponent implements AfterViewInit {
   onSelectStoryEvent(story: Story): void {
     this.selectedStory = story;
     this.exportStory();
+  }
+
+  /**
+   * Determines the `UploadedFileType` based on a given string identifier.
+   * @param {string} type - A string representing the file type ('document', 'video', etc).
+   * @returns {UploadedFileType} The corresponding `UploadedFileType` enum value, or `UploadedFileType.None` if no match.
+   */
+  getFileType(type: string): UploadedFileType {
+    if (type == 'CreativeBrief') {
+      return UploadedFileType.CreativeBrief;
+    }
+    if (type == 'BrandGuidelines') {
+      return UploadedFileType.BrandGuidelines;
+    }
+
+    return UploadedFileType.None;
+  }
+
+  addUploadedFile(file: UploadedFile) {
+    openSnackBar(this._snackBar, `Extracting file information...`, 15);
+
+    const extractTextRequest: ExtractTextItem = {
+      file_gcs_uri: file.gcsUri,
+      file_type: file.type,
+    };
+
+    this.textGenerationService
+      .extract_text_from_file(extractTextRequest)
+      .subscribe(
+        (extractedText: string) => {
+          if (file.type === UploadedFileType.CreativeBrief) {
+            this.storiesSettingsForm.controls['creativeBriefIdea'].setValue(
+              extractedText
+            );
+          }
+          if (file.type === UploadedFileType.BrandGuidelines) {
+            this.storiesSettingsForm.controls['brandGuidelines'].setValue(
+              extractedText
+            );
+          }
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`
+          );
+        }
+      );
   }
 
   /**
@@ -143,8 +202,10 @@ export class BrainstormComponent implements AfterViewInit {
       id: this.selectedStory.id,
       title: this.selectedStory.title,
       description: this.selectedStory.description,
+      brandGuidelinesAdherence: this.selectedStory.brandGuidelinesAdherence,
       abcdAdherence: this.selectedStory.abcdAdherence,
       scenes: videoScenes,
+      generatedVideos: [],
     };
 
     const exportStory: ExportStory = {
