@@ -420,6 +420,7 @@ class VideoGenerator:
       storage_service.storage_service.download_file_to_server(
           output_full_path, video.gcs_uri
       )
+      video.gcs_fuse_path = output_full_path
 
   def __get_dev_paths(self, story_id: str, gcs_fuse_path: str):
     """
