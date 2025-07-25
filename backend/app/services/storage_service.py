@@ -20,6 +20,8 @@ import logging
 import os
 
 import google.auth
+from core.config import settings
+from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 
 
@@ -46,7 +48,9 @@ class StorageService:
     self.storage_folder_name = storage_folder_name
 
     # Create Storage client
-    self.storage_client = storage.Client(project=self.storage_project)
+    self.storage_client = storage.Client(
+        project=self.storage_project, client_info=ClientInfo(user_agent=settings.USER_AGENT)
+    )
     self.bucket = self.storage_client.bucket(self.bucket_name)
 
   def save_image_to_folder(
@@ -82,7 +86,7 @@ class StorageService:
         The GCS blob object.
     """
     bucket, path = uri.replace("gs://", "").split("/", 1)
-    return storage.Client().get_bucket(bucket).get_blob(path)
+    return self.storage_client.get_bucket(bucket).get_blob(path)
 
   def download_file(self, uri: str) -> str:
     """
@@ -144,9 +148,7 @@ class StorageService:
         source_file_name: The path to the local file to upload.
         destination_blob_name: The desired name of the blob in GCS.
     """
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(os.getenv("GCS_BUCKET"))
-    blob = bucket.blob(destination_blob_name)
+    blob = self.bucket.blob(destination_blob_name)
 
     # Optional: set a generation-match precondition to avoid potential race
     # conditions and data corruptions. The request to upload is aborted if
