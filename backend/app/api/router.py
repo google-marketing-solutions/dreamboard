@@ -27,6 +27,7 @@ from api.endpoints import (
     text_gen_routes,
     video_gen_routes,
     file_uploader_routes,
+    story_routes
 )
 
 load_dotenv()
@@ -46,7 +47,9 @@ api_router.include_router(
 api_router.include_router(
     text_gen_routes.text_gen_router, tags=["text_gen_routes"]
 )
-
 api_router.include_router(
     file_uploader_routes.file_uploader_router, tags=["file_uploader_routes"]
+)
+api_router.include_router(
+    story_routes.story_router, tags=["story_routes"]
 )
