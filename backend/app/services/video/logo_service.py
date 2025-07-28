@@ -20,6 +20,7 @@ size, and duration of an overlay.
 """
 
 import subprocess
+from imageio_ffmpeg import get_ffmpeg_exe
 
 class LogoService:
     """
@@ -73,7 +74,7 @@ class LogoService:
 
         # Run FFmpeg
         cmd = [
-            "ffmpeg", "-y",
+            get_ffmpeg_exe(), "-y",
             "-i", input_video_path,
             "-i", input_logo_path,
             "-filter_complex", filter_complex,

@@ -362,6 +362,8 @@ class VideoGenerator:
       # Download only for local testing if folder doesn't exist
       if not os.path.exists(video_output_folder):
         os.makedirs(video_output_folder)
+      if not os.path.exists(image_output_folder):
+        os.makedirs(image_output_folder)
       storage_service.storage_service.download_file_to_server(
           input_video_fuse_path, gcs_video_path
       )
