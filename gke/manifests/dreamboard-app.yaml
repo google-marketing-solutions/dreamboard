@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dreamboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dreamboard
+  template:
+    metadata:
+      labels:
+        app: dreamboard
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "1"
+        gke-gcsfuse/memory-limit: "4Gi"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccount: dreamboard-gke-sa
+      containers:
+      - name: frontend
+        imagePullPolicy: Always
+        image: us-central1-docker.pkg.dev/jesus-95259/dreamboard-docker-repo/dreamboard-frontend:latest
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /code/app/mounted_files
+      - name: backend
+        imagePullPolicy: Always
+        image: us-central1-docker.pkg.dev/jesus-95259/dreamboard-docker-repo/dreamboard-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+          - name: PROJECT_ID
+            value: jesus-95259
+          - name: LOCATION
+            value: us-central1
+          - name: GCS_BUCKET
+            value: jesus-95259-dreamboard-bucket
+        volumeMounts:
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /code/app/mounted_files
+      volumes:
+      - name: gke-gcsfuse-cache
+        emptyDir:
+          medium: Memory
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: jesus-95259-dreamboard-bucket
+            mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dreamboard-svc
+  annotations:
+    networking.gke.io/load-balancer-ip-addresses: "34.134.75.103"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: "34.134.75.103"
+  ports:
+    - name: frontend
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+    - name: backend
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  selector:
+    app: dreamboard
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: dreamboard-account@jesus-95259.iam.gserviceaccount.com
+  name: dreamboard-gke-sa
+  namespace: default

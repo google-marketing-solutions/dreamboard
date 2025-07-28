@@ -42,6 +42,7 @@ class Settings(BaseSettings):
       "http://localhost:3000",  # Common for React development
       # TODO: Include all necessary production and development origins here.
   ]
+  USER_AGENT: str = "cloud-solutions/mas-dreamboard-usage-v1"
 
   # @classmethod should be below @field_validator for proper type checking
   @field_validator("BACKEND_CORS_ORIGINS", mode="before")

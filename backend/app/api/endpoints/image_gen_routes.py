@@ -28,7 +28,7 @@ import utils
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from models.image import image_request_models
-from models.image.image_gen_models import ImageGenerationResponse, UploadedFile
+from models.image.image_gen_models import ImageGenerationResponse
 from services import storage_service
 from services.image.image_generator import ImageGenerator
 
@@ -193,60 +193,5 @@ async def upload_image(
   except Exception as ex:
     logging.error(
         "DreamBoard - IMAGE_GEN_ROUTES: - IMAGE UPLOAD ERROR: %s", str(ex)
-    )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
-
-
-@image_gen_router.post("/upload_file/{story_id}")
-async def upload_file(story_id: str, file: UploadFile) -> UploadedFile:
-  """
-  Uploads a generic file to a GCS bucket associated with a story ID.
-
-  This endpoint handles the upload of any file type and returns structured
-  information about the uploaded file.
-
-  Args:
-      story_id: The unique identifier for the story, used to determine the
-                GCS folder path.
-      file: The `UploadFile` object representing the file to be uploaded.
-
-  Returns:
-      An `UploadedFile` object containing details about the newly uploaded
-      file, including its GCS URI, signed URI, and FUSE path.
-
-  Raises:
-      HTTPException (500): If an error occurs during the file upload process.
-  """
-  try:
-    file_name = file.filename.strip()
-    logging.info(
-        (
-            "DreamBoard - VIDEO_GEN_ROUTES: Starting file upload %s "
-            "for story id %s..."
-        ),
-        file_name,
-        story_id,
-    )
-    # Construct the full GCS path for the file.
-    file_path = f"{utils.get_images_bucket_folder_path(story_id)}/{file_name}"
-    # Upload the file content to GCS.
-    storage_service.storage_service.upload_from_frontend(
-        file_path, file.file, file.content_type
-    )
-    # Construct the GCS URI.
-    gcs_uri = f"{utils.get_images_bucket_base_path(story_id)}/{file_name}"
-    # Create an UploadedFile object with all relevant details.
-    uploaded_file = UploadedFile(
-        name=file_name,
-        gcs_uri=gcs_uri,
-        signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
-        gcs_fuse_path=utils.get_images_gcs_fuse_path(story_id),
-        mime_type=file.content_type,
-    )
-
-    return uploaded_file
-  except Exception as ex:
-    logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES: - UPLOAD FILE ERROR: %s", str(ex)
     )
     raise HTTPException(status_code=500, detail=str(ex)) from ex

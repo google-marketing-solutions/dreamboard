@@ -48,12 +48,26 @@
           </mat-select>
         </mat-form-field>
 
-        <!--div class="button-actions">
-          <button mat-button><mat-icon>upload</mat-icon> Creative Brief</button>
-          <button mat-button>
-            <mat-icon>upload</mat-icon> Brand Guidelines
-          </button>
-        </div-->
+        <!-- File Uploaders for Creative Brief and Brand Guidelines-->
+        <div class="button-actions">
+          <app-file-uploader
+            (fileUploadedEvent)="addUploadedFile($event)"
+            [storyId]="'story_files'"
+            [sceneId]="'n_a'"
+            [referenceImageId]=""
+            [fileType]="getFileType('CreativeBrief')"
+            [fileItems]="[]"
+          ></app-file-uploader>
+          <app-file-uploader
+            (fileUploadedEvent)="addUploadedFile($event)"
+            [storyId]="'story_files'"
+            [sceneId]="'n_a'"
+            [referenceImageId]=""
+            [fileType]="getFileType('BrandGuidelines')"
+            [fileItems]="[]"
+          ></app-file-uploader>
+        </div>
+
         <div class="generate-images-check">
           <mat-checkbox formControlName="generateInitialImageForScenes"
             >Generate initial scene images on story selection</mat-checkbox

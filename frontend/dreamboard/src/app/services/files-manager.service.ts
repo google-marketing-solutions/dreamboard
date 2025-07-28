@@ -22,18 +22,44 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { UploadedFileType } from '../models/settings-models';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FilesManagerService {
-  BASE_URL = environment.imageGenerationApiURL; // TODO (ae) change this to a specific route
+  BASE_URL = environment.fileUploaderApiURL;
 
   constructor(private http: HttpClient) {}
 
-  uploadFile(story_id: string, fileData: FormData): any {
+  uploadFile(
+    story_id: string,
+    fileType: UploadedFileType,
+    fileData: FormData
+  ): any {
+    let bucketPath = '';
+    if (
+      fileType === UploadedFileType.ReferenceImage ||
+      fileType === UploadedFileType.UserProvidedImage
+    ) {
+    }
+    switch (fileType) {
+      case UploadedFileType.ReferenceImage:
+      case UploadedFileType.UserProvidedImage:
+        bucketPath = `${story_id}@images`;
+        break;
+      case UploadedFileType.CreativeBrief:
+      case UploadedFileType.BrandGuidelines:
+      case UploadedFileType.Video:
+        bucketPath = `${story_id}`;
+        break;
+      default:
+        console.log(`No file type supported ${fileType}.`);
+        break;
+    }
+
     return this.http.post<any>(
-      `${this.BASE_URL}/upload_file/${story_id}`,
+      `${this.BASE_URL}/upload_file/${bucketPath}`,
       fileData,
       {
         reportProgress: true,

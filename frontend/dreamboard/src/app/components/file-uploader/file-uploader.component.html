@@ -8,7 +8,7 @@
       type="file"
       #fileUpload
       [id]="id"
-      accept=".png,.jpeg,.jpg"
+      [accept]="getAcceptOptions()"
       [multiple]="false"
       (change)="onFileSelected($event)"
     />
@@ -20,8 +20,8 @@
         priority="tertiary"
         (click)="clickFileUpload($event)"
       >
-        Add your reference image
-        <mat-icon>add_photo_alternate</mat-icon>
+        {{ getButtonTypeLabel() }}
+        <mat-icon>upload</mat-icon>
       </button>
     </div>
     }

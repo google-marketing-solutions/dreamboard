@@ -486,12 +486,10 @@ class VideoGenerator:
     return final_video_path
 
   def __get_videos_to_merge(self, videos: list[Video]):
-    """
-    Builds a stack of reversed video GCS FUSE paths to merge.
+    """Builds a stack of reversed video GCS FUSE paths to merge.
 
     Args:
-        videos: A list of `Video` objects, each representing a video
-                to be merged.
+        videos: A list of `Video` objects, each representing a video to be merged.
 
     Returns:
         A list of GCS FUSE paths in reversed order, ready for popping.
@@ -500,6 +498,78 @@ class VideoGenerator:
     for video in reversed(videos):
       reversed_uris.append(video.gcs_fuse_path)
     return reversed_uris
+
+  def apply_text_overlay_to_video(
+      self,
+      story_id: str,
+      gcs_video_path: str,
+      text_overlays: list[video_request_models.TextOverlay],
+  ) -> VideoGenerationResponse:
+    """Applies one or more text overlays to a video from GCS and saves the result.
+
+    Args:
+        story_id: The unique identifier for the story.
+        gcs_video_path: The GCS URI of the input video.
+        text_overlays: A list of `TextOverlay` objects, each defining an
+                       overlay with text content and styling/timing options.
+
+    Returns:
+        A `VideoGenerationResponse` object for the new video with text overlays.
+    """
+    logging.info(
+        "DreamBoard - VIDEO_GENERATOR: Applying text overlay(s) to video %s for story %s",
+        gcs_video_path,
+        story_id,
+    )
+
+    # Construct local/FUSE paths
+    input_file_name = utils.get_file_name_from_uri(gcs_video_path)
+    output_file_name = f"text_overlay_{input_file_name}"
+    output_folder = utils.get_videos_gcs_fuse_path(story_id)
+    input_fuse_path = f"{output_folder}/{input_file_name}"
+    output_fuse_path = f"{output_folder}/{output_file_name}"
+
+    # Download video if in dev environment
+    if os.getenv("ENV") == "dev":
+      storage_service.storage_service.download_file_to_server(
+          input_fuse_path, gcs_video_path
+      )
+
+    # Load the video clip
+    clip = editor.VideoFileClip(input_fuse_path)
+
+    # Apply text overlay and write the video
+    self.__apply_text_and_write_video(clip, output_fuse_path, text_overlays)
+
+    # Upload the new video back to GCS if in dev environment
+    if os.getenv("ENV") == "dev":
+      output_gcs_path = (
+          f"{utils.get_videos_bucket_folder_path(story_id)}/{output_file_name}"
+      )
+      storage_service.storage_service.upload_from_filename(
+          output_fuse_path, output_gcs_path
+      )
+
+    # Construct and return the response
+    final_video_uri = (
+        f"{utils.get_videos_bucket_base_path(story_id)}/{output_file_name}"
+    )
+    return VideoGenerationResponse(
+        video_segment=None,
+        done=True,
+        operation_name="text_overlay_applied",
+        execution_message=f"Text overlay applied successfully to {input_file_name}",
+        videos=[
+            Video(
+                name=output_file_name,
+                gcs_uri=final_video_uri,
+                signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
+                gcs_fuse_path=output_fuse_path,
+                mime_type="video/mp4",
+                frames_uris=[],
+            )
+        ],
+    )
 
   def __download_videos(self, story_id: str, videos: list[Video]):
     """
@@ -520,6 +590,7 @@ class VideoGenerator:
       storage_service.storage_service.download_file_to_server(
           output_full_path, video.gcs_uri
       )
+      video.gcs_fuse_path = output_full_path
 
   def __get_dev_paths(self, story_id: str, gcs_fuse_path: str):
     """
@@ -667,6 +738,36 @@ class VideoGenerator:
         if not os.path.exists(final_video_path): # Avoid re-writing if already handled
             fallback_clip = editor.concatenate_videoclips([clip1, clip2])
             fallback_clip.write_videofile(f"{final_video_path}", fps=24)
+
+  def __apply_text_and_write_video(
+      self,
+      clip: editor.VideoClip,
+      final_video_path: str,
+      text_overlays: list[video_request_models.TextOverlay],
+  ):
+    """
+    Applies one or more text overlays to a clip and writes it to a file.
+
+    Args:
+        clip: The video clip to process.
+        final_video_path: The output file path.
+        text_overlays: A list of `TextOverlay` objects, each defining an
+                       overlay.
+    """
+    final_clip = clip
+    for overlay in text_overlays:
+      text_content = overlay.text
+      text_options = overlay.options.model_dump(exclude_none=True)
+
+      if not text_content:
+        logging.warning("Skipping text overlay with no text content.")
+        continue
+
+      final_clip = self.editing_service.add_text_overlay(
+          clip=final_clip, text=text_content, **text_options
+      )
+
+    final_clip.write_videofile(f"{final_video_path}", fps=24)
 
 
   def process_multiple_videos(
