@@ -127,23 +127,3 @@ class ImageGenerationResponse:
   operation_name: str
   execution_message: str
   images: list[Image]
-
-
-@dataclass
-class UploadedFile:
-  """
-  Represents a file that has been uploaded to Google Cloud Storage.
-
-  Attributes:
-      name: The name of the uploaded file.
-      gcs_uri: The Google Cloud Storage (GCS) URI of the uploaded file.
-      signed_uri: A pre-signed URL for temporary public access to the file.
-      gcs_fuse_path: The FUSE path if the GCS bucket is mounted locally.
-      mime_type: The MIME type of the uploaded file (e.g., 'application/pdf').
-  """
-
-  name: str
-  gcs_uri: str
-  signed_uri: str
-  gcs_fuse_path: str
-  mime_type: str

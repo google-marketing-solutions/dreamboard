@@ -32,9 +32,10 @@ class LLMParameters:
   Class that represents the required params to make a prediction to the LLM.
   """
 
-  model_name: str = "gemini-2.5-flash-preview-04-17"
+  model_name: str = "gemini-2.5-flash"
   location: str = os.getenv("LOCATION")
   modality: dict = field(default_factory=lambda: {"type": "TEXT"})
+  response_modalities: dict = field(default_factory=lambda: {"type": "TEXT"})
   system_instructions: str = ""
   generation_config: dict = field(
       default_factory=lambda: {
@@ -44,6 +45,21 @@ class LLMParameters:
           "response_schema": {"type": "string"},
       }
   )
+
+  def set_modality(self, modality: dict) -> None:
+    """Sets the modal to use in the LLM
+    The modality object changes depending on the type.
+    For DOCUMENT:
+    {
+        "type": "DOCUMENT", # prompt is handled separately
+        "gcs_uri": ""
+    }
+    For TEXT:
+    {
+        "type": "TEXT" # prompt is handled separately
+    }
+    """
+    self.modality = modality
 
 
 DEFAULT_CONFIG = LLMParameters()
@@ -89,9 +105,9 @@ class GeminiService:
             location=llm_params.location,
         )
         # Build prompt part
-        prompt_part = types.Part.from_text(text=prompt)
+        parts = self._get_modality_parts(prompt, llm_params.modality)
         contents = [
-            types.Content(role="user", parts=[prompt_part]),
+            types.Content(role="user", parts=parts),
         ]
         generate_content_config = types.GenerateContentConfig(
             temperature=llm_params.generation_config.get("temperature"),
@@ -100,7 +116,7 @@ class GeminiService:
             max_output_tokens=llm_params.generation_config.get(
                 "max_output_tokens"
             ),
-            response_modalities=[llm_params.modality.get("type")],
+            response_modalities=[llm_params.response_modalities.get("type")],
             safety_settings=[
                 types.SafetySetting(
                     category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"
@@ -281,7 +297,7 @@ class GeminiService:
           raise
     return ""
 
-  def _get_modality_params(self, prompt: str, modality: str) -> list[any]:
+  def _get_modality_parts(self, prompt: str, modality: dict) -> list[any]:
     """
     Builds the modality parameters based on the type of LLM capability to
     use.
@@ -293,8 +309,23 @@ class GeminiService:
     Returns:
         A list of parameters for the specified modality.
     """
-    if modality == "text":
-      return [prompt]
+    prompt_part = types.Part.from_text(text=prompt)
+    if modality.get("type") == "TEXT":
+      return [prompt_part]
+    if modality.get("type") == "DOCUMENT":
+      # Support PDF for now
+      extension = modality.get("gcs_uri").rsplit(".", 1)[-1]
+      if extension == "pdf":
+        mime_type = f"application/{extension}"
+      elif extension == "txt":
+        mime_type = "text/plain"
+      else:
+        mime_type = ""
+      document = types.Part.from_uri(
+          file_uri=modality.get("gcs_uri"),
+          mime_type=mime_type,
+      )
+      return [document, prompt_part]
     return []
 
 
