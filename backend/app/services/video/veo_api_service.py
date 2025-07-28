@@ -25,7 +25,7 @@ import time
 
 import utils
 from google import genai
-from google.genai.types import GenerateVideosConfig, Image
+from google.genai.types import GenerateVideosConfig, Image, GeneratedVideo
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
 
@@ -203,3 +203,45 @@ class VeoAPIService:
           videos=[],
           video_segment=video_segment,
       )
+
+  def generate_video_for_agent(
+      self,
+      video_segment: video_request_models.VideoSegmentRequest,
+      output_gcs_uri: str | None = None,
+  ) -> list[GeneratedVideo] | None:
+    """Generates a Veo video for an agent tool call
+    Args:
+        output_gcs_uri: The GCS URI where the output video will be stored.
+        video_segment: The VideoSegmentRequest containing video generation
+                        parameters.
+
+    Returns:
+        A list of VideoGenerationResponse objects indicating the status of the
+        video generation.
+
+    """
+    operation = self.client.models.generate_videos(
+        model=DEFAULT_MODEL_NAME,
+        prompt=video_segment.prompt,
+        config=GenerateVideosConfig(
+            number_of_videos=video_segment.sample_count,
+            output_gcs_uri=output_gcs_uri,
+            fps=video_segment.frames_per_sec,
+            duration_seconds=video_segment.duration_in_secs,
+            aspect_ratio=video_segment.aspect_ratio,
+            person_generation=video_segment.person_generation,
+            enhance_prompt=video_segment.enhance_prompt,
+            negative_prompt=video_segment.negative_prompt,
+            generate_audio=video_segment.generate_audio,
+        ),
+    )
+
+    while not operation.done:
+      time.sleep(15)
+      operation = self.client.operations.get(operation)
+      print(operation)
+
+    if operation.response:
+      return operation.result.generated_videos
+    else:
+      return None

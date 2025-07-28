@@ -15,7 +15,8 @@
 from google.adk.tools import ToolContext
 from google.genai import types
 
-from services.agent.imagen_service import ImagenService
+from services.image.image_api_service import ImageService
+from models.request_models import Scene, CreativeDirection
 
 
 async def generate_image(prompt: str, tool_context: "ToolContext") -> dict:
@@ -27,10 +28,13 @@ async def generate_image(prompt: str, tool_context: "ToolContext") -> dict:
   Returns:
       A dictionary containing the generated image and status.
   """
-  image_service = ImagenService()
-  image_response = image_service.generate_images(prompt=prompt)
-  if image_response and image_response.images:
-    image_bytes = image_response.images[0]._image_bytes
+  image_service = ImageService()
+  # Note: scene_num is dummy variable to reuse data structure
+  creative_direction = CreativeDirection()
+  scene = Scene(scene_num=1, img_prompt=prompt, creative_dir=creative_direction)
+  image_response = image_service.generate_images_for_agent(scene)
+  if image_response and image_response.generated_images:
+    image_bytes = image_response.generated_images[0].image.image_bytes
     await tool_context.save_artifact(
         "image.png",
         types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
