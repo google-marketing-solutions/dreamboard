@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 async def get_weather(city: str) -> str:
   """Returns the weather for a given city
   Args:

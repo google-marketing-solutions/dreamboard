@@ -68,12 +68,18 @@ def get_user(session: Session, username: str) -> User | None:
   return None
 
 
-def authenticate_user(session: Session, username: str, password: str) -> UserInDB | None:
+def authenticate_user(
+    session: Session, username: str, password: str
+) -> UserInDB | None:
   user = get_user(session, username)
   if not user:
     return None
-  user_in_db = user if isinstance(user, UserInDB) else session.get(UserInDB, user.id)
-  if not user_in_db or not verify_password(password, user_in_db.hashed_password):
+  user_in_db = (
+      user if isinstance(user, UserInDB) else session.get(UserInDB, user.id)
+  )
+  if not user_in_db or not verify_password(
+      password, user_in_db.hashed_password
+  ):
     return None
   return user_in_db
 
@@ -85,14 +91,14 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
   else:
     expire = datetime.now(timezone.utc) + timedelta(minutes=15)
   to_encode.update({"exp": expire})
-  
+
   secret_key = os.getenv("SECRET_KEY")
   if not secret_key:
     raise HTTPException(
-      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-      detail="Server configuration error: SECRET_KEY not set"
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Server configuration error: SECRET_KEY not set",
     )
-    
+
   encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
   return encoded_jwt
 
@@ -110,10 +116,10 @@ async def get_current_user(
     secret_key = os.getenv("SECRET_KEY")
     if not secret_key:
       raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Server configuration error: SECRET_KEY not set"
+          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+          detail="Server configuration error: SECRET_KEY not set",
       )
-      
+
     payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
     username = payload.get("sub")
     if username is None:
@@ -121,10 +127,10 @@ async def get_current_user(
     token_data = TokenData(username=username)
   except InvalidTokenError:
     raise credentials_exception
-    
+
   if token_data.username is None:
     raise credentials_exception
-    
+
   user = get_user(session, username=token_data.username)
   if user is None:
     raise credentials_exception

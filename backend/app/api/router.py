@@ -26,7 +26,7 @@ from api.endpoints import (
     image_gen_routes,
     text_gen_routes,
     video_gen_routes,
-    file_uploader_routes,    
+    file_uploader_routes,
     login_router,
     scenario_router,
     agent_router,

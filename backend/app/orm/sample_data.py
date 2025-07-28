@@ -56,9 +56,9 @@ def initialize_sample_user_data() -> None:
   Initialize sample user data.
   """
   from passlib.context import CryptContext
-  
+
   pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-  
+
   default_user_pw = os.getenv("DEFAULTUSERPW")
   default_admin_pw = os.getenv("DEFAULTADMINPW")
 
@@ -67,7 +67,6 @@ def initialize_sample_user_data() -> None:
 
   if not default_admin_pw:
     raise ValueError("Default Admin Password not set in .env file")
-  
 
   with Session(engine) as session:
     # Regular user: johndoe / password123

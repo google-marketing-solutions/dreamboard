@@ -31,6 +31,7 @@ logging.basicConfig(filename="myapp.log", level=logging.INFO)
 
 from dotenv import load_dotenv
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   # TODO: need to change this to more persistent storage, right now just starting with clean db every time
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI):
       "agent_service": agent_service,
   }
 
+
 load_dotenv()
 
 
@@ -55,7 +57,7 @@ load_dotenv()
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_PREFIX}/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Set all CORS enabled origins if specified in settings

@@ -52,13 +52,13 @@ async def upload_file(bucket_path: str, file: UploadFile) -> UploadedFile:
         file_path, file.file, file.content_type
     )
     # Construct the GCS URI.
-    gcs_uri = f'gs://{os.getenv('GCS_BUCKET')}/{blob.name}'
+    gcs_uri = f"gs://{os.getenv('GCS_BUCKET')}/{blob.name}"
     # Create an UploadedFile object with all relevant details.
     uploaded_file = UploadedFile(
         name=file_name,
         gcs_uri=gcs_uri,
         signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
-        gcs_fuse_path="", # TODO (ae) add later. We don't need this for now
+        gcs_fuse_path="",  # TODO (ae) add later. We don't need this for now
         mime_type=file.content_type,
     )
 
