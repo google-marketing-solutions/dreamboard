@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from services.agent.ds_ml_agent import DSMLAgent
+from services.agent.agent_service import AgentService
 from dotenv import load_dotenv
 
-
-db_agent_service = DSMLAgent()
+agent_service = AgentService()
 load_dotenv()
-root_agent = db_agent_service.initialize_root_ml_agent()
-#
+root_agent_name = "orchestor_agent"
+root_agent = agent_service.lookup_agent(root_agent_name).agent

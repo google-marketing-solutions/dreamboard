@@ -22,7 +22,7 @@ from models.agent.user_model import UserInDB
 from models.agent.enums import AgentType
 
 
-FLASH_MODEL = "gemini-2.5"
+FLASH_MODEL = "gemini-2.5-flash"
 PRO_MODEL = "gemini-2.5-pro"
 
 # TODO: note that the sample data should probably be database migrations
