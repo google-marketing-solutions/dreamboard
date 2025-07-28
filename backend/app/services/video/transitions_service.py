@@ -52,51 +52,51 @@ class TransitionsService:
 
   def concatenate_audioclips(self, audioclip1_filename, audioclip2_filename, audioclip1_duration=None):
       """
-      Trims the end of clip1, then concatenates clip1 and clip2 audio using ffmpeg's concat demuxer.
+      Trims the end of clip1, then concatenates clip1 and clip2 audio using ffmpeg.
 
       Args:
-          file1 (str): Path to first audio file.
-          file2 (str): Path to second audio file.
+          audioclip1_filename (str): Path to first audio file.
+          audioclip2_filename (str): Path to second audio file.
           audioclip1_duration (float): If the first audioclip should be trimmed, the duration of that clip.
 
       Returns:
           str: Path to output audio file.
       """
-      with tempfile.TemporaryDirectory() as tmpdir:
-          audioclip1_to_use = audioclip1_filename
+      output_audioclip = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+      output_audioclip.close()
 
-          # If audioclip1_duration is not provided, use the full length of the first audio file.
-          if audioclip1_duration is not None:
-            trimmed_audioclip1 = os.path.join(tmpdir, "trimmed_audioclip.mp4")
-            subprocess.run([
-                get_ffmpeg_exe(), "-y",
-                "-i", audioclip1_filename,
-                "-t", str(audioclip1_duration),  # Trim to this duration.
-                "-c", "copy", # Copy the audio codec without re-encoding.
-                trimmed_audioclip1
-            ], check=True)
-            audioclip1_to_use = trimmed_audioclip1
+      filter_commands = []
+      input_args = [
+          get_ffmpeg_exe(), "-y", "-i", audioclip1_filename, "-i", audioclip2_filename
+      ]
 
-          # Create a file list for the concat demuxer.
-          file_list_path = os.path.join(tmpdir, "concat_list.txt")
-          with open(file_list_path, "w") as f:
-              f.write(f"file '{os.path.abspath(audioclip1_to_use)}'\n")
-              f.write(f"file '{os.path.abspath(audioclip2_filename)}'\n")
+      if audioclip1_duration is not None:
+          # Trim the first audio stream
+          filter_commands.append(f"[0:a]atrim=0:{audioclip1_duration},asetpts=PTS-STARTPTS[a0]")
+      else:
+          filter_commands.append("[0:a]asetpts=PTS-STARTPTS[a0]")
 
-          # Run ffmpeg concat.
-          output_audioclip = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-          output_audioclip.close()
+      filter_commands.append("[1:a]asetpts=PTS-STARTPTS[a1]")
+      filter_commands.append("[a0][a1]concat=n=2:v=0:a=1[outa]")
 
-          subprocess.run([
-              get_ffmpeg_exe(), "-y",
-              "-f", "concat",
-              "-safe", "0", # Allow "unsafe" file paths (absolute paths).
-              "-i", file_list_path,
-              "-c", "copy", # Copy the audio codec without re-encoding.
+      result = subprocess.run(
+          input_args + [
+              "-filter_complex", ";".join(filter_commands),
+              "-map", "[outa]",
+              "-c:a", "aac",
               output_audioclip.name
-          ], check=True)
+          ],
+          stdout=subprocess.PIPE,
+          stderr=subprocess.PIPE,
+          text=True,
+          check=True
+      )
 
-          return output_audioclip.name
+      # Debug logs
+      print("FFmpeg STDOUT:\n", result.stdout)
+      print("FFmpeg STDERR:\n", result.stderr)
+
+      return output_audioclip.name
 
   def crossfade(self, clip1, clip2, transition_duration, speed_curve="sigmoid"):
     """
