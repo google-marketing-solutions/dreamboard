@@ -244,3 +244,44 @@ class VideoGenerationRequest(BaseModel):
 
   video_segments: list[VideoSegmentRequest]
   creative_direction: VideoCreativeDirectionRequest | None = None
+
+class LogoOverlayOptions(BaseModel):
+  """
+  Represents options for overlaying a logo on a generated video.
+
+  Attributes:
+      start_time: The time (in seconds) when the logo should appear.
+      duration: The duration (in seconds) the logo should be visible.
+      width: The width of the logo in pixels.
+      height: The height of the logo in pixels.
+      x_position: The x position (top left corner) of the logo on the clip in pixels.
+      y_position: The y position (top right corner) of the logo on the clip in pixels.
+  """
+
+  start_time: int
+  duration: int
+  width: int
+  height: int
+  x_position: int
+  y_position: int
+
+class LogoOverlay(BaseModel):
+  """
+  Represents a single logo overlay to be applied to a video.
+  Attributes:
+      gcs_logo_path: The GCS URI of the logo image.
+      options: Details about how the overlay should be applied.
+  """
+
+  gcs_logo_path: str
+  options: LogoOverlayOptions = Field(default_factory=LogoOverlayOptions)
+
+class LogoOverlayRequest(BaseModel):
+  """
+  Represents a request to apply a logo overlay to a video.
+  Attributes:
+      gcs_video_path: The GCS URI of the input video.
+      logo_overlay: The logo overlay to be applied to the video.
+  """
+  gcs_video_path: str
+  logo_overlay: LogoOverlay = Field(default_factory=LogoOverlay)
