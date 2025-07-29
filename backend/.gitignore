@@ -5,6 +5,7 @@ app/venv
 .env
 **/__pycache__/
 app/dreamboard
+database.db
 
 # IDEs and editors
 .idea/

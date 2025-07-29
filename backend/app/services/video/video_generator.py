@@ -327,6 +327,108 @@ class VideoGenerator:
 
     return video_gen_response
 
+  def apply_logo_overlay_to_video(
+      self,
+      story_id: str,
+      gcs_video_path: str,
+      logo_overlay: video_request_models.LogoOverlay,
+  ) -> VideoGenerationResponse:
+    """Applies a logo overlay to a video from GCS and saves the result.
+    Args:
+        story_id: The unique identifier for the story.
+        gcs_video_path: The GCS URI of the input video.
+        logo_overlay: The `LogoOverlay` to apply.
+    Returns:
+        A `VideoGenerationResponse` object for the new video with logo overlay.
+    """
+    logging.info(
+        "DreamBoard - VIDEO_GENERATOR: Applying logo overlay to video %s for story %s",
+        gcs_video_path,
+        story_id,
+    )
+
+    # Construct local/FUSE paths
+    input_video_file_name = utils.get_file_name_from_uri(gcs_video_path)
+    input_logo_file_name = utils.get_file_name_from_uri(logo_overlay.gcs_logo_path)
+    output_file_name = f"logo_overlay_{input_video_file_name}"
+    video_output_folder = utils.get_videos_gcs_fuse_path(story_id)
+    image_output_folder = utils.get_images_gcs_fuse_path(story_id)
+    input_video_fuse_path = f"{video_output_folder}/{input_video_file_name}"
+    input_logo_fuse_path = f"{image_output_folder}/{input_logo_file_name}"
+    output_fuse_path = f"{video_output_folder}/{output_file_name}"
+
+    # Download files if in dev environment
+    if os.getenv("ENV") == "dev":
+      # Download only for local testing if folder doesn't exist
+      if not os.path.exists(video_output_folder):
+        os.makedirs(video_output_folder)
+      if not os.path.exists(image_output_folder):
+        os.makedirs(image_output_folder)
+      storage_service.storage_service.download_file_to_server(
+          input_video_fuse_path, gcs_video_path
+      )
+      storage_service.storage_service.download_file_to_server(
+          input_logo_fuse_path, logo_overlay.gcs_logo_path
+      )
+
+    # Apply logo overlay and write the video
+    self.__apply_logo_and_write_video(input_video_fuse_path, input_logo_fuse_path, output_fuse_path, logo_overlay)
+
+    # Upload the new video back to GCS if in dev environment
+    if os.getenv("ENV") == "dev":
+      output_gcs_path = (
+          f"{utils.get_videos_bucket_folder_path(story_id)}/{output_file_name}"
+      )
+      storage_service.storage_service.upload_from_filename(
+          output_fuse_path, output_gcs_path
+      )
+
+    # Construct and return the response
+    final_video_uri = (
+        f"{utils.get_videos_bucket_base_path(story_id)}/{output_file_name}"
+    )
+    return VideoGenerationResponse(
+        video_segment=None,
+        done=True,
+        operation_name="logo_overlay_applied",
+        execution_message=f"Logo overlay applied successfully to {input_video_file_name}",
+        videos=[
+            Video(
+                name=output_file_name,
+                gcs_uri=final_video_uri,
+                signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
+                gcs_fuse_path=output_fuse_path,
+                mime_type="video/mp4",
+                frames_uris=[],
+            )
+        ],
+    )
+  
+  def __apply_logo_and_write_video(
+      self,
+      input_video_path: str,
+      input_logo_path: str,
+      output_path: str,
+      logo_overlay: video_request_models.LogoOverlay,
+  ):
+    """
+    Applies a logo overlay to a clip and writes it to a file.
+    Args:
+        input_video_path: The input file path.
+        input_logo_path: The logo image file path.
+        output_path: The output file path.
+        logo_overlay: A `LogoOverlay` object, each defining the overlay
+                      to be applied. 
+    """
+    logo_options = logo_overlay.options.model_dump(exclude_none=True)
+
+    self.editing_service.apply_logo_overlay(
+        input_video_path=input_video_path, 
+        input_logo_path=input_logo_path, 
+        output_path=output_path, 
+        **logo_options
+    )
+
   def __merge(
       self,
       output_folder: str,
