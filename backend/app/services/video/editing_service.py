@@ -22,6 +22,7 @@ transitions between video clips.
 
 import logging
 from moviepy import editor
+from services.video.logo_service import LogoService
 from services.video.text_service import TextService
 from services.video.transitions_service import TransitionsService
 from models.video import video_request_models
@@ -40,6 +41,7 @@ class EditingService:
         Initializes the EditingService.
         """
         self._transitions_service = TransitionsService()
+        self._logo_service = LogoService()
         self._text_service = TextService()
 
     def apply_transition(
@@ -104,6 +106,30 @@ class EditingService:
         # The caller is responsible for providing correct kwargs for the specific transition.
         return transition_func(clip1, clip2, **kwargs)
 
+    def apply_logo_overlay(
+        self,
+        input_video_path: str,
+        input_logo_path: str,
+        output_path: str,
+        **kwargs
+    ) -> editor.CompositeVideoClip:
+        """
+        Adds a logo overlay to a video clip.
+        This method acts as a facade for the LogoService's add_logo_overlay method,
+        passing all keyword arguments to it.
+
+        Args:
+            input_video_path: The path to the video to apply a logo to.
+            input_logo_path: The logo to apply to the video.
+            output_path: The path where the output video with the logo overlay will be saved.
+            **kwargs: Additional keyword arguments for styling and timing,
+                      such as position, start_time, duration, etc.
+
+        Returns:
+            A new CompositeVideoClip with the logo overlay.
+        """
+        return self._logo_service.add_logo_overlay(input_video_path, input_logo_path, output_path, **kwargs)
+
     def add_text_overlay(
         self,
         clip: editor.VideoClip,
@@ -127,7 +153,6 @@ class EditingService:
             A new CompositeVideoClip with the text overlay.
         """
         return self._text_service.add_text_overlay(clip, text, **kwargs)
-
 
 # Create a singleton instance of the EditingService for application-wide use.
 editing_service = EditingService()

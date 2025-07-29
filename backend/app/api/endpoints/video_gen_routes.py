@@ -232,3 +232,41 @@ def extract_frames(
     except Exception as ex:
         logging.error("DreamBoard - VIDEO_GEN_ROUTES: - EXTRACT_FRAMES ERROR: %s", str(ex))
         raise HTTPException(status_code=500, detail=str(ex))
+    
+@video_gen_router.post("/apply_logo_overlay/{story_id}")
+def overlay_logo(
+    story_id: str,
+    logo_overlay_request: video_request_models.LogoOverlayRequest,
+    video_generator: VideoServiceDep,
+) -> VideoGenerationResponse:
+  """
+  Applies a logo overlay to a specified video.
+  Args:
+      story_id: The unique identifier for the story.
+      logo_overlay_request: A request object containing the video path and
+                            a logo overlay to apply.
+  Returns:
+      A `VideoGenerationResponse` object for the new video with the logo
+      overlay applied.
+  Raises:
+      HTTPException (500): If an error occurs during the process.
+  """
+  try:
+    logging.info(
+        (
+            "DreamBoard - VIDEO_GEN_ROUTES: Starting to apply logo "
+            "overlay for story %s..."
+        ),
+        story_id,
+    )
+    video_gen_response = video_generator.apply_logo_overlay_to_video(
+        story_id=story_id,
+        gcs_video_path=logo_overlay_request.gcs_video_path,
+        logo_overlay=logo_overlay_request.logo_overlay,
+    )
+    return video_gen_response
+  except Exception as ex:
+    logging.error(
+        "DreamBoard - VIDEO_GEN_ROUTES: - APPLY LOGO OVERLAY ERROR: %s", str(ex)
+    )
+    raise HTTPException(status_code=500, detail=str(ex)) from ex
