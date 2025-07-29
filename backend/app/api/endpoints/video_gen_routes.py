@@ -164,6 +164,48 @@ def merge_videos(
     logging.error("DreamBoard - VIDEO_GEN_ROUTES: - ERROR: %s", str(ex))
     raise HTTPException(status_code=500, detail=str(ex)) from ex
 
+@video_gen_router.post("/apply_text_overlay/{story_id}")
+def apply_text_overlay(
+    story_id: str,
+    text_overlay_request: video_request_models.TextOverlayRequest,
+    video_generator: VideoServiceDep,
+) -> VideoGenerationResponse:
+  """
+  Applies one or more text overlays to a specified video.
+
+  Args:
+      story_id: The unique identifier for the story.
+      text_overlay_request: A request object containing the video path and
+                            a list of text overlays to apply.
+
+  Returns:
+      A `VideoGenerationResponse` object for the new video with the text
+      overlays applied.
+
+  Raises:
+      HTTPException (500): If an error occurs during the process.
+  """
+  try:
+    logging.info(
+        (
+            "DreamBoard - VIDEO_GEN_ROUTES: Starting to apply text "
+            "overlay for story %s..."
+        ),
+        story_id,
+    )
+    video_gen_response = video_generator.apply_text_overlay_to_video(
+        story_id=story_id,
+        gcs_video_path=text_overlay_request.gcs_video_path,
+        text_overlays=text_overlay_request.text_overlays,
+    )
+    return video_gen_response
+  except Exception as ex:
+    logging.error(
+        "DreamBoard - VIDEO_GEN_ROUTES: - APPLY TEXT OVERLAY ERROR: %s", str(ex)
+    )
+    raise HTTPException(status_code=500, detail=str(ex)) from ex
+ 
+
 @video_gen_router.post("/extract_frames")
 def extract_frames(
     gcs_uri: str,

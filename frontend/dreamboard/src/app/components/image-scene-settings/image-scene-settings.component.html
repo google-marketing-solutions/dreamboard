@@ -98,7 +98,7 @@
         @if(referenceImageCards.length > 0) {
         <mat-form-field>
           <mat-label>Reference Type</mat-label>
-          <mat-select formControlName="referenceType">
+          <mat-select formControlName="referenceType" (selectionChange)="onReferenceTypeChanged($event)">
             @for (imageReferenceType of imageReferenceTypes; track
             imageReferenceType) {
             <mat-option [value]="imageReferenceType.value">{{

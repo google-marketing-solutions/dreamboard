@@ -21,11 +21,12 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { of } from 'rxjs';
 import { ScenesGenerationRequest } from '../models/scene-models';
-import { StoriesGenerationRequest } from '../models/story-models';
+import {
+  StoriesGenerationRequest,
+  ExtractTextItem,
+} from '../models/story-models';
 import { environment } from '../../environments/environment.development';
-import { Title } from '@angular/platform-browser';
 
 @Injectable({
   providedIn: 'root',
@@ -91,5 +92,12 @@ export class TextGenerationService {
     return this.http.post<any>(`${this.BASE_URL}/rewrite_brainstorm_prompt`, {
       idea: idea,
     });
+  }
+
+  extract_text_from_file(extract_text_request: ExtractTextItem): any {
+    return this.http.post<any>(
+      `${this.BASE_URL}/extract_text_from_file`,
+      extract_text_request
+    );
   }
 }

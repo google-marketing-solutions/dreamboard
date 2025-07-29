@@ -142,6 +142,9 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.videoSettingsForm.controls['enhancePrompt'].setValue(
       this.scene.videoGenerationSettings.enhancePrompt!
     );
+    this.videoSettingsForm.controls['generateAudio'].setValue(
+      this.scene.videoGenerationSettings.generateAudio!
+    );
     this.videoSettingsForm.controls['includeVideoSegment'].setValue(
       this.scene.videoGenerationSettings.includeVideoSegment!
     );
@@ -150,8 +153,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     );
     // Update selected video if any
     if (this.scene.videoGenerationSettings.selectedVideo) {
-      this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-        this.scene.videoGenerationSettings.selectedVideo.signedUri
+      // Update selected video index in carrousel
+      const updateForm = true;
+      this.updateSelectedVideo(
+        this.scene.videoGenerationSettings.selectedVideo.signedUri,
+        updateForm
       );
     }
   }
@@ -178,6 +184,8 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.videoSettingsForm.get('negativePrompt')?.value!;
     this.scene.videoGenerationSettings.enhancePrompt =
       this.videoSettingsForm.get('enhancePrompt')?.value!;
+    this.scene.videoGenerationSettings.generateAudio =
+      this.videoSettingsForm.get('generateAudio')?.value!;
     this.scene.videoGenerationSettings.includeVideoSegment =
       this.videoSettingsForm.get('includeVideoSegment')?.value!;
     this.scene.videoGenerationSettings.regenerateVideo =
@@ -260,13 +268,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   onVideoSelected(event: MatSelectChange): void {
     const videoUri = event.value;
-    /*this.setCurrentGeneratedVideoIndex(videoUri);
-    const selectedVideo =
-      this.scene.videoGenerationSettings.generatedVideos[
-        this.currentGeneratedVideoIndex
-      ];
-    // Set selected video in scene
-    this.scene.videoGenerationSettings.selectedVideo = selectedVideo;*/
     const updateForm = false;
     this.updateSelectedVideo(videoUri, updateForm);
   }

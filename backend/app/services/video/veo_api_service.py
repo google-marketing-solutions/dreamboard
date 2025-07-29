@@ -24,8 +24,9 @@ import os
 import time
 
 import utils
+from core.config import settings
 from google import genai
-from google.genai.types import GenerateVideosConfig, Image
+from google.genai.types import GenerateVideosConfig, Image, HttpOptions
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
 
@@ -44,6 +45,7 @@ class VeoAPIService:
         vertexai=True,
         project=os.getenv("PROJECT_ID"),
         location=os.getenv("LOCATION"),
+        http_options=HttpOptions(headers={"User-Agent": settings.USER_AGENT}),
     )
 
   def generate_video(

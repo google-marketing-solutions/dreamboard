@@ -28,31 +28,27 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
-import { Video } from '../../models/video-gen-models';
+import { VideoStory } from '../../models/story-models';
 
 @Component({
   selector: 'app-post-video-production',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, MatCardModule],
   templateUrl: './post-video-production.component.html',
   styleUrl: './post-video-production.component.css',
 })
 export class PostVideoProductionComponent {
-  generatedVideo?: Video;
+  story!: VideoStory;
   @ViewChild('finalVideo', { static: false }) videoElementRef!: ElementRef;
 
   constructor(
     private componentsCommunicationService: ComponentsCommunicationService
   ) {
-    componentsCommunicationService.videoGenerated$.subscribe((video: Video) => {
-      this.generatedVideo = undefined;
-      this.generatedVideo = video;
-      // Refresh video uri
-      if (this.videoElementRef) {
-        const videoElement = this.videoElementRef.nativeElement;
-        videoElement.src = this.generatedVideo.signedUri;
-        videoElement.load();
+    componentsCommunicationService.videoGenerated$.subscribe(
+      (story: VideoStory) => {
+        this.story = story;
       }
-    });
+    );
   }
 }

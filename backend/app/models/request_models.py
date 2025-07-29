@@ -21,10 +21,9 @@ data for the API, particularly for image generation and video scene management.
 """
 
 from typing import List, Optional
-
+from dataclasses import dataclass
 from google.genai import types
 from pydantic import BaseModel
-
 from models.image import image_gen_models
 
 
@@ -65,8 +64,7 @@ class CreativeDirection(BaseModel):
   """
 
   aspect_ratio: str | None = "1:1"
-  # imagen-3.0-generate-002"
-  model: str = "imagen-4.0-generate-preview-05-20"
+  model: str = "imagen-4.0-generate-preview-06-06"
   number_of_images: int | None = 1
   output_mime_type: Optional[str] | None = "image/png"
   person_generation: str | None = "allow_adult"
@@ -254,3 +252,23 @@ class StorageRequest(BaseModel):
   bucket: str
   folderPath: str
   output_file_name: str
+
+
+@dataclass
+class UploadedFile:
+  """
+  Represents a file that has been uploaded to Google Cloud Storage.
+
+  Attributes:
+      name: The name of the uploaded file.
+      gcs_uri: The Google Cloud Storage (GCS) URI of the uploaded file.
+      signed_uri: A pre-signed URL for temporary public access to the file.
+      gcs_fuse_path: The FUSE path if the GCS bucket is mounted locally.
+      mime_type: The MIME type of the uploaded file (e.g., 'application/pdf').
+  """
+
+  name: str
+  gcs_uri: str
+  signed_uri: str
+  gcs_fuse_path: str
+  mime_type: str

@@ -116,6 +116,24 @@ export class FileUploaderComponent {
     return uuidv4();
   }
 
+  getButtonTypeLabel(): string {
+    switch (this.fileType) {
+      case UploadedFileType.ReferenceImage:
+        return 'Reference image';
+      case UploadedFileType.UserProvidedImage:
+        return 'Your Reference Image';
+      case UploadedFileType.CreativeBrief:
+        return 'Creative Brief';
+      case UploadedFileType.BrandGuidelines:
+        return 'Brand Guidelines';
+      case UploadedFileType.Video:
+        return 'Video';
+      default:
+        console.log(`No file type supported ${this.fileType}.`);
+        return UploadedFileType.None;
+    }
+  }
+
   /**
    * Handles files dropped onto the uploader area.
    * It passes the files to `processFiles` for further handling and upload.
@@ -166,41 +184,59 @@ export class FileUploaderComponent {
       openSnackBar(this._snackBar, `Uploading file ${fileItem.name}...`);
       this.fileItems = [fileItem]; // Just 1 file for now
       // Upload to server
-      this.filesManagerService.uploadFile(this.storyId, formData).subscribe(
-        (response: any) => {
-          if (response.type == HttpEventType.Response) {
-            this.setUploadStatus(UploadStatus.Success);
-            const uploadedFile = response.body;
-            console.log(`File uploaded to server ${uploadedFile.gcs_uri}`);
+      this.filesManagerService
+        .uploadFile(this.storyId, this.fileType, formData)
+        .subscribe(
+          (response: any) => {
+            if (response.type == HttpEventType.Response) {
+              this.setUploadStatus(UploadStatus.Success);
+              const uploadedFile = response.body;
+              console.log(`File uploaded to server ${uploadedFile.gcs_uri}`);
+              openSnackBar(
+                this._snackBar,
+                `File ${uploadedFile.name} uploaded successfully!`,
+                10
+              );
+              fileItem.gcsUri = uploadedFile.gcs_uri;
+              fileItem.signedUri = uploadedFile.signed_uri;
+              fileItem.gcsFusePath = uploadedFile.gcs_fuse_path;
+              this.fileUploadedEvent.emit(fileItem);
+            } else {
+              console.log('Uploading image...');
+            }
+          },
+          (error: any) => {
+            this.uploadInProgress = false;
+            let errorMessage;
+            if (error.error.hasOwnProperty('detail')) {
+              errorMessage = error.error.detail;
+            } else {
+              errorMessage = error.error.message;
+            }
+            console.error(errorMessage);
             openSnackBar(
               this._snackBar,
-              `File ${uploadedFile.name} uploaded successfully!`,
-              10
+              `ERROR: ${errorMessage}. Please try again.`
             );
-            fileItem.gcsUri = uploadedFile.gcs_uri;
-            fileItem.signedUri = uploadedFile.signed_uri;
-            fileItem.gcsFusePath = uploadedFile.gcs_fuse_path;
-            this.fileUploadedEvent.emit(fileItem);
-          } else {
-            console.log('Uploading image...');
           }
-        },
-        (error: any) => {
-          let errorMessage;
-          if (error.error.hasOwnProperty('detail')) {
-            errorMessage = error.error.detail;
-          } else {
-            errorMessage = error.error.message;
-          }
-          console.error(errorMessage);
-          openSnackBar(
-            this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
-          );
-        }
-      );
+        );
     }
     this.fileUploadElementRef.nativeElement.value = '';
+  }
+
+  getAcceptOptions() {
+    switch (this.fileType) {
+      case UploadedFileType.ReferenceImage:
+      case UploadedFileType.UserProvidedImage:
+        return '.png,.jpeg,.jpg';
+      case UploadedFileType.CreativeBrief:
+      case UploadedFileType.BrandGuidelines:
+        return '.pdf,.txt';
+      case UploadedFileType.Video:
+        return '.mp4';
+      default:
+        return '';
+    }
   }
 
   disableUploadButton() {

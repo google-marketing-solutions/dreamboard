@@ -19,10 +19,54 @@
  *
  ***************************************************************************/
 
-.video-container {
-  width: 33%;
-  height: 500px;
-  margin: 40px auto;
+/***************************************************************************
+ *
+ *  Copyright 2025 Google Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Note that these code samples being shared are not official Google
+ *  products and are not formally supported.
+ *
+ ***************************************************************************/
+
+.generated-videos-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.initial-screen {
+  width: 500px;
+  height: 400px;
+  background-color: white;
+  border: 1px dotted gray;
+  margin: 30px auto;
+
+  p {
+    margin-top: 190px;
+    text-align: center;
+  }
+}
+
+.video-card {
+  max-width: 650px;
+  margin: 32px 16px;
+
+  mat-card-title {
+    font-size: 20px;
+    line-height: 50px;
+  }
 
   .button-actions {
     display: flex;
@@ -31,17 +75,28 @@
   }
 }
 
-.initial-screen {
-  width: 500px;
-  height: 400px;
-  background-color: white;
-  border: 1px dotted gray;
-  margin: auto 8px;
+.header-image {
+  background-image: url("../../../../public/scene.png");
+  background-size: cover;
+  border-radius: 0px;
+}
 
-  p {
-    margin-top: 190px;
-    text-align: center;
+.actions {
+  margin-top: 12px;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px 100px 0px 0px;
+
+  button {
+    margin-right: 8px;
   }
+}
+
+.story-id {
+  font-size: 10px;
 }
 
 a {
@@ -51,6 +106,6 @@ a {
 
 a:hover {
   color: white;
-  text-decoration:none;
-  cursor:pointer;
+  text-decoration: none;
+  cursor: pointer;
 }
