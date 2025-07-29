@@ -24,7 +24,6 @@ import datetime
 import logging
 from typing import Annotated
 
-import utils
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from models.image import image_request_models

@@ -23,12 +23,15 @@ import logging
 import os
 import time
 from typing import List
+import traceback
 
 from google import genai
 from google.genai import types
 from models import request_models
 from models.image.image_gen_models import IMAGE_REFERENCE_TYPES, ImageReference
 from utils import get_images_bucket_path
+
+from google.genai.types import GenerateImagesResponse
 
 
 class ImageService:
@@ -251,3 +254,58 @@ class ImageService:
       scene.image_uri.append(scene_img_uri)
       scene.image_content_type = part.mime_type
       logging.debug("Scene Id: %s, image_uri: %s", scene_id, scene_img_uri)
+
+  def generate_images_for_agent(
+      self, scene: request_models.Scene, output_gcs_uri: str | None = None
+  ) -> GenerateImagesResponse | None:
+    """
+    Generates images based on a text prompt using Imagen.
+
+    Args:
+
+
+    Returns:
+        A list of image bytes (PNG format) if successful, None otherwise.
+    """
+    try:
+      print(
+          f"Generating {scene.creative_dir.number_of_images} image(s) for"
+          f" prompt: '{scene.img_prompt[:100]}...'"
+      )
+
+      # Full list of possible params here:
+      # https://github.com/googleapis/python-aiplatform/blob/667b66587021d37f765ba12aad0b244a00537089/vertexai/vision_models/_vision_models.py#L648
+      # TODO: add ability to do product placement, masks, etc.
+      generate_config_params = {
+          "number_of_images": scene.creative_dir.number_of_images,
+          "output_mime_type": scene.creative_dir.output_mime_type,
+          "person_generation": scene.creative_dir.person_generation,
+          "aspect_ratio": scene.creative_dir.aspect_ratio,
+          "safety_filter_level": scene.creative_dir.safety_filter_level,
+          "output_gcs_uri": output_gcs_uri,
+          "negative_prompt": scene.creative_dir.negative_prompt,
+          "language": scene.creative_dir.language,
+          "output_compression_quality": (
+              scene.creative_dir.output_compression_quality
+          ),
+          "enhance_prompt": scene.creative_dir.enhance_prompt,
+          "include_rai_reason": False,
+      }
+
+      image_responses = self.client.models.generate_images(
+          model=scene.creative_dir.model,
+          prompt=scene.img_prompt,
+          config=types.GenerateImagesConfig(**generate_config_params),
+      )
+
+      if not image_responses:
+        print("Image generation returned no images.")
+        return None
+
+      # image_bytes_list = [img._image_bytes for img in images_response]
+      # print(f"Successfully generated {len(image_bytes_list)} image(s).")
+      return image_responses
+    except Exception as e:
+      print(f"Error generating image: {str(e)}")
+      traceback.print_exc()
+      return None
