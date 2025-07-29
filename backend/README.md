@@ -52,6 +52,7 @@ PROJECT_ID=<YOUR_PROJECT_ID>
 LOCATION=<YOUR_PROJECT_LOCATION>
 GCS_BUCKET=<YOUR_GCS_BUCKET>
 ENV=dev
+FIRESTORE_COLLECTION=dreamboard-stories
 ```
 
 - `uv run fastapi dev app/main.py`

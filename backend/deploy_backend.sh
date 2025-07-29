@@ -90,6 +90,22 @@ create_service_account() {
     echo
 }
 
+create_firestore_database() {
+    echo "Checking for existing Firestore database..."
+    FIRESTORE_EXISTS=$(gcloud firestore databases describe --project=$GOOGLE_CLOUD_PROJECT --format="value(name)" 2>/dev/null || echo "")
+
+    if [ -z "$FIRESTORE_EXISTS" ]; then
+        echo "No Firestore database found. Creating Firestore database..."
+        gcloud firestore databases create \
+            --project="$GOOGLE_CLOUD_PROJECT" \
+            --location="$LOCATION" \
+            --type=firestore-native
+        echo "Firestore database created."
+    else
+        echo "Firestore database already exists. Skipping creation."
+    fi
+}
+
 deploy_cloud_run_service() {
     echo "Deploying Cloud Run Service..."
     gcloud run deploy $CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
@@ -99,7 +115,7 @@ deploy_cloud_run_service() {
     --add-volume-mount volume=$VOLUME_NAME,mount-path=$MOUNT_PATH \
     --memory 16Gi \
     --cpu=4 \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME \
+    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_COLLECTION=$FIRESTORE_COLLECTION \
     --allow-unauthenticated # REMOVE
     sleep 180
     echo
@@ -147,6 +163,7 @@ function init() {
         PROJECT_NUMBER=$(gcloud projects describe $GOOGLE_CLOUD_PROJECT --format="value(projectNumber)")
         CLOUD_RUN_SERVICE_NAME="dreamboard-backend"
         SERVICE_ACCOUNT_NAME="dreamboard-sa"
+        FIRESTORE_COLLECTION="dreamboard-stories"
         SERVICE_ACCOUNT=$SERVICE_ACCOUNT_NAME@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
         BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
         BUCKET="gs://$BUCKET_NAME"
@@ -172,6 +189,9 @@ function init() {
             echo
             # Enable services
             enable_services
+
+            # Create Firestore database
+            create_firestore_database
 
             # Create service account
             EXISTING_SERVICE_ACCOUNT=$(gcloud iam service-accounts list --filter "email:${SERVICE_ACCOUNT_NAME}" --format="value(email)")

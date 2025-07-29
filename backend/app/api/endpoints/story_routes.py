@@ -42,7 +42,7 @@ def story_health_check():
 
   return {"status": "Success!"}
 
-@story_router.get("/{user_id}/{story_id}")
+@story_router.get("/read_story/{user_id}/{story_id}")
 def read_story(user_id: str, story_id: str):
     """
     Retrieve a single story for the given user.
@@ -57,21 +57,21 @@ def read_story(user_id: str, story_id: str):
         raise HTTPException(status_code=404, detail="Story not found")
     return story
 
-@story_router.get("/{user_id}")
+@story_router.get("/list_all_stories/{user_id}")
 def list_all_stories(user_id: str):
     """
     List all stories for the given user.
     """
     return story_service.list_stories(user_id)
 
-@story_router.post("/{user_id}")
+@story_router.post("/save_story/{user_id}")
 def save_story(user_id: str, story: Dict = Body(...)):
     """
     Save the given story for a particular user.
     """
     return story_service.save_story(user_id, story)
 
-@story_router.delete("/{user_id}/{story_id}")
+@story_router.delete("/remove_story/{user_id}/{story_id}")
 def remove_story(user_id: str, story_id: str):
     """
     Delete a specific story for the given user.
