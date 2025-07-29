@@ -95,7 +95,6 @@ class TextOverlayRequest(BaseModel):
       gcs_video_path: The GCS URI of the input video.
       text_overlays: A list of `TextOverlay` objects to apply to the video.
   """
-
   gcs_video_path: str
   text_overlays: list[TextOverlay]
 

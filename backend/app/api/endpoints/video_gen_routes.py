@@ -164,7 +164,6 @@ def merge_videos(
     logging.error("DreamBoard - VIDEO_GEN_ROUTES: - ERROR: %s", str(ex))
     raise HTTPException(status_code=500, detail=str(ex)) from ex
 
-
 @video_gen_router.post("/apply_text_overlay/{story_id}")
 def apply_text_overlay(
     story_id: str,
@@ -205,7 +204,7 @@ def apply_text_overlay(
         "DreamBoard - VIDEO_GEN_ROUTES: - APPLY TEXT OVERLAY ERROR: %s", str(ex)
     )
     raise HTTPException(status_code=500, detail=str(ex)) from ex
-
+ 
 
 @video_gen_router.post("/extract_frames")
 def extract_frames(
@@ -215,23 +214,20 @@ def extract_frames(
     time_sec: int,
     frame_count: int,
 ):
-  try:
+    try:        
 
-    frame_extractor = FrameExtractorService()
-    extracted_frame_filenames = frame_extractor.extract_frames(
-        gcs_uri=gcs_uri,
-        story_id=story_id,
-        scene_num=scene_num,
-        time_sec=time_sec,
-        frame_count=frame_count,
-    )
-    return {
-        "message": (
-            f"Frames extracted successfully for scene {scene_num} at"
-            f" {time_sec}s"
-        ),
-        "frames": extracted_frame_filenames,
-    }
+        frame_extractor = FrameExtractorService()
+        extracted_frame_filenames = frame_extractor.extract_frames(
+            gcs_uri=gcs_uri,
+            story_id=story_id,
+            scene_num=scene_num,
+            time_sec=time_sec,
+            frame_count=frame_count,
+        )
+        return {
+            "message": f"Frames extracted successfully for scene {scene_num} at {time_sec}s",
+            "frames": extracted_frame_filenames,
+        }
 
     except Exception as ex:
         logging.error("DreamBoard - VIDEO_GEN_ROUTES: - EXTRACT_FRAMES ERROR: %s", str(ex))
