@@ -183,13 +183,7 @@ class TransitionsService:
     final_clip = editor.CompositeVideoClip([clip1, clip2], use_bgclip=True)
     final_clip = final_clip.set_make_frame(make_frame)
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, transition_start
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
     return final_clip
 
@@ -295,13 +289,7 @@ class TransitionsService:
         [clip2, clip1_masked], size=clip1.size
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, transition_start
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
     return final_clip
 
@@ -476,13 +464,7 @@ class TransitionsService:
         size=clip1.size,
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, transition_start
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
     return final_clip
 
@@ -707,13 +689,7 @@ class TransitionsService:
         size=clip1.size,
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, transition_start
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
     return final_clip
 
@@ -811,11 +787,7 @@ class TransitionsService:
     final_clip = editor.CompositeVideoClip(
         [black_clip, clip1_fadeout, clip2_fadein]
     )
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(clip1.filename, clip2.filename)
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
 
@@ -883,11 +855,7 @@ class TransitionsService:
 
     # Concatenate the (potentially trimmed) clips.
     final_clip = editor.concatenate_videoclips([clip1, clip2])
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(clip1.filename, clip2.filename)
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
 
@@ -1035,11 +1003,7 @@ class TransitionsService:
 
     # Concatenate the blurred clips.
     final_clip = editor.concatenate_videoclips([clip1_blurred, clip2_blurred])
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(clip1.filename, clip2.filename)
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
 
@@ -1130,11 +1094,7 @@ class TransitionsService:
         blurred_frame2,  # second frame with zoom and 50% blur.
         clip2,  # clip2 unchanged.
     ])
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(clip1.filename, clip2.filename)
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
     return final_clip
 
@@ -1237,13 +1197,7 @@ class TransitionsService:
 
     # Create a new clip with the custom frame-making function.
     final_clip = editor.VideoClip(make_frame, duration=total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, clip1.duration - duration
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, clip1.duration - duration)))
 
     return final_clip
 
@@ -1393,12 +1347,7 @@ class TransitionsService:
 
     # Create a new clip with the custom frame-making function.
     final_clip = editor.VideoClip(make_frame, duration=total_duration)
-    final_clip = final_clip.set_audio(
-        editor.AudioFileClip(
-            self.concatenate_audioclips(
-                clip1.filename, clip2.filename, clip1.duration - duration
-            )
-        )
-    )
+    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, clip1.duration - duration)))
 
     return final_clip
+

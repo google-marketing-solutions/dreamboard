@@ -519,8 +519,7 @@ class VideoGenerator:
         A `VideoGenerationResponse` object for the new video with text overlays.
     """
     logging.info(
-        "DreamBoard - VIDEO_GENERATOR: Applying text overlay(s) to video %s for"
-        " story %s",
+        "DreamBoard - VIDEO_GENERATOR: Applying text overlay(s) to video %s for story %s",
         gcs_video_path,
         story_id,
     )
@@ -561,9 +560,7 @@ class VideoGenerator:
         video_segment=None,
         done=True,
         operation_name="text_overlay_applied",
-        execution_message=(
-            f"Text overlay applied successfully to {input_file_name}"
-        ),
+        execution_message=f"Text overlay applied successfully to {input_file_name}",
         videos=[
             Video(
                 name=output_file_name,
@@ -634,7 +631,7 @@ class VideoGenerator:
             video_path1: The file path of the first video clip.
             video_path2: The file path of the second video clip.
             final_video_path: The desired output file path for the merged video.
-    """
+        """
     clip1 = editor.VideoFileClip(video_path1)
     clip2 = editor.VideoFileClip(video_path2)
     # Use the editing_service facade
@@ -643,114 +640,106 @@ class VideoGenerator:
 
     # Create transition by type:
     if transition_type == video_request_models.VideoTransition.X_FADE.value:
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.X_FADE,
-          transition_duration=2.0,
-          speed_curve="sigmoid",
-      )
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.X_FADE,
+            transition_duration=2.0,
+            speed_curve="sigmoid"
+        )
     elif transition_type == video_request_models.VideoTransition.WIPE.value:
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.WIPE,
-          transition_duration=2.0,
-          direction="left-to-right",
-      )
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.WIPE,
+            transition_duration=2.0,
+            direction="left-to-right"
+        )
     elif transition_type == video_request_models.VideoTransition.ZOOM.value:
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.ZOOM,
-          transition_duration=0.25,
-          motion_blur=10,
-          speed_curve="linear",
-      )
-    elif (
-        transition_type == video_request_models.VideoTransition.ZOOM_WARP.value
-    ):
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.ZOOM_WARP,
-          transition_duration=0.5,
-          motion_blur=10,
-          speed_curve="sigmoid",
-          distortion_factor=0.75,
-          distortion_type=["pinch", "bulge"],
-      )
-    elif (
-        transition_type
-        == video_request_models.VideoTransition.DIP_TO_BLACK.value
-    ):
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.DIP_TO_BLACK,
-          transition_duration=1.0,  # Ensure float for duration
-          speed_curve="linear",
-      )
-    elif (
-        transition_type
-        == video_request_models.VideoTransition.CONCATENATE.value
-    ):
-      # Concatenate might have specific kwargs like trim_end_clip1, trim_start_clip2
-      # Assuming no trims for this direct replacement for now.
-      final_clip = service.apply_transition(
-          clip1, clip2, video_request_models.VideoTransition.CONCATENATE
-      )
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.ZOOM,
+            transition_duration=0.25,
+            motion_blur=10,
+            speed_curve="linear",
+        )
+    elif transition_type == video_request_models.VideoTransition.ZOOM_WARP.value:
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.ZOOM_WARP,
+            transition_duration=0.5,
+            motion_blur=10,
+            speed_curve="sigmoid",
+            distortion_factor=0.75,
+            distortion_type=["pinch", "bulge"],
+        )
+    elif transition_type == video_request_models.VideoTransition.DIP_TO_BLACK.value:
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.DIP_TO_BLACK,
+            transition_duration=1.0, # Ensure float for duration
+            speed_curve="linear"
+        )
+    elif transition_type == video_request_models.VideoTransition.CONCATENATE.value:
+        # Concatenate might have specific kwargs like trim_end_clip1, trim_start_clip2
+        # Assuming no trims for this direct replacement for now.
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.CONCATENATE
+        )
     elif transition_type == video_request_models.VideoTransition.BLUR.value:
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.BLUR,
-          transition_duration=1.0,
-          max_blur=1.0,
-      )
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.BLUR,
+            transition_duration=1.0,
+            max_blur=1.0
+        )
     elif transition_type == video_request_models.VideoTransition.FLICKER.value:
-      # Flicker takes no additional kwargs
-      final_clip = service.apply_transition(
-          clip1, clip2, video_request_models.VideoTransition.FLICKER
-      )
+        # Flicker takes no additional kwargs
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.FLICKER
+        )
     elif transition_type == video_request_models.VideoTransition.SLIDE.value:
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.SLIDE,
-          duration=1.0,  # 'duration' is the kwarg for slide
-          speed_curve="sigmoid",
-      )
-    elif (
-        transition_type == video_request_models.VideoTransition.SLIDE_WARP.value
-    ):
-      final_clip = service.apply_transition(
-          clip1,
-          clip2,
-          video_request_models.VideoTransition.SLIDE_WARP,
-          duration=1.0,  # 'duration' is the kwarg for slide_warp
-          speed_curve="sigmoid",
-          stretch_intensity=0.3,
-      )
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.SLIDE,
+            duration=1.0, # 'duration' is the kwarg for slide
+            speed_curve="sigmoid"
+        )
+    elif transition_type == video_request_models.VideoTransition.SLIDE_WARP.value:
+        final_clip = service.apply_transition(
+            clip1,
+            clip2,
+            video_request_models.VideoTransition.SLIDE_WARP,
+            duration=1.0, # 'duration' is the kwarg for slide_warp
+            speed_curve="sigmoid",
+            stretch_intensity=0.3
+        )
 
     if final_clip:
-      final_clip.write_videofile(f"{final_video_path}", fps=24)
+        final_clip.write_videofile(f"{final_video_path}", fps=24)
     else:
-      # Fallback or error handling if a transition type wasn't matched
-      # For now, let's assume concatenation as a default if no other transition matched
-      # or log an error.
-      logging.warning(
-          "DreamBoard - VIDEO_GENERATOR: Unhandled transition type %s. "
-          "Defaulting to concatenation or skipping.",
-          transition_type,
-      )
-      # As a simple fallback, concatenate if no specific transition was applied
-      # This part depends on desired behavior for unmapped/new transitions
-      if not os.path.exists(
-          final_video_path
-      ):  # Avoid re-writing if already handled
-        fallback_clip = editor.concatenate_videoclips([clip1, clip2])
-        fallback_clip.write_videofile(f"{final_video_path}", fps=24)
+        # Fallback or error handling if a transition type wasn't matched
+        # For now, let's assume concatenation as a default if no other transition matched
+        # or log an error.
+        logging.warning(
+            "DreamBoard - VIDEO_GENERATOR: Unhandled transition type %s. "
+            "Defaulting to concatenation or skipping.",
+            transition_type
+        )
+        # As a simple fallback, concatenate if no specific transition was applied
+        # This part depends on desired behavior for unmapped/new transitions
+        if not os.path.exists(final_video_path): # Avoid re-writing if already handled
+            fallback_clip = editor.concatenate_videoclips([clip1, clip2])
+            fallback_clip.write_videofile(f"{final_video_path}", fps=24)
 
   def __apply_text_and_write_video(
       self,
@@ -781,6 +770,7 @@ class VideoGenerator:
       )
 
     final_clip.write_videofile(f"{final_video_path}", fps=24)
+
 
   def process_multiple_videos(
       self, video_gen_responses: list[VideoGenerationResponse]
