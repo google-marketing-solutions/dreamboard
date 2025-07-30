@@ -25,4 +25,5 @@ export const environment = {
   imageGenerationApiURL: '/api/image_generation',
   textGenerationApiURL: '/api/text_generation',
   fileUploaderApiURL: '/api/file_uploader',
+  storiesStorageApiURL: '/api/story_storage',
 };
