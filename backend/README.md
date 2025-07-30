@@ -52,6 +52,9 @@ PROJECT_ID=<YOUR_PROJECT_ID>
 LOCATION=<YOUR_PROJECT_LOCATION>
 GCS_BUCKET=<YOUR_GCS_BUCKET>
 ENV=dev
+
+DEFAULTUSERPW=<a default user password>
+DEFAULTADMINPW=<a default admin password>
 ```
 
 - `uv run fastapi dev app/main.py`
