@@ -64,6 +64,9 @@ import { HttpResponse } from '@angular/common/http';
 import { SceneSettingsDialogComponent } from '../scene-settings-dialog/scene-settings-dialog.component';
 import { TransitionsSettingsDialogComponent } from '../transitions-settings-dialog/transitions-settings-dialog.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
+import { StoriesStorageService } from '../../services/stories-storage.service';
+
+const userId = 'user1'; // TODO (ae) change this!!
 
 @Component({
   selector: 'app-scene-builder',
@@ -82,7 +85,8 @@ export class SceneBuilderComponent {
   constructor(
     private videoGenerationService: VideoGenerationService,
     private imageGenerationService: ImageGenerationService,
-    private componentsCommunicationService: ComponentsCommunicationService
+    private componentsCommunicationService: ComponentsCommunicationService,
+    private storiesStorageService: StoriesStorageService
   ) {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
@@ -193,7 +197,7 @@ export class SceneBuilderComponent {
     } else {
       console.log('Video Scene not found. No scene to remove.');
     }
-    if(this.story.scenes.length === 0) {
+    if (this.story.scenes.length === 0) {
       // If all scenes removed, create new story
       this.story = getNewVideoStory();
     }
@@ -287,6 +291,30 @@ export class SceneBuilderComponent {
           );
         }
       );
+  }
+
+  saveStory() {
+    openSnackBar(this._snackBar, `Saving story...`);
+
+    this.storiesStorageService.addNewStory(userId, this.story).subscribe(
+      (response: string) => {
+        console.log(response);
+        openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
+      },
+      (error: any) => {
+        let errorMessage;
+        if (error.error.hasOwnProperty('detail')) {
+          errorMessage = error.error.detail;
+        } else {
+          errorMessage = error.error.message;
+        }
+        console.error(errorMessage);
+        openSnackBar(
+          this._snackBar,
+          `ERROR: ${errorMessage}. Please try again.`
+        );
+      }
+    );
   }
 
   /**

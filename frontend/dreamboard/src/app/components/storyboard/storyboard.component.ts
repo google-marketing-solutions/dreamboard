@@ -31,6 +31,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
+import { StoriesListComponent } from '../stories-list/stories-list.component';
 import { BrainstormComponent } from '../brainstorm/brainstorm.component';
 import { SceneBuilderComponent } from '../scene-builder/scene-builder.component';
 import { PostVideoProductionComponent } from '../post-video-production/post-video-production.component';
@@ -43,6 +44,7 @@ import { ComponentsCommunicationService } from '../../services/components-commun
     MatButtonModule,
     MatIconModule,
     MatTabsModule,
+    StoriesListComponent,
     BrainstormComponent,
     SceneBuilderComponent,
     PostVideoProductionComponent,

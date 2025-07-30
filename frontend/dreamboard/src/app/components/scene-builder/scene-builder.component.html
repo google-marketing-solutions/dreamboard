@@ -16,13 +16,17 @@
   </div>
   } @else {
   <div class="header-actions">
+    <button mat-flat-button aria-label="Save Story" (click)="saveStory()">
+      <mat-icon>save</mat-icon>
+      Save Story
+    </button>
     <button mat-flat-button aria-label="Add Scene" (click)="addScene()">
       <mat-icon>add</mat-icon>
       Add Scene
     </button>
     <button
       mat-flat-button
-      aria-label="Generate Videos"
+      aria-label="Generate Videos for All Scenes"
       (click)="generateVideosFromScenes()"
     >
       <mat-icon>videocam</mat-icon>

@@ -215,7 +215,7 @@ export class BrainstormComponent implements AfterViewInit {
     };
 
     this.componentsCommunicationService.storyExported(exportStory);
-    this.componentsCommunicationService.tabChanged(1);
+    this.componentsCommunicationService.tabChanged(2);
   }
 
   generateStories(): void {

@@ -19,11 +19,33 @@
  *
  ***************************************************************************/
 
-export const environment = {
-  production: true,
-  videoGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/video_generation',
-  imageGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/image_generation',
-  textGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/text_generation',
-  fileUploaderApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/file_uploader',
-  storiesStorageApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/story_storage',
-};
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment.development';
+import { VideoStory } from '../models/story-models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class StoriesStorageService {
+  BASE_URL = environment.storiesStorageApiURL;
+
+  constructor(private http: HttpClient) {}
+
+  addNewStory(userId: string, newStory: VideoStory): any {
+    return this.http.post<any[]>(
+      `${this.BASE_URL}/save_story/${userId}`,
+      newStory
+    );
+  }
+
+  getStoriesByUserId(userId: string): any {
+    return this.http.get<any[]>(`${this.BASE_URL}/list_all_stories/${userId}`);
+  }
+
+  deleteStoryById(userId: string, storyId: string): any {
+    return this.http.delete<any[]>(
+      `${this.BASE_URL}/remove_story/${userId}/${storyId}`
+    );
+  }
+}
