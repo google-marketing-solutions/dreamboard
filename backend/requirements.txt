@@ -1,6 +1,7 @@
 fastapi==0.115.11
 google-adk==1.8.0
 google-cloud-aiplatform==1.95.1
+google-cloud-firestore
 google-cloud-logging==3.11.4
 google-cloud-texttospeech==2.27.0
 google-genai>=1.5.0
