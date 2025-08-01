@@ -53,6 +53,9 @@ LOCATION=<YOUR_PROJECT_LOCATION>
 GCS_BUCKET=<YOUR_GCS_BUCKET>
 ENV=dev
 FIRESTORE_DB=dreamboard-db
+
+DEFAULTUSERPW=<a default user password>
+DEFAULTADMINPW=<a default admin password>
 ```
 
 - `uv run fastapi dev app/main.py`
