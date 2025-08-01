@@ -97,7 +97,6 @@ deploy_cloud_run_service() {
     --cpu=4 \
     --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME \
     --allow-unauthenticated # REMOVE
-    sleep 180
     echo
 }
 
@@ -198,25 +197,26 @@ function init() {
             # Deploy Backend Cloud Run Service
             deploy_cloud_run_service
 
-            sleep 10 # To wait for the service to be ready
+            # COMMENT OUT FOR NOW
+            #sleep 10 # To wait for the service to be ready
 
             # Compute Service Account roles
-            gcloud run services add-iam-policy-binding $CLOUD_RUN_SERVICE_NAME \
-            --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-            --role "roles/run.invoker" \
-            --platform managed \
-            --project $GOOGLE_CLOUD_PROJECT \
-            --region $LOCATION
+            #gcloud run services add-iam-policy-binding $CLOUD_RUN_SERVICE_NAME \
+            #--member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+            #--role "roles/run.invoker" \
+            #--platform managed \
+            #--project $GOOGLE_CLOUD_PROJECT \
+            #--region $LOCATION
 
             # Replace Cloud Run host name and URL for endpoint deployment
-            CLOUD_RUN_SERVICE_URL="https://"$CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
-            echo "Cloud Run Service Url ->" $CLOUD_RUN_SERVICE_URL
-            CLOUD_RUN_HOST_NAME=$(echo $CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
-            echo "Cloud Run Host Name -> "$CLOUD_RUN_HOST_NAME
-            sed "s@{CLOUD_RUN_HOST_NAME}@$CLOUD_RUN_HOST_NAME@g; s@{CLOUD_RUN_SERVICE_URL}@$CLOUD_RUN_SERVICE_URL@g;" openapi-run-template.yaml > openapi-run.yaml
+            #CLOUD_RUN_SERVICE_URL="https://"$CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
+            #echo "Cloud Run Service Url ->" $CLOUD_RUN_SERVICE_URL
+            #CLOUD_RUN_HOST_NAME=$(echo $CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
+            #echo "Cloud Run Host Name -> "$CLOUD_RUN_HOST_NAME
+            #sed "s@{CLOUD_RUN_HOST_NAME}@$CLOUD_RUN_HOST_NAME@g; s@{CLOUD_RUN_SERVICE_URL}@$CLOUD_RUN_SERVICE_URL@g;" openapi-run-template.yaml > openapi-run.yaml
 
             # Deploy Backend Endpoint
-            deploy_endpoint
+            #deploy_endpoint
 
             echo "✅ ${bold}${text_green} Done!${reset}"
             echo
