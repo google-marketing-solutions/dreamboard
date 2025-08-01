@@ -20,8 +20,7 @@ from typing import Dict, List, Optional
 
 class StoryService:
     def __init__(self):
-        self.db = firestore.Client(project=os.getenv("GCP_PROJECT"))
-        self.collection = os.getenv("FIRESTORE_COLLECTION")
+        self.db = firestore.Client(project=os.getenv("GCP_PROJECT"), database=os.getenv("FIRESTORE_DB"))
 
     def save_story(self, user_id: str, story: Dict) -> None:
         """
@@ -29,11 +28,11 @@ class StoryService:
         If the story already exists, it will be overwritten.
         """
         story_id = story.get("id")
-        doc_ref = self.db.collection(self.collection).document(user_id).collection("stories").document(story_id)
+        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
         doc_ref.set(story)
 
     def get_story(self, user_id: str, story_id: str) -> Optional[Dict]:
-        doc_ref = self.db.collection(self.collection).document(user_id).collection("stories").document(story_id)
+        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
         doc = doc_ref.get()
         if not doc.exists:
             return None
@@ -41,10 +40,10 @@ class StoryService:
         return data
 
     def list_stories(self, user_id: str) -> List[Dict]:
-        stories_ref = self.db.collection(self.collection).document(user_id).collection("stories")
+        stories_ref = self.db.collection("users").document(user_id).collection("stories")
         docs = stories_ref.stream()
         return [{**doc.to_dict(), "id": doc.id} for doc in docs]
 
     def delete_story(self, user_id: str, story_id: str) -> None:
-        doc_ref = self.db.collection(self.collection).document(user_id).collection("stories").document(story_id)
+        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
         doc_ref.delete()

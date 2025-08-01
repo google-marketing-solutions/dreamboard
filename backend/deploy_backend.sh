@@ -91,18 +91,19 @@ create_service_account() {
 }
 
 create_firestore_database() {
-    echo "Checking for existing Firestore database..."
-    FIRESTORE_EXISTS=$(gcloud firestore databases describe --project=$GOOGLE_CLOUD_PROJECT --format="value(name)" 2>/dev/null || echo "")
+    echo "Checking for existing Firestore database '$FIRESTORE_DB'..."
+    FIRESTORE_EXISTS=$(gcloud firestore databases describe --database=$FIRESTORE_DB --project=$GOOGLE_CLOUD_PROJECT --format="value(name)" 2>/dev/null || echo "")
 
     if [ -z "$FIRESTORE_EXISTS" ]; then
-        echo "No Firestore database found. Creating Firestore database..."
+        echo "No Firestore database found. Creating Firestore database '$FIRESTORE_DB'..."
         gcloud firestore databases create \
             --project="$GOOGLE_CLOUD_PROJECT" \
             --location="$LOCATION" \
-            --type=firestore-native
-        echo "Firestore database created."
+            --type=firestore-native \
+            --database="$FIRESTORE_DB"
+        echo "Firestore database '$FIRESTORE_DB' created."
     else
-        echo "Firestore database already exists. Skipping creation."
+        echo "Firestore database '$FIRESTORE_DB' already exists. Skipping creation."
     fi
 }
 
@@ -115,7 +116,7 @@ deploy_cloud_run_service() {
     --add-volume-mount volume=$VOLUME_NAME,mount-path=$MOUNT_PATH \
     --memory 16Gi \
     --cpu=4 \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_COLLECTION=$FIRESTORE_COLLECTION \
+    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB \
     --allow-unauthenticated # REMOVE
     sleep 180
     echo
@@ -163,7 +164,7 @@ function init() {
         PROJECT_NUMBER=$(gcloud projects describe $GOOGLE_CLOUD_PROJECT --format="value(projectNumber)")
         CLOUD_RUN_SERVICE_NAME="dreamboard-backend"
         SERVICE_ACCOUNT_NAME="dreamboard-sa"
-        FIRESTORE_COLLECTION="dreamboard-stories"
+        FIRESTORE_DB="dreamboard-db"
         SERVICE_ACCOUNT=$SERVICE_ACCOUNT_NAME@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
         BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
         BUCKET="gs://$BUCKET_NAME"
