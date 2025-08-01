@@ -7,17 +7,23 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]==0.115.11",
     "ffmpeg==1.4",
+    "google-adk>=0.0.1",
     "google-cloud-aiplatform==1.84.0",
     "google-cloud-logging==3.11.4",
+    "google-cloud-texttospeech>=2.27.0",
     "google-genai>=1.5.0",
+    "imageio-ffmpeg==0.6.0",
     "moviepy==1.0.3",
     "opencv-python-headless==4.11.0.86",
+    "passlib>=1.7.4",
     "pydantic-settings==2.8.1",
     "pyink>=24.10.1",
+    "pyjwt>=2.10.1",
     "python-dotenv>=1.1.0",
     "python-multipart==0.0.20",
     "scikit-image==0.25.2",
     "scipy==1.15.2",
+    "sqlmodel>=0.0.24",
     "uvicorn[standard]==0.34.0",
 ]
 
