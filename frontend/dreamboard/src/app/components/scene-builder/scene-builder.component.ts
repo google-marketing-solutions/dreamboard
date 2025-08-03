@@ -66,8 +66,6 @@ import { TransitionsSettingsDialogComponent } from '../transitions-settings-dial
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { StoriesStorageService } from '../../services/stories-storage.service';
 
-const userId = 'user1'; // TODO (ae) change this!!
-
 @Component({
   selector: 'app-scene-builder',
   imports: [MatButtonModule, MatIconModule, MatCardModule, MatTabsModule],
@@ -296,25 +294,34 @@ export class SceneBuilderComponent {
   saveStory() {
     openSnackBar(this._snackBar, `Saving story...`);
 
-    this.storiesStorageService.addNewStory(userId, this.story).subscribe(
-      (response: string) => {
-        console.log(response);
-        openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
-      },
-      (error: any) => {
-        let errorMessage;
-        if (error.error.hasOwnProperty('detail')) {
-          errorMessage = error.error.detail;
-        } else {
-          errorMessage = error.error.message;
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      this.storiesStorageService.addNewStory(userEmail, this.story).subscribe(
+        (response: string) => {
+          console.log(response);
+          openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`
+          );
         }
-        console.error(errorMessage);
-        openSnackBar(
-          this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
-        );
-      }
-    );
+      );
+    } else {
+      openSnackBar(
+        this._snackBar,
+        `You are not logged in. Please log in and try again.`,
+        10
+      );
+    }
   }
 
   /**

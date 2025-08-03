@@ -42,8 +42,6 @@ import { getNewVideoStory } from '../../story-utils';
 import { VideoStory } from '../../models/story-models';
 import { openSnackBar } from '../../utils';
 
-const userId = 'user1'; // TODO (ae) change this!
-
 @Component({
   selector: 'app-new-story-dialog',
   imports: [
@@ -60,49 +58,81 @@ const userId = 'user1'; // TODO (ae) change this!
 })
 export class NewStoryDialogComponent {
   title = 'New Story';
-  dialogData: any = inject(MAT_DIALOG_DATA);
+  story: VideoStory = inject(MAT_DIALOG_DATA);
+  isEdit: boolean = false;
   @Output() storySavedEvent = new EventEmitter<VideoStory>();
   private _snackBar = inject(MatSnackBar);
-
-  constructor(
-    private storiesStorageService: StoriesStorageService,
-    public dialogRef: MatDialogRef<NewStoryDialogComponent>
-  ) {}
 
   newStorySettingsForm = new FormGroup({
     title: new FormControl('', [Validators.required]),
     description: new FormControl('', []),
   });
 
+  constructor(
+    private storiesStorageService: StoriesStorageService,
+    public dialogRef: MatDialogRef<NewStoryDialogComponent>
+  ) {}
+
+  /**
+   * Lifecycle hook that is called after Angular has fully initialized a component's view.
+   * It initializes the 'sceneDescription' form control with the description
+   * from the `scene` data provided to the dialog.
+   * @returns {void}
+   */
+  ngAfterViewInit(): void {
+    // Populate story details on Edit
+    if (this.story) {
+      this.isEdit = true;
+      this.newStorySettingsForm.controls['title'].setValue(this.story.title);
+      this.newStorySettingsForm.controls['description'].setValue(
+        this.story.description
+      );
+    } else {
+      this.isEdit = false;
+    }
+  }
+
   save() {
     openSnackBar(this._snackBar, `Saving story...`);
 
-    const newStory = getNewVideoStory();
-    newStory.title = this.newStorySettingsForm.get('title')?.value!;
-    newStory.description = this.newStorySettingsForm.get('description')?.value!;
-    this.storiesStorageService.addNewStory(userId, newStory).subscribe(
-      (response: string) => {
-        console.log(response);
-        openSnackBar(
-          this._snackBar,
-          `Story saved succesfully!`,
-          15
-        );
-        this.dialogRef.close(newStory);
-      },
-      (error: any) => {
-        let errorMessage;
-        if (error.error.hasOwnProperty('detail')) {
-          errorMessage = error.error.detail;
-        } else {
-          errorMessage = error.error.message;
-        }
-        console.error(errorMessage);
-        openSnackBar(
-          this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
-        );
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      let storyToSave;
+      // On New Story generate a new object
+      if (!this.isEdit) {
+        storyToSave = getNewVideoStory();
+      } else {
+        storyToSave = this.story;
       }
-    );
+      storyToSave.title = this.newStorySettingsForm.get('title')?.value!;
+      storyToSave.description =
+        this.newStorySettingsForm.get('description')?.value!;
+      this.storiesStorageService.addNewStory(userEmail, storyToSave).subscribe(
+        (response: string) => {
+          console.log(response);
+          openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
+          this.dialogRef.close(storyToSave);
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`
+          );
+        }
+      );
+    } else {
+      openSnackBar(
+        this._snackBar,
+        `You are not logged in. Please log in and try again.`,
+        10
+      );
+    }
   }
 }

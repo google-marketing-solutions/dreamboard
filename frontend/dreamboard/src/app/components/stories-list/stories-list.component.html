@@ -11,7 +11,7 @@
     <button
       mat-flat-button
       aria-label="Add Story"
-      (click)="openNewStoryDialog()"
+      (click)="openNewStoryDialog(null)"
     >
       <mat-icon>add</mat-icon>
       New Story
@@ -60,10 +60,19 @@
         >
           <mat-icon>edit</mat-icon>
         </button>
+
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="exportStory(row); $event.stopPropagation()"
+        >
+          <mat-icon>arrow_circle_right</mat-icon>
+        </button>
+
         <button
           mat-icon-button
           color="warn"
-          (click)="deleteStory(row); $event.stopPropagation()"
+          (click)="onDeleteStory(row); $event.stopPropagation()"
         >
           <mat-icon>delete</mat-icon>
         </button>

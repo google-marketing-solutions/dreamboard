@@ -14,9 +14,8 @@ import { NewStoryDialogComponent } from '../new-story-dialog/new-story-dialog.co
 import { ExportStory } from '../../models/story-models';
 import { StoriesStorageService } from '../../services/stories-storage.service';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { openSnackBar } from '../../utils';
-
-const userId = 'user1';
 
 @Component({
   selector: 'app-stories-list',
@@ -41,6 +40,7 @@ export class StoriesListComponent {
   private _snackBar = inject(MatSnackBar);
 
   newStoryDialog = inject(MatDialog);
+  confirmDialog = inject(MatDialog);
 
   constructor(
     private storiesStorageService: StoriesStorageService,
@@ -71,16 +71,16 @@ export class StoriesListComponent {
    * @param {VideoScene} scene - The video scene object to be edited.
    * @returns {void}
    */
-  openNewStoryDialog() {
+  openNewStoryDialog(storyToEdit: VideoStory | null) {
     const dialogRef = this.newStoryDialog.open(NewStoryDialogComponent, {
       minWidth: '800px',
-      data: {},
+      data: storyToEdit,
     });
 
     // Subscribe to the afterClosed() observable to receive data upon closure
     dialogRef.afterClosed().subscribe((story: VideoStory) => {
       // Add only on close from Save event
-      if (story && story.hasOwnProperty('id')) {
+      if (story && story.hasOwnProperty('id') && !storyToEdit) {
         const currentData = this.dataSource.data;
         currentData.push(story);
         this.dataSource.data = currentData;
@@ -90,28 +90,46 @@ export class StoriesListComponent {
 
   getStoriesByUserId() {
     openSnackBar(this._snackBar, `Getting your stories...`);
-    this.storiesStorageService.getStoriesByUserId(userId).subscribe(
-      (stories: VideoStory[]) => {
-        openSnackBar(this._snackBar, `Stories loaded successfully!`, 3);
-        this.dataSource.data = stories;
-      },
-      (error: any) => {
-        let errorMessage;
-        if (error.error.hasOwnProperty('detail')) {
-          errorMessage = error.error.detail;
-        } else {
-          errorMessage = error.error.message;
+
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      this.storiesStorageService.getStoriesByUserId(userEmail).subscribe(
+        (stories: VideoStory[]) => {
+          if (stories.length === 0) {
+            openSnackBar(this._snackBar, `You don't have any stories yet.`, 10);
+          } else {
+            openSnackBar(this._snackBar, `Stories loaded successfully!`, 3);
+          }
+          this.dataSource.data = stories;
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`
+          );
         }
-        console.error(errorMessage);
-        openSnackBar(
-          this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
-        );
-      }
-    );
+      );
+    } else {
+      openSnackBar(
+        this._snackBar,
+        `You are not logged in. Please log in to load your stories`,
+        10
+      );
+    }
   }
 
   editStory(story: VideoStory) {
+    this.openNewStoryDialog(story);
+  }
+
+  exportStory(story: VideoStory) {
     // If story is new, add an empty scene
     if (story.scenes.length === 0) {
       story.scenes.push(getNewVideoScene(0));
@@ -127,33 +145,64 @@ export class StoriesListComponent {
   }
 
   deleteStory(story: VideoStory) {
+    // Confirm for delete action - Implement Angular dialog later
     openSnackBar(this._snackBar, `Deleting story...`);
-    this.storiesStorageService.deleteStoryById(userId, story.id).subscribe(
-      (response: any) => {
-        console.log(response);
-        openSnackBar(this._snackBar, `Story deleted successfully!`, 15);
-        const index = this.dataSource.data.findIndex(
-          (item) => item.id === story.id
-        );
-        if (index > -1) {
-          this.dataSource.data.splice(index, 1);
-          // Important: Reassign the dataSource.data to trigger change detection
-          this.dataSource.data = [...this.dataSource.data];
+
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      this.storiesStorageService.deleteStoryById(userEmail, story.id).subscribe(
+        (response: any) => {
+          console.log(response);
+          openSnackBar(this._snackBar, `Story deleted successfully!`, 15);
+          const index = this.dataSource.data.findIndex(
+            (item) => item.id === story.id
+          );
+          if (index > -1) {
+            this.dataSource.data.splice(index, 1);
+            // Important: Reassign the dataSource.data to trigger change detection
+            this.dataSource.data = [...this.dataSource.data];
+          }
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`
+          );
         }
+      );
+    } else {
+      openSnackBar(
+        this._snackBar,
+        `You are not logged in. Please log in and try again.`,
+        10
+      );
+    }
+  }
+
+  onDeleteStory(story: VideoStory): void {
+    const dialogRef = this.confirmDialog.open(ConfirmDialogComponent, {
+      width: '250px',
+      data: {
+        title: 'Confirm Action',
+        message: 'Are you sure you want to proceed?',
       },
-      (error: any) => {
-        let errorMessage;
-        if (error.error.hasOwnProperty('detail')) {
-          errorMessage = error.error.detail;
-        } else {
-          errorMessage = error.error.message;
-        }
-        console.error(errorMessage);
-        openSnackBar(
-          this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
-        );
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // User clicked OK
+        this.deleteStory(story);
+      } else {
+        // User clicked Cancel
+        console.log('Action cancelled.');
       }
-    );
+    });
   }
 }

@@ -37,3 +37,12 @@
     margin: auto 0px;
   }
 }
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+
+  .log-in-container {
+    margin: 30px;
+  }
+}
