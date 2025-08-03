@@ -44,6 +44,7 @@ enable_services() {
     gcloud services enable servicemanagement.googleapis.com
     gcloud services enable servicecontrol.googleapis.com
     gcloud services enable iap.googleapis.com
+    gcloud services enable firestore.googleapis.com
     echo
 }
 
@@ -70,6 +71,9 @@ create_service_account() {
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
        --member "serviceAccount:$SERVICE_ACCOUNT" \
        --role roles/servicemanagement.serviceController
+    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+       --member "serviceAccount:$SERVICE_ACCOUNT" \
+       --role="roles/datastore.user"
     # Compute service account permissions
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
         --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
@@ -86,6 +90,23 @@ create_service_account() {
     echo
 }
 
+create_firestore_database() {
+    echo "Checking for existing Firestore database '$FIRESTORE_DB'..."
+    FIRESTORE_EXISTS=$(gcloud firestore databases describe --database=$FIRESTORE_DB --project=$GOOGLE_CLOUD_PROJECT --format="value(name)" 2>/dev/null || echo "")
+
+    if [ -z "$FIRESTORE_EXISTS" ]; then
+        echo "No Firestore database found. Creating Firestore database '$FIRESTORE_DB'..."
+        gcloud firestore databases create \
+            --project="$GOOGLE_CLOUD_PROJECT" \
+            --location="$LOCATION" \
+            --type=firestore-native \
+            --database="$FIRESTORE_DB"
+        echo "Firestore database '$FIRESTORE_DB' created."
+    else
+        echo "Firestore database '$FIRESTORE_DB' already exists. Skipping creation."
+    fi
+}
+
 deploy_cloud_run_service() {
     echo "Deploying Cloud Run Service..."
     gcloud run deploy $CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
@@ -95,9 +116,8 @@ deploy_cloud_run_service() {
     --add-volume-mount volume=$VOLUME_NAME,mount-path=$MOUNT_PATH \
     --memory 16Gi \
     --cpu=4 \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME \
+    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB \
     --allow-unauthenticated # REMOVE
-    sleep 180
     echo
 }
 
@@ -143,6 +163,7 @@ function init() {
         PROJECT_NUMBER=$(gcloud projects describe $GOOGLE_CLOUD_PROJECT --format="value(projectNumber)")
         CLOUD_RUN_SERVICE_NAME="dreamboard-backend"
         SERVICE_ACCOUNT_NAME="dreamboard-sa"
+        FIRESTORE_DB="dreamboard-db"
         SERVICE_ACCOUNT=$SERVICE_ACCOUNT_NAME@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
         BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
         BUCKET="gs://$BUCKET_NAME"
@@ -168,6 +189,9 @@ function init() {
             echo
             # Enable services
             enable_services
+
+            # Create Firestore database
+            create_firestore_database
 
             # Create service account
             EXISTING_SERVICE_ACCOUNT=$(gcloud iam service-accounts list --filter "email:${SERVICE_ACCOUNT_NAME}" --format="value(email)")
@@ -198,25 +222,26 @@ function init() {
             # Deploy Backend Cloud Run Service
             deploy_cloud_run_service
 
-            sleep 10 # To wait for the service to be ready
+            # COMMENT OUT FOR NOW
+            #sleep 10 # To wait for the service to be ready
 
             # Compute Service Account roles
-            gcloud run services add-iam-policy-binding $CLOUD_RUN_SERVICE_NAME \
-            --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-            --role "roles/run.invoker" \
-            --platform managed \
-            --project $GOOGLE_CLOUD_PROJECT \
-            --region $LOCATION
+            #gcloud run services add-iam-policy-binding $CLOUD_RUN_SERVICE_NAME \
+            #--member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+            #--role "roles/run.invoker" \
+            #--platform managed \
+            #--project $GOOGLE_CLOUD_PROJECT \
+            #--region $LOCATION
 
             # Replace Cloud Run host name and URL for endpoint deployment
-            CLOUD_RUN_SERVICE_URL="https://"$CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
-            echo "Cloud Run Service Url ->" $CLOUD_RUN_SERVICE_URL
-            CLOUD_RUN_HOST_NAME=$(echo $CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
-            echo "Cloud Run Host Name -> "$CLOUD_RUN_HOST_NAME
-            sed "s@{CLOUD_RUN_HOST_NAME}@$CLOUD_RUN_HOST_NAME@g; s@{CLOUD_RUN_SERVICE_URL}@$CLOUD_RUN_SERVICE_URL@g;" openapi-run-template.yaml > openapi-run.yaml
+            #CLOUD_RUN_SERVICE_URL="https://"$CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
+            #echo "Cloud Run Service Url ->" $CLOUD_RUN_SERVICE_URL
+            #CLOUD_RUN_HOST_NAME=$(echo $CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
+            #echo "Cloud Run Host Name -> "$CLOUD_RUN_HOST_NAME
+            #sed "s@{CLOUD_RUN_HOST_NAME}@$CLOUD_RUN_HOST_NAME@g; s@{CLOUD_RUN_SERVICE_URL}@$CLOUD_RUN_SERVICE_URL@g;" openapi-run-template.yaml > openapi-run.yaml
 
             # Deploy Backend Endpoint
-            deploy_endpoint
+            #deploy_endpoint
 
             echo "✅ ${bold}${text_green} Done!${reset}"
             echo
