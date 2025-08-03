@@ -30,6 +30,7 @@ from api.endpoints import (
     login_router,
     scenario_router,
     agent_router,
+    story_routes
 )
 from api.admin import agents_crud, scenarios_crud, subagent_links_crud
 
@@ -50,9 +51,11 @@ api_router.include_router(
 api_router.include_router(
     text_gen_routes.text_gen_router, tags=["text_gen_routes"]
 )
-
 api_router.include_router(
     file_uploader_routes.file_uploader_router, tags=["file_uploader_routes"]
+)
+api_router.include_router(
+    story_routes.story_router, tags=["story_routes"]
 )
 
 # Agent Routes
