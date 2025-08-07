@@ -82,6 +82,6 @@ def remove_story(user_id: str, story_id: str):
             " ERROR: %s not found for user %s",
             story_id, user_id
         )
-        raise HTTPException(status_code=404, detail="Story not found")
+        raise HTTPException(status_code=404, detail=f"Story {story_id} not found for user {user_id}")
     story_service.delete_story(user_id, story_id)
     return {"deleted": True}

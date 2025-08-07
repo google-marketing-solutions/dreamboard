@@ -26,6 +26,7 @@ import {
   MatDialogContent,
   MatDialogModule,
   MatDialogRef,
+  MatDialog,
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -41,6 +42,7 @@ import { StoriesStorageService } from '../../services/stories-storage.service';
 import { getNewVideoStory } from '../../story-utils';
 import { VideoStory } from '../../models/story-models';
 import { openSnackBar } from '../../utils';
+import { ComponentsCommunicationService } from '../../services/components-communication.service';
 
 @Component({
   selector: 'app-new-story-dialog',
@@ -62,6 +64,7 @@ export class NewStoryDialogComponent {
   isEdit: boolean = false;
   @Output() storySavedEvent = new EventEmitter<VideoStory>();
   private _snackBar = inject(MatSnackBar);
+  confirmDialog = inject(MatDialog);
 
   newStorySettingsForm = new FormGroup({
     title: new FormControl('', [Validators.required]),
@@ -70,7 +73,8 @@ export class NewStoryDialogComponent {
 
   constructor(
     private storiesStorageService: StoriesStorageService,
-    public dialogRef: MatDialogRef<NewStoryDialogComponent>
+    public dialogRef: MatDialogRef<NewStoryDialogComponent>,
+    private componentsCommunicationService: ComponentsCommunicationService
   ) {}
 
   /**
@@ -95,44 +99,36 @@ export class NewStoryDialogComponent {
   save() {
     openSnackBar(this._snackBar, `Saving story...`);
 
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-      let storyToSave;
-      // On New Story generate a new object
-      if (!this.isEdit) {
-        storyToSave = getNewVideoStory();
-      } else {
-        storyToSave = this.story;
-      }
-      storyToSave.title = this.newStorySettingsForm.get('title')?.value!;
-      storyToSave.description =
-        this.newStorySettingsForm.get('description')?.value!;
-      this.storiesStorageService.addNewStory(userEmail, storyToSave).subscribe(
-        (response: string) => {
-          console.log(response);
-          openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
-          this.dialogRef.close(storyToSave);
-        },
-        (error: any) => {
-          let errorMessage;
-          if (error.error.hasOwnProperty('detail')) {
-            errorMessage = error.error.detail;
-          } else {
-            errorMessage = error.error.message;
-          }
-          console.error(errorMessage);
-          openSnackBar(
-            this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
-          );
-        }
-      );
+    let story;
+    // On New Story generate a new object
+    if (!this.isEdit) {
+      story = getNewVideoStory();
     } else {
-      openSnackBar(
-        this._snackBar,
-        `You are not logged in. Please log in and try again.`,
-        10
-      );
+      story = this.story;
     }
+    story.title = this.newStorySettingsForm.get('title')?.value!;
+    story.description = this.newStorySettingsForm.get('description')?.value!;
+
+    const user = localStorage.getItem('user')!;
+    this.storiesStorageService.addNewStory(user, story).subscribe(
+      (response: string) => {
+        console.log(response);
+        openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
+        this.dialogRef.close(story);
+      },
+      (error: any) => {
+        let errorMessage;
+        if (error.error.hasOwnProperty('detail')) {
+          errorMessage = error.error.detail;
+        } else {
+          errorMessage = error.error.message;
+        }
+        console.error(errorMessage);
+        openSnackBar(
+          this._snackBar,
+          `ERROR: ${errorMessage}. Please try again.`
+        );
+      }
+    );
   }
 }

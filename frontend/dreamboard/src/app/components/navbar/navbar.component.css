@@ -43,6 +43,14 @@
   justify-content: space-between;
 
   .log-in-container {
-    margin: 30px;
+    margin: 25px;
+
+    .log-out-button {
+      margin-left: 65%;
+    }
+  }
+  .user-id-container {
+    margin-top: 8px;
+    font-size: 12px;
   }
 }

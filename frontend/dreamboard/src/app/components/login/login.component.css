@@ -19,13 +19,28 @@
  *
  ***************************************************************************/
 
-export const environment = {
-  production: true,
-  videoGenerationApiURL: '/api/video_generation',
-  imageGenerationApiURL: '/api/image_generation',
-  textGenerationApiURL: '/api/text_generation',
-  fileUploaderApiURL: '/api/file_uploader',
-  storiesStorageApiURL: '/api/story_storage',
-  clientID:
-    '',
-};
+.login-container {
+  width: 500px;
+  height: 300px;
+  margin: 100px auto;
+  border: 1px dotted rgb(206, 201, 201);
+  border-radius: 16px;
+
+  .center-div {
+    width: 200px;
+    margin: 15% auto;
+  }
+
+  .or {
+    text-align: center;
+    margin: 16px;
+  }
+
+  .guest-button {
+    margin-left: 11px;
+  }
+}
+
+mat-icon {
+  font-size: 16px;
+}

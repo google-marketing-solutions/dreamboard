@@ -159,6 +159,11 @@ export class SceneBuilderComponent {
     this.story.scenes.push(newScene);
   }
 
+  createStory() {
+    // On Create Story send them to the Stories tab
+    this.componentsCommunicationService.tabChanged(0);
+  }
+
   /**
    * Handles the event for editing an existing scene.
    * It extracts the `sceneId` from the event target, finds the corresponding scene,

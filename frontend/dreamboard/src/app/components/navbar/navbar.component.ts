@@ -26,49 +26,35 @@
  */
 
 import { Component } from '@angular/core';
-
-declare global {
-  interface Window {
-    onGoogleSignIn: (response: any) => void;
-  }
-}
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { ComponentsCommunicationService } from '../../services/components-communication.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css',
 })
 export class NavbarComponent {
-  ngOnInit(): void {
-    const body = <HTMLDivElement>document.body;
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    body.appendChild(script);
-    window.onGoogleSignIn = this.onGoogleSignIn.bind(this);
-  }
+  user: string | null = localStorage.getItem('user');
 
-  onGoogleSignIn(response: any) {
-    const responsePayload = this.decodeJwtResponse(response.credential);
-    // Store email in local storage for now
-    localStorage.setItem('userEmail', responsePayload.email);
-  }
-
-  decodeJwtResponse(token: string) {
-    let base64Url = token.split('.')[1];
-    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(function (c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join('')
+  constructor(
+    private componentsCommunicationService: ComponentsCommunicationService,
+    private router: Router
+  ) {
+    componentsCommunicationService.userLoggedInSource$.subscribe(
+      (updated: boolean) => {
+        this.user = localStorage.getItem('user');
+      }
     );
+  }
 
-    return JSON.parse(jsonPayload);
+  logOut() {
+    // TODO (ae) log out with Google button
+    localStorage.removeItem('user');
+    this.router.navigate(['/login']);
   }
 }

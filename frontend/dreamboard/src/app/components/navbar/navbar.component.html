@@ -10,24 +10,13 @@
       />
       <div><span>DreamBoard</span></div>
     </div>
-
     <div class="log-in-container">
-      <div
-        id="g_id_onload"
-        data-client_id=""
-        data-callback="onGoogleSignIn"
-        data-use_fedcm_for_button="true"
-        data-auto_select="true"
-      ></div>
-      <div
-        class="g_id_signin"
-        data-type="standard"
-        data-size="large"
-        data-theme="outline"
-        data-text="sign_in_with"
-        data-shape="rectangular"
-        data-logo_alignment="left"
-      ></div>
+      <div class="log-out-button"><button mat-flat-button (click)="logOut()">Log Out</button></div>
+      @if (user) {
+      <div class="user-id-container">
+        <span>User: {{ user }}</span>
+      </div>
+      }
     </div>
   </div>
 </nav>
