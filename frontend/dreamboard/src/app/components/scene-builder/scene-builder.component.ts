@@ -299,34 +299,27 @@ export class SceneBuilderComponent {
   saveStory() {
     openSnackBar(this._snackBar, `Saving story...`);
 
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-      this.storiesStorageService.addNewStory(userEmail, this.story).subscribe(
-        (response: string) => {
-          console.log(response);
-          openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
-        },
-        (error: any) => {
-          let errorMessage;
-          if (error.error.hasOwnProperty('detail')) {
-            errorMessage = error.error.detail;
-          } else {
-            errorMessage = error.error.message;
-          }
-          console.error(errorMessage);
-          openSnackBar(
-            this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
-          );
+    const user = localStorage.getItem('user')!;
+
+    this.storiesStorageService.addNewStory(user, this.story).subscribe(
+      (response: string) => {
+        console.log(response);
+        openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
+      },
+      (error: any) => {
+        let errorMessage;
+        if (error.error.hasOwnProperty('detail')) {
+          errorMessage = error.error.detail;
+        } else {
+          errorMessage = error.error.message;
         }
-      );
-    } else {
-      openSnackBar(
-        this._snackBar,
-        `You are not logged in. Please log in and try again.`,
-        10
-      );
-    }
+        console.error(errorMessage);
+        openSnackBar(
+          this._snackBar,
+          `ERROR: ${errorMessage}. Please try again.`
+        );
+      }
+    );
   }
 
   /**

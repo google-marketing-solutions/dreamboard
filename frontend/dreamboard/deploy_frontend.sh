@@ -47,6 +47,7 @@ GOOGLE_CLOUD_PROJECT=$1
 BUCKET_NAME=$2
 LOCATION=$3
 BACKEND_CLOUD_RUN_SERVICE_NAME=$4
+CLIENT_ID=$5
 
 echo "${bold}DreamBoard Frontend will be deployed in the Google Cloud project: ${text_green}${GOOGLE_CLOUD_PROJECT}${bold}${reset}"
 echo
@@ -55,7 +56,7 @@ if confirm "Do you wish to proceed?"; then
 
     PROJECT_NUMBER=$(gcloud projects describe $GOOGLE_CLOUD_PROJECT --format="value(projectNumber)")
     FRONTEND_CLOUD_RUN_SERVICE_NAME="dreamboard-frontend"
-    BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
+    #BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
     BUCKET="gs://$BUCKET_NAME"
 
     # Confirm deployment details
@@ -76,9 +77,8 @@ if confirm "Do you wish to proceed?"; then
         echo "Cloud Run Host Name -> "$BACKEND_CLOUD_RUN_HOST_NAME
 
         cd src/environments/
-        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g;" environment-template.ts > environment.ts
-        # TODO (ae) Workaround for now
-        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g;" environment-template.ts > environment.development.ts
+        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g;" environment-template.ts > environment.ts
+        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g;" environment-template.ts > environment.development.ts
 
         cd ..
         cd ..
