@@ -43,10 +43,12 @@
   justify-content: space-between;
 
   .log-in-container {
-    margin: 25px;
+    margin: 30px 30px 0px 0px;
 
     .log-out-button {
-      margin-left: 65%;
+      display: flex;
+      justify-content: flex-end;
+      margin-left: 100px;
     }
   }
   .user-id-container {

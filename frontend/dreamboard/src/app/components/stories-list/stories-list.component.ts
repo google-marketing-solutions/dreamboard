@@ -1,6 +1,7 @@
 import { Component, inject, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
@@ -22,6 +23,7 @@ import { openSnackBar, confirmAction } from '../../utils';
     MatFormFieldModule,
     MatInputModule,
     MatTableModule,
+    MatTooltipModule,
     MatPaginatorModule,
     MatSortModule,
     MatButtonModule,
@@ -31,7 +33,13 @@ import { openSnackBar, confirmAction } from '../../utils';
   styleUrl: './stories-list.component.css',
 })
 export class StoriesListComponent {
-  displayedColumns: string[] = ['id', 'title', 'description', 'actions'];
+  displayedColumns: string[] = [
+    'id',
+    'title',
+    'description',
+    'owner',
+    'actions',
+  ];
   stories: VideoStory[] = [];
   dataSource = new MatTableDataSource(this.stories);
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -176,7 +184,7 @@ export class StoriesListComponent {
     // Confirm delete story
     confirmAction(
       this.confirmDialog,
-      '250px',
+      '450px',
       `Are you sure you want to delete story ${story.id}?`,
       story,
       this.deleteStory.bind(this)

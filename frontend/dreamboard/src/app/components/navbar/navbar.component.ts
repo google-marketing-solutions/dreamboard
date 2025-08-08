@@ -46,8 +46,12 @@ export class NavbarComponent {
     private router: Router
   ) {
     componentsCommunicationService.userLoggedInSource$.subscribe(
-      (updated: boolean) => {
-        this.user = localStorage.getItem('user');
+      (loggedIn: boolean) => {
+        if (loggedIn) {
+          this.user = localStorage.getItem('user');
+        } else {
+          this.user = null;
+        }
       }
     );
   }
@@ -55,6 +59,7 @@ export class NavbarComponent {
   logOut() {
     // TODO (ae) log out with Google button
     localStorage.removeItem('user');
+    this.user = localStorage.getItem('user');
     this.router.navigate(['/login']);
   }
 }

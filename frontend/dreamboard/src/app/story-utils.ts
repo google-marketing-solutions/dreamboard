@@ -30,7 +30,9 @@ export function getNewVideoStory() {
     brandGuidelinesAdherence: '',
     abcdAdherence: '',
     scenes: [],
-    generatedVideos: []
+    generatedVideos: [],
+    owner: localStorage.getItem('user')!,
+    shareWith: [],
   };
 
   return videoStory;

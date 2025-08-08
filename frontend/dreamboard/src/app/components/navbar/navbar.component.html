@@ -11,8 +11,10 @@
       <div><span>DreamBoard</span></div>
     </div>
     <div class="log-in-container">
-      <div class="log-out-button"><button mat-flat-button (click)="logOut()">Log Out</button></div>
       @if (user) {
+      <div class="log-out-button">
+        <button mat-flat-button (click)="logOut()">Log Out</button>
+      </div>
       <div class="user-id-container">
         <span>User: {{ user }}</span>
       </div>

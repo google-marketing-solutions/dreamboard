@@ -54,6 +54,7 @@ export class LoginComponent {
       client_id: environment.clientID,
       callback: (response: any) => this.handleCredentialResponse(response),
       use_fedcm_for_prompt: true,
+      auto_select: true
     });
 
     // Render the Google Sign-In button (optional, if you're using the button)
@@ -80,6 +81,7 @@ export class LoginComponent {
       this.confirmDialog,
       '450px',
       `Logging in as guest will generate a random user id and all stories will be saved under this user.
+      If you log out, you will lose your changes.
       Do you want to proceed?`,
       '',
       this.logInAsGuest.bind(this)

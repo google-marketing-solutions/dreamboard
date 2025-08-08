@@ -131,4 +131,8 @@ export class NewStoryDialogComponent {
       }
     );
   }
+
+  disableSaveButton() {
+    return !this.newStorySettingsForm.valid;
+  }
 }
