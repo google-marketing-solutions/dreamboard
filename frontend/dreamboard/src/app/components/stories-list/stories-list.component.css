@@ -1,0 +1,28 @@
+.stories-container {
+  margin: 24px;
+
+  .stories-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+
+    button {
+      margin: 3px;
+    }
+  }
+}
+
+/* Structure */
+table {
+  width: 100%;
+}
+
+.mat-mdc-form-field {
+  font-size: 14px;
+  width: 30%;
+}
+
+.mat-column-description {
+  flex: 0 0 40%;
+  width: 40%; /* Redundant but good for clarity */
+}

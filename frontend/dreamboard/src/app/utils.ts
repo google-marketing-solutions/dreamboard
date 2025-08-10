@@ -20,6 +20,8 @@
  ***************************************************************************/
 
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 
 export function openSnackBar(
   snackBar: MatSnackBar,
@@ -37,4 +39,56 @@ export function openSnackBar(
 
 export function closeSnackBar(snackBar: MatSnackBar) {
   snackBar.dismiss();
+}
+
+export function confirmAction(
+  confirmDialog: MatDialog,
+  width: string,
+  message: string,
+  param1: any,
+  func: any
+) {
+  const dialogRef = confirmDialog.open(ConfirmDialogComponent, {
+    width: width,
+    data: {
+      title: 'Confirm Action',
+      message: message,
+    },
+  });
+
+  dialogRef.afterClosed().subscribe((result) => {
+    if (result) {
+      // User clicked OK
+      func(param1);
+    } else {
+      // User clicked Cancel
+      console.log('Action cancelled.');
+    }
+  });
+}
+
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+export function getWarningMessage() {
+  return `WARNING: You are not logged in. Please use the Google Sign In button to
+      log in. If you don't have a Google account, please create/save your first story
+      to generate a random User Id.`;
+}
+
+export function decodeJwtResponse(token: string) {
+  let base64Url = token.split('.')[1];
+  let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  let jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      })
+      .join('')
+  );
+
+  return JSON.parse(jsonPayload);
 }

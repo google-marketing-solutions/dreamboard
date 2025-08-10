@@ -40,6 +40,8 @@ export interface VideoStory {
   abcdAdherence: string;
   scenes: VideoScene[];
   generatedVideos: Video[];
+  owner: string;
+  shareWith: string[];
 }
 
 export interface ExportStory {

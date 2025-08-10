@@ -39,6 +39,7 @@ export class ComponentsCommunicationService {
   private tabChangedSource = new Subject<number>();
   private fileUploadedSource = new Subject<UploadedFile>();
   private referenceImageRemovedSource = new Subject<string>();
+  private userLoggedInSource = new Subject<boolean>();
 
   // Observable streams
   videoGenerated$ = this.videoGeneratedSource.asObservable();
@@ -48,6 +49,7 @@ export class ComponentsCommunicationService {
   fileUploadedSource$ = this.fileUploadedSource.asObservable();
   referenceImageRemovedSource$ =
     this.referenceImageRemovedSource.asObservable();
+  userLoggedInSource$ = this.userLoggedInSource.asObservable();
 
   videoGenerated(story: VideoStory) {
     this.videoGeneratedSource.next(story);
@@ -72,5 +74,9 @@ export class ComponentsCommunicationService {
 
   referenceImageRemoved(id: string) {
     this.referenceImageRemovedSource.next(id);
+  }
+
+  userLoggedIn(loggedIn: boolean) {
+    this.userLoggedInSource.next(loggedIn);
   }
 }

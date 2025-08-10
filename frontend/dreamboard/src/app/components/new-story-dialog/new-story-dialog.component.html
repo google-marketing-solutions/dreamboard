@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content class="mat-typography">
+  <form [formGroup]="newStorySettingsForm">
+    <div class="item-container">
+      <mat-form-field>
+        <mat-label>Title</mat-label>
+        <input
+          matInput
+          placeholder="Your story title here"
+          formControlName="title"
+        />
+      </mat-form-field>
+    </div>
+    <div class="item-container">
+      <mat-form-field>
+        <mat-label>Description</mat-label>
+        <textarea
+          matInput
+          placeholder="Your story description here"
+          rows="3"
+          formControlName="description"
+        ></textarea>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button [disabled]="disableSaveButton()" (click)="save()">
+    Save
+  </button>
+  <button mat-button [mat-dialog-close]="true" cdkFocusInitial>Cancel</button>
+</mat-dialog-actions>

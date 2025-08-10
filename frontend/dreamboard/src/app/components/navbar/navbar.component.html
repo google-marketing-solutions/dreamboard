@@ -1,12 +1,24 @@
 <nav class="navbar navbar-expand-lg sticky-top">
-  <div class="logo-container">
-    <img
-      src="dreamboard_logo.svg"
-      alt="DreamBoard"
-      width="90"
-      height="90"
-      class="d-inline-block"
-    />
-    <div><span>DreamBoard</span></div>
+  <div class="header-container">
+    <div class="logo-container">
+      <img
+        src="dreamboard_logo.svg"
+        alt="DreamBoard"
+        width="90"
+        height="90"
+        class="d-inline-block"
+      />
+      <div><span>DreamBoard</span></div>
+    </div>
+    <div class="log-in-container">
+      @if (user) {
+      <div class="log-out-button">
+        <button mat-flat-button (click)="logOut()">Log Out</button>
+      </div>
+      <div class="user-id-container">
+        <span>User: {{ user }}</span>
+      </div>
+      }
+    </div>
   </div>
 </nav>

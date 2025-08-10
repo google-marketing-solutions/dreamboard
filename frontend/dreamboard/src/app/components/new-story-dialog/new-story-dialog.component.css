@@ -19,12 +19,19 @@
  *
  ***************************************************************************/
 
-export const environment = {
-  production: true,
-  videoGenerationApiURL: '/api/video_generation',
-  imageGenerationApiURL: '/api/image_generation',
-  textGenerationApiURL: '/api/text_generation',
-  fileUploaderApiURL: '/api/file_uploader',
-  storiesStorageApiURL: '/api/story_storage',
-  clientID: '',
-};
+.item-container {
+  display: flex;
+  justify-content: flex-start;
+
+  mat-form-field {
+    width: 80%;
+  }
+
+  button {
+    margin-left: 12px;
+  }
+}
+
+form {
+    margin-top: 32px;
+}

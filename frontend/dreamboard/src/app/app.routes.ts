@@ -20,5 +20,21 @@
  ***************************************************************************/
 
 import { Routes } from '@angular/router';
+import { LoginComponent } from './components/login/login.component';
+import { StoryboardComponent } from './components/storyboard/storyboard.component';
+import { AuthGuardLogInService } from './services/auth/auth-guard-login.service';
+import { AuthGuardStoryboardService } from './services/auth/auth-guard-storyboard.service';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  {
+    path: 'login',
+    component: LoginComponent,
+    canActivate: [AuthGuardLogInService],
+  },
+  {
+    path: 'storyboard',
+    component: StoryboardComponent,
+    canActivate: [AuthGuardStoryboardService],
+  },
+  { path: '**', redirectTo: '/storyboard', pathMatch: 'full' },
+];

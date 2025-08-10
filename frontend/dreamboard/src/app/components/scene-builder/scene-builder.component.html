@@ -1,7 +1,7 @@
 <div class="scene-builder-container">
   @if (story.scenes.length === 0) {
   <div class="initial-add-scene">
-    <div>
+    <!--div> COMMENTED OUT FOR NOW
       <p>Get started by adding a scene!</p>
       <button
         mat-flat-button
@@ -12,17 +12,33 @@
         <mat-icon>add</mat-icon>
         Add Scene
       </button>
+    </div-->
+    <div>
+      <p>Get started by creating a Story!</p>
+      <button
+        mat-flat-button
+        aria-label="Create Story"
+        (click)="createStory()"
+        [disabled]="exportingScenes"
+      >
+        <mat-icon>add</mat-icon>
+        Create Story
+      </button>
     </div>
   </div>
   } @else {
   <div class="header-actions">
+    <button mat-flat-button aria-label="Save Story" (click)="saveStory()">
+      <mat-icon>save</mat-icon>
+      Save Story
+    </button>
     <button mat-flat-button aria-label="Add Scene" (click)="addScene()">
       <mat-icon>add</mat-icon>
       Add Scene
     </button>
     <button
       mat-flat-button
-      aria-label="Generate Videos"
+      aria-label="Generate Videos for All Scenes"
       (click)="generateVideosFromScenes()"
     >
       <mat-icon>videocam</mat-icon>

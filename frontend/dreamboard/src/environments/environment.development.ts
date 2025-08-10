@@ -25,4 +25,6 @@ export const environment = {
   imageGenerationApiURL: 'http://127.0.0.1:8000/api/image_generation',
   textGenerationApiURL: 'http://127.0.0.1:8000/api/text_generation',
   fileUploaderApiURL: 'http://127.0.0.1:8000/api/file_uploader',
+  storiesStorageApiURL: 'http://127.0.0.1:8000/api/story_storage',
+  clientID: '',
 };

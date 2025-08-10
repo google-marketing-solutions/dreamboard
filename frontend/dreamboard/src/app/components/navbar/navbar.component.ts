@@ -26,12 +26,40 @@
  */
 
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { ComponentsCommunicationService } from '../../services/components-communication.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css',
 })
-export class NavbarComponent {}
+export class NavbarComponent {
+  user: string | null = localStorage.getItem('user');
+
+  constructor(
+    private componentsCommunicationService: ComponentsCommunicationService,
+    private router: Router
+  ) {
+    componentsCommunicationService.userLoggedInSource$.subscribe(
+      (loggedIn: boolean) => {
+        if (loggedIn) {
+          this.user = localStorage.getItem('user');
+        } else {
+          this.user = null;
+        }
+      }
+    );
+  }
+
+  logOut() {
+    // TODO (ae) log out with Google button
+    localStorage.removeItem('user');
+    this.user = localStorage.getItem('user');
+    this.router.navigate(['/login']);
+  }
+}
