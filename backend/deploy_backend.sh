@@ -51,7 +51,11 @@ enable_services() {
 create_service_account() {
     echo
     gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME --display-name "DreamBoard Service Account"
+    echo
+}
 
+grant_sa_roles() {
+    echo 'Granting roles to service account '$SERVICE_ACCOUNT_NAME'...'
     # Service Account roles
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
         --member serviceAccount:$SERVICE_ACCOUNT \
@@ -87,7 +91,6 @@ create_service_account() {
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
         --member "serviceAccount:service-$PROJECT_NUMBER@gcp-sa-aiplatform.iam.gserviceaccount.com" \
         --role roles/storage.admin
-    echo
 }
 
 create_firestore_database() {
@@ -170,7 +173,7 @@ function init() {
         VOLUME_NAME="dreamboard-volume"
         MOUNT_PATH="/code/app/mounted_files" # Code is in code/app in PROD
 
-        read -p "Please enter a location where you wish to deploy the backend (default is us-central1)" -r LOCATION
+        read -p "Please enter a location where you wish to deploy the backend (press enter to use default us-central1)" -r LOCATION
         if [ -z "${LOCATION}" ]; then
             LOCATION='us-central1'
         fi
@@ -202,6 +205,9 @@ function init() {
                 echo "${text_yellow}INFO: Service account '${SERVICE_ACCOUNT_NAME}' already exists. Skipping creation${reset}"
                 echo
             fi
+
+            # Always grant roles for SA to account for new permissions to existing SA
+            grant_sa_roles
 
             # Create GCS bucket
             BUCKET_EXISTS=$(gcloud storage ls $BUCKET > /dev/null 2>&1 && echo "true" || echo "false")
