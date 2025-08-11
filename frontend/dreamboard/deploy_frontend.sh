@@ -38,15 +38,14 @@ deploy_frontend_cloud_run_service() {
     echo "Deploying Frontend Cloud Run Service..."
     gcloud run deploy $FRONTEND_CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
     --timeout 3600 \
-    --memory 4Gi \
-    --allow-unauthenticated # REMOVE
+    --memory 4Gi
     echo
 }
 
 GOOGLE_CLOUD_PROJECT=$1
 BUCKET_NAME=$2
 LOCATION=$3
-BACKEND_CLOUD_RUN_SERVICE_NAME=$4
+BACKEND_CLOUD_RUN_SERVICE_URL=$4
 CLIENT_ID=$5
 
 echo "${bold}DreamBoard Frontend will be deployed in the Google Cloud project: ${text_green}${GOOGLE_CLOUD_PROJECT}${bold}${reset}"
@@ -56,7 +55,6 @@ if confirm "Do you wish to proceed?"; then
 
     PROJECT_NUMBER=$(gcloud projects describe $GOOGLE_CLOUD_PROJECT --format="value(projectNumber)")
     FRONTEND_CLOUD_RUN_SERVICE_NAME="dreamboard-frontend"
-    #BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
     BUCKET="gs://$BUCKET_NAME"
 
     # Confirm deployment details
@@ -64,14 +62,13 @@ if confirm "Do you wish to proceed?"; then
     echo "${bold}${text_green}Settings${reset}"
     echo "${bold}${text_green}──────────────────────────────────────────${reset}"
     echo "${bold}${text_green}Project ID: ${GOOGLE_CLOUD_PROJECT}${reset}"
-    echo "${bold}${text_green}Frontend Cloud Run Service: ${FRONTEND_CLOUD_RUN_SERVICE_NAME}${reset}"
-    echo "${bold}${text_green}Backend Cloud Run Service: ${BACKEND_CLOUD_RUN_SERVICE_NAME}${reset}"
+    echo "${bold}${text_green}Frontend Cloud Run Service URL: ${FRONTEND_CLOUD_RUN_SERVICE_NAME}${reset}"
+    echo "${bold}${text_green}Backend Cloud Run Service: ${BACKEND_CLOUD_RUN_SERVICE_URL}${reset}"
     echo "${bold}${text_green}Cloud Storage Bucket: ${BUCKET_NAME}${reset}"
     echo "${bold}${text_green}Location: ${LOCATION}${reset}"
     echo
     if confirm "Continue?"; then
         # Replace Backend Cloud Run URL for frontend deployment in PROD
-        BACKEND_CLOUD_RUN_SERVICE_URL="https://"$BACKEND_CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
         echo "Backend Cloud Run Service Url ->" $BACKEND_CLOUD_RUN_SERVICE_URL
         BACKEND_CLOUD_RUN_HOST_NAME=$(echo $BACKEND_CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
         echo "Cloud Run Host Name -> "$BACKEND_CLOUD_RUN_HOST_NAME
