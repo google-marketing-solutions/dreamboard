@@ -33,12 +33,34 @@ To install it on GCP:
    - GCP Project Id
    - Cloud Storage Bucket Name
    - Location the service is deployed
-   - Cloud Run Service Name
-2. Navigate to the frontend folder and run deploy_frontend.sh with the following arguments noted from the previous step in the following order:
-   a. **GCP Project ID**
-   b. **Cloud Storage Bucket Name**
-   c. **Location to deploy**
-   d. **Cloud Run Service Name**
+   - Cloud Run Service URL
+2. Create a Client ID to log in to the DreamBoard UI using a Google Account that is part of your Google Cloud organization.
+   - Go to the [Credentials page](http://console.cloud.google.com/apis/credentials) in the Google Cloud console.
+   - Click on the 'Create Credentials' button and select 'OAuth Client ID'
+   - Select the 'Web application' option and add a name, for example: DreamBoard Client ID.
+   - On the 'Authorized JavaScript origins' section, include the following URLs if you are testing the solution on your local machine:
+      - http://localhost
+      - http://localhost:4200
+
+   Note: You will add the production URL in the next step once the frontend is deployed.
+3. Navigate to the frontend folder and run deploy_frontend.sh with the following arguments noted from the previous step in the following order:
+
+   - **GCP Project ID**
+   - **Cloud Storage Bucket Name**
+   - **Location to deploy**
+   - **Cloud Run Service URL**
+   - **Client ID**
+4. Add the deployed frontend URL to the 'Authorized JavaScript origins' in your Client ID.
+   - The frontend URL should look something like: https://dreamboard-frontend-{PROJECT_NUMBER}.{LOCATION}.run.app
+   - Go to the [Credentials page](http://console.cloud.google.com/apis/credentials) in the Google Cloud console.
+   - Edit the Client ID created on step 2 and include the deployed frontend URL.
+   - Save the changes.
+5. Secure the application using Identity Aware Proxy (IAP). In order to grant access to specific users, you can use IAP to close the application.
+   - Go to the [Cloud Run page](http://console.cloud.google.com/run) and click on the the deployed frontend service.
+   - Go to the 'Security' tab and in the 'Authentication' section enable the 'Identity Aware Proxy (IAP)' option.
+   - Click on the 'Edit policy' button and add the users that should have access to the application.
+   - Permission propagation may take up to 5 minutes to complete.
+   - Access the URL at: https://dreamboard-frontend-{PROJECT_ NUMBER}.{LOCATION}.run.app
 
 ## Installing Locally
 
