@@ -176,14 +176,14 @@ export function getVideoTransitions() {
       displayName: 'Wipe',
       value: 'WIPE',
     },
-    {
+    /* COMMENTED OUT FOR NOW {
       displayName: 'Zoom',
       value: 'ZOOM',
     },
     {
       displayName: 'Zoom Warp',
       value: 'ZOOM_WARP',
-    },
+    },*/
     {
       displayName: 'Dip To Black',
       value: 'DIP_TO_BLACK',

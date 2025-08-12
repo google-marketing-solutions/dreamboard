@@ -302,6 +302,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
   }
 
+  removeSelectedImageForVideo() {
+    this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
+  }
+
   /**
    * Initiates the video generation process for the current scene.
    * It displays a loading snackbar, constructs a `VideoGenerationRequest`,
@@ -320,10 +324,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       video_segments: [this.buildVideoSegment()],
       creative_direction: undefined, // for now
     };
-    console.log(
-      'VideoGeneration Request before sending to backend' +
-        JSON.stringify(videoGeneration)
-    );
     this.videoGenerationService
       .generateVideosFromScenes(this.storyId, videoGeneration)
       .subscribe(
@@ -400,7 +400,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       negative_prompt: this.videoSettingsForm.get('negativePrompt')?.value!,
       transition: Transition.CONCATENATE, // default since it's not used for single video
       generate_audio: this.videoSettingsForm.get('generateAudio')?.value!,
-      enhance_prompt: this.videoSettingsForm.get('enhancePrompt')?.value!,
+      enhance_prompt: true, // Always true for Veo3
       use_last_frame: false, // False for now
       include_video_segment: this.videoSettingsForm.get('includeVideoSegment')
         ?.value!,

@@ -55,7 +55,7 @@ create_service_account() {
 }
 
 grant_sa_roles() {
-    echo 'Granting roles to service account '$SERVICE_ACCOUNT_NAME'...'
+    echo "Granting roles to service account "$SERVICE_ACCOUNT_NAME"..."
     # Service Account roles
     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
         --member serviceAccount:$SERVICE_ACCOUNT \
@@ -95,16 +95,36 @@ grant_sa_roles() {
 
 create_firestore_database() {
     echo "Checking for existing Firestore database '$FIRESTORE_DB'..."
+    echo
     FIRESTORE_EXISTS=$(gcloud firestore databases describe --database=$FIRESTORE_DB --project=$GOOGLE_CLOUD_PROJECT --format="value(name)" 2>/dev/null || echo "")
 
     if [ -z "$FIRESTORE_EXISTS" ]; then
         echo "No Firestore database found. Creating Firestore database '$FIRESTORE_DB'..."
-        gcloud firestore databases create \
-            --project="$GOOGLE_CLOUD_PROJECT" \
+        echo
+        echo "${text_yellow}WARNING! The DB deployment can take up to 5 mins. While it's being deployed you might see the following error:"
+        echo "${text_yellow}ERROR: (gcloud.firestore.databases.create) FAILED_PRECONDITION: Database ID 'dreamboard-db' is not available in project..."
+        echo "${text_yellow}Everything is OK! The script will retry, please wait until the DB is available and deployed.${reset}"
+        echo
+        sleep 10
+        gcloud firestore databases create --project="$GOOGLE_CLOUD_PROJECT" \
+        --location="$LOCATION" \
+        --type=firestore-native \
+        --database="$FIRESTORE_DB"
+
+        # Retry DB deployment if there is an error. Check last command exit status
+        while [[ $? -ne 0 ]]; do
+            echo "Deploying Firestore DB '$FIRESTORE_DB'..."
+            sleep 60
+            echo
+            gcloud firestore databases create --project="$GOOGLE_CLOUD_PROJECT" \
             --location="$LOCATION" \
             --type=firestore-native \
             --database="$FIRESTORE_DB"
-        echo "Firestore database '$FIRESTORE_DB' created."
+        done
+
+        echo
+        echo "Firestore database '$FIRESTORE_DB' successfully created!"
+        echo
     else
         echo "Firestore database '$FIRESTORE_DB' already exists. Skipping creation."
     fi
@@ -121,28 +141,6 @@ deploy_cloud_run_service() {
     --cpu=4 \
     --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB \
     --allow-unauthenticated # REMOVE
-    echo
-}
-
-redeploy_cloud_run_service_with_espv2() {
-    echo "Deploying the ESPv2 container in the Cloud Run Service $CLOUD_RUN_SERVICE_NAME..."
-    gcloud run deploy $CLOUD_RUN_SERVICE_NAME \
-    --region=$LOCATION \
-    --image="gcr.io/$GOOGLE_CLOUD_PROJECT/endpoints-runtime-serverless:$ESP_VERSION-$CLOUD_RUN_HOST_NAME-$CONFIG_ID" \
-    --service-account $SERVICE_ACCOUNT \
-    --timeout 3600 \
-    --add-volume name=$VOLUME_NAME,type=cloud-storage,bucket=$BUCKET_NAME \
-    --add-volume-mount volume=$VOLUME_NAME,mount-path=$MOUNT_PATH \
-    --memory 4Gi \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,ESPv2_ARGS=--cors_preset=basic \
-    #--allow-unauthenticated # REMOVE
-    echo
-}
-
-function deploy_endpoint() {
-    echo "Deploying Endpoints Configuration..."
-    gcloud endpoints services deploy openapi-run.yaml \
-    --project $GOOGLE_CLOUD_PROJECT
     echo
 }
 
@@ -227,27 +225,6 @@ function init() {
 
             # Deploy Backend Cloud Run Service
             deploy_cloud_run_service
-
-            # COMMENT OUT FOR NOW
-            #sleep 10 # To wait for the service to be ready
-
-            # Compute Service Account roles
-            #gcloud run services add-iam-policy-binding $CLOUD_RUN_SERVICE_NAME \
-            #--member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-            #--role "roles/run.invoker" \
-            #--platform managed \
-            #--project $GOOGLE_CLOUD_PROJECT \
-            #--region $LOCATION
-
-            # Replace Cloud Run host name and URL for endpoint deployment
-            #CLOUD_RUN_SERVICE_URL="https://"$CLOUD_RUN_SERVICE_NAME"-"$PROJECT_NUMBER"."$LOCATION".run.app"
-            #echo "Cloud Run Service Url ->" $CLOUD_RUN_SERVICE_URL
-            #CLOUD_RUN_HOST_NAME=$(echo $CLOUD_RUN_SERVICE_URL | sed 's/https:\/\///g')
-            #echo "Cloud Run Host Name -> "$CLOUD_RUN_HOST_NAME
-            #sed "s@{CLOUD_RUN_HOST_NAME}@$CLOUD_RUN_HOST_NAME@g; s@{CLOUD_RUN_SERVICE_URL}@$CLOUD_RUN_SERVICE_URL@g;" openapi-run-template.yaml > openapi-run.yaml
-
-            # Deploy Backend Endpoint
-            #deploy_endpoint
 
             echo "✅ ${bold}${text_green} Done!${reset}"
             echo

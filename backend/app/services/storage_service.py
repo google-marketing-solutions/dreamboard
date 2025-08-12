@@ -193,7 +193,7 @@ class StorageService:
         blob_name (str): The name of the object to be accessed.
 
     Returns:
-        str: A signed URL valid for 48 hours (2880 minutes).
+        str: A signed URL valid for a week (v4 limit) (10080 minutes).
     """
     credentials, _ = google.auth.default()
     credentials.refresh(google.auth.transport.requests.Request())
@@ -201,7 +201,7 @@ class StorageService:
     # Sign URL
     url = blob.generate_signed_url(
         version="v4",
-        expiration=datetime.timedelta(minutes=2880),
+        expiration=datetime.timedelta(minutes=10080),
         service_account_email=credentials.service_account_email,
         access_token=credentials.token,
         method="GET",

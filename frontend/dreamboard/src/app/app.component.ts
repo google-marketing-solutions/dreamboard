@@ -25,8 +25,6 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { MatButtonModule } from '@angular/material/button';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
-import { LoginComponent } from './components/login/login.component';
-import { StoryboardComponent } from './components/storyboard/storyboard.component';
 
 declare global {
   interface Window {
@@ -42,8 +40,6 @@ declare global {
     NavbarComponent,
     MatButtonModule,
     SidebarComponent,
-    LoginComponent,
-    StoryboardComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',

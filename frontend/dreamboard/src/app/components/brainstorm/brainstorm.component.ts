@@ -126,7 +126,7 @@ export class BrainstormComponent implements AfterViewInit {
   }
 
   addUploadedFile(file: UploadedFile) {
-    openSnackBar(this._snackBar, `Extracting file information...`, 15);
+    openSnackBar(this._snackBar, `Extracting file information...`);
 
     const extractTextRequest: ExtractTextItem = {
       file_gcs_uri: file.gcsUri,
@@ -137,6 +137,11 @@ export class BrainstormComponent implements AfterViewInit {
       .extract_text_from_file(extractTextRequest)
       .subscribe(
         (extractedText: string) => {
+          openSnackBar(
+            this._snackBar,
+            `File information extracted successfully!`,
+            10
+          );
           if (file.type === UploadedFileType.CreativeBrief) {
             this.storiesSettingsForm.controls['creativeBriefIdea'].setValue(
               extractedText

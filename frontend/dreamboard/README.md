@@ -62,6 +62,8 @@ To install it on GCP:
    - Go to the [Credentials page](http://console.cloud.google.com/apis/credentials) in the Google Cloud console.
    - Edit the Client ID created on step 2 and include the deployed frontend URL.
    - Save the changes.
+
+   WARNING: If you don't include the deployed frontend URL you will get the following error when trying to log in with a Google account: 'Access blocked: Authorization Error ... Error 400: origin_mismatch
 6. Secure the application using Identity Aware Proxy (IAP). In order to grant access to specific users, you can use IAP to close the application.
    - Go to the [Cloud Run page](http://console.cloud.google.com/run) and click on the the deployed frontend service.
    - Go to the 'Security' tab and in the 'Authentication' section enable the 'Identity Aware Proxy (IAP)' option.
