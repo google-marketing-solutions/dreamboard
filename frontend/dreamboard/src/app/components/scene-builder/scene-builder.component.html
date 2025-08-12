@@ -49,6 +49,7 @@
       Merge Videos
     </button>
   </div>
+
   <p>Story Title: {{ story.title }}</p>
   <p class="story-id">Story ID: {{ story.id }}</p>
   <div class="scenes-container">
@@ -61,24 +62,37 @@
         <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
       </mat-card-header>
 
+      @if (scene.imageGenerationSettings.selectedImageForVideo &&
+      !scene.videoGenerationSettings.selectedVideo) {
       <div class="scene-image">
-        @if (scene.imageGenerationSettings.selectedImageForVideo) {
         <img
           mat-card-image
           [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
           [alt]="scene.imageGenerationSettings.selectedImageForVideo.name"
           class="selected-image"
         />
-
-        } @else {
+      </div>
+      } @else if (!scene.imageGenerationSettings.selectedImageForVideo &&
+      !scene.videoGenerationSettings.selectedVideo) {
+      <div class="scene-image">
         <p>
           Edit the scene to upload images <br />
           or generate them using AI <mat-icon>auto_fix_high</mat-icon>
         </p>
-        }
       </div>
+      }
 
       <mat-card-content>
+        @if (scene.videoGenerationSettings.selectedVideo) {
+        <div class="gen-video-container">
+          <video controls>
+            <source
+              [src]="scene.videoGenerationSettings.selectedVideo.signedUri"
+              type="video/mp4"
+            />
+          </video>
+        </div>
+        }
         <h3>Scene {{ scene.number }}</h3>
         <p class="scene-description">
           {{ scene.description }}

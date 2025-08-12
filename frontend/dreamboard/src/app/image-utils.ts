@@ -34,7 +34,7 @@ export function getNewImageSettings() {
   return {
     prompt: '',
     numImages: 4,
-    aspectRatio: '1:1',
+    aspectRatio: '16:9',
     outputMimeType: 'image/png',
     compressionQuality: 75,
     language: 'en',
@@ -64,16 +64,16 @@ export function getAspectRatiosByModelName(modelName: string) {
   const imageAspectRatios: { [key: string]: SelectItem[] } = {
     'imagen-3.0-generate-001': [
       {
-        displayName: '1:1',
-        value: '1:1',
+        displayName: '16:9',
+        value: '16:9',
       },
       {
         displayName: '9:16',
         value: '9:16',
       },
       {
-        displayName: '16:9',
-        value: '16:9',
+        displayName: '1:1',
+        value: '1:1',
       },
       {
         displayName: '3:4',

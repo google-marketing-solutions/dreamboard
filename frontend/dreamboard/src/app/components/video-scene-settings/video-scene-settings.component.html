@@ -42,6 +42,9 @@
     <img
       [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
     />
+    <button mat-button (click)="removeSelectedImageForVideo()">
+      <mat-icon>delete_forever</mat-icon> Image
+    </button>
     } @else {
     <p>
       <mat-icon>warning</mat-icon>You haven't selected a reference image for
@@ -168,7 +171,8 @@
 
   <div>
     <mat-checkbox formControlName="generateAudio">Generate audio</mat-checkbox>
-    <mat-checkbox formControlName="enhancePrompt">Enhance prompt</mat-checkbox>
+    <!-- COMMENTED OUT FOR Veo3
+    <mat-checkbox formControlName="enhancePrompt">Enhance prompt</mat-checkbox-->
     <mat-checkbox formControlName="includeVideoSegment"
       >Include video segment in final video</mat-checkbox
     >

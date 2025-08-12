@@ -388,7 +388,7 @@ export class SceneBuilderComponent {
             this.story.generatedVideos = [video];
             // Trigger component communication to share story with generated video on Post Video Production
             this.componentsCommunicationService.videoGenerated(this.story);
-            this.componentsCommunicationService.tabChanged(2);
+            this.componentsCommunicationService.tabChanged(3);
           }
         },
         (error: any) => {
