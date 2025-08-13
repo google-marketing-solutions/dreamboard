@@ -19,6 +19,7 @@ from concurrent import futures
 
 import google.cloud.logging as gcp_logging
 from services import storage_service
+from typing import Dict
 
 # Attach the Cloud Logging handler to the Python root logger
 logging_client = gcp_logging.Client()
@@ -412,3 +413,37 @@ def execute_tasks_in_parallel(tasks: list[any]) -> None:
     for running_task in running_tasks:
       results.append(running_task.result())
   return results
+
+def update_signed_uris_in_story(story_data: Dict) -> Dict:
+    """
+    Generates new signed URIs for all videos and images in a story.
+    """
+
+    def _update_list(media_list: list):
+      """Helper to update signed URIs in a list of media items."""
+      for media_item in media_list:
+        gcs_uri = media_item.get("gcsUri")
+        if gcs_uri:
+          media_item["signed_uri"] = get_signed_uri_from_gcs_uri(gcs_uri)
+
+    # Update generated video URIs
+    _update_list(story_data.get("generatedVideos", []))
+
+    scenes = story_data.get("scenes", [])
+    for scene in scenes:
+      # Update image URIs
+      image_generation_settings = scene.get("imageGenerationSettings", {})
+      _update_list(image_generation_settings.get("generatedImages", []))
+      selected_image = image_generation_settings.get("selectedImageForVideo", {})
+      if selected_image.get("gcsUri"):
+        selected_image["signedUri"] = get_signed_uri_from_gcs_uri(selected_image.get("gcsUri"))
+      _update_list(image_generation_settings.get("referenceImages", []))
+
+      # Update video URIs
+      video_generation_settings = scene.get("videoGenerationSettings", {})
+      _update_list(video_generation_settings.get("generatedVideos", []))
+      selected_video = video_generation_settings.get("selectedVideo", {})
+      if selected_video.get("gcsUri"):
+        selected_video["signedUri"] = get_signed_uri_from_gcs_uri(selected_video.get("gcsUri"))
+
+    return story_data
