@@ -20,8 +20,9 @@ stories.
 """
 
 import logging
+import utils
 from services.story_service import StoryService
-from typing import Annotated, Dict
+from typing import Dict
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 
@@ -55,14 +56,15 @@ def read_story(user_id: str, story_id: str):
             story_id, user_id
         )
         raise HTTPException(status_code=404, detail="Story not found")
-    return story
+    return utils.update_signed_uris_in_story(story)
 
 @story_router.get("/list_all_stories/{user_id}")
 def list_all_stories(user_id: str):
     """
     List all stories for the given user.
     """
-    return story_service.list_stories(user_id)
+    modified_stories = [utils.update_signed_uris_in_story(story) for story in story_service.list_stories(user_id)]
+    return modified_stories
 
 @story_router.post("/save_story/{user_id}")
 def save_story(user_id: str, story: Dict = Body(...)):
