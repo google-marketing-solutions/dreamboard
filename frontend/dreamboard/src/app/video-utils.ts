@@ -126,6 +126,12 @@ export function updateScenesWithGeneratedVideos(
     // Update scenes with generated videos
     if (respsFound.length) {
       const response = respsFound[0];
+      // Reload video in the Scene Builder HTML element to update it
+      // since reload does not happen when the object is updated
+      const videoHTML: any = document.getElementById(`video@${scene.id}`);
+      if (videoHTML) {
+        videoHTML.load();
+      }
       if (response.done) {
         // For only 1 video per request is generated
         const genVideos: Video[] = response.videos.map((video: VideoItem) => {

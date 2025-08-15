@@ -95,7 +95,7 @@ export class StoriesListComponent {
   }
 
   getStoriesByUserId() {
-    openSnackBar(this._snackBar, `Getting your stories...`, 10);
+    openSnackBar(this._snackBar, `Getting your stories...`);
 
     const user = localStorage.getItem('user')!;
     this.storiesStorageService.getStoriesByUserId(user).subscribe(
@@ -107,7 +107,7 @@ export class StoriesListComponent {
             10
           );
         } else {
-          openSnackBar(this._snackBar, `Stories loaded successfully!`, 3);
+          openSnackBar(this._snackBar, `Stories loaded successfully!`, 10);
         }
         this.dataSource.data = stories;
       },
@@ -143,6 +143,7 @@ export class StoriesListComponent {
       generateInitialImageForScenes: false,
     };
     this.componentsCommunicationService.storyExported(exportStory);
+    this.componentsCommunicationService.videoGenerated(story);
     this.componentsCommunicationService.tabChanged(2);
   }
 

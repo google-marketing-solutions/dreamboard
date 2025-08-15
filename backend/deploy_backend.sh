@@ -135,8 +135,6 @@ deploy_cloud_run_service() {
     gcloud run deploy $CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
     --service-account $SERVICE_ACCOUNT \
     --timeout 3600 \
-    --add-volume name=$VOLUME_NAME,type=cloud-storage,bucket=$BUCKET_NAME \
-    --add-volume-mount volume=$VOLUME_NAME,mount-path=$MOUNT_PATH \
     --memory 16Gi \
     --cpu=4 \
     --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB \
@@ -168,8 +166,6 @@ function init() {
         SERVICE_ACCOUNT=$SERVICE_ACCOUNT_NAME@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
         BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
         BUCKET="gs://$BUCKET_NAME"
-        VOLUME_NAME="dreamboard-volume"
-        MOUNT_PATH="/code/app/mounted_files" # Code is in code/app in PROD
 
         read -p "Please enter a location where you wish to deploy the backend (press enter to use default us-central1)" -r LOCATION
         if [ -z "${LOCATION}" ]; then
@@ -181,7 +177,7 @@ function init() {
         echo "${bold}${text_green}Settings${reset}"
         echo "${bold}${text_green}──────────────────────────────────────────${reset}"
         echo "${bold}${text_green}Project ID: ${GOOGLE_CLOUD_PROJECT}${reset}"
-        echo "${bold}${text_green}Cloud Run Service: ${CLOUD_RUN_SERVICE_NAME}${reset}"
+        echo "${bold}${text_green}Backend Cloud Run Service: ${CLOUD_RUN_SERVICE_NAME}${reset}"
         echo "${bold}${text_green}Service Account: ${SERVICE_ACCOUNT}${reset}"
         echo "${bold}${text_green}Cloud Storage Bucket: ${BUCKET_NAME}${reset}"
         echo "${bold}${text_green}Location: ${LOCATION}${reset}"

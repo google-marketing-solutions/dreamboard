@@ -286,8 +286,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   }
 
   updateSelectedVideo(videoSignedUri: string, updateForm: boolean) {
+    // Reload video in the Scene Builder HTML element to update it
+    // since reload does not happen when the object is updated
+    const videoHTML: any = document.getElementById(`video@${this.scene.id}`);
+    if (videoHTML) {
+      videoHTML.load();
+    }
+    // Update selected video in form
     if (updateForm) {
-      // Update selected video in form
       this.videoSettingsForm.controls['selectedVideoUri'].setValue(
         videoSignedUri
       );
