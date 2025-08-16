@@ -16,7 +16,7 @@
 
 import os
 from concurrent import futures
-
+import shutil
 import google.cloud.logging as gcp_logging
 from services import storage_service
 from typing import Dict
@@ -61,6 +61,7 @@ def get_videos_bucket_folder_path(story_id: str):
 def get_videos_local_base_path(story_id: str):
   """
   Gets the local base path where videos are stored in GCS.
+  # Code is in code/app in PROD
 
   Args:
       story_id: The unique identifier for the story.
@@ -68,20 +69,29 @@ def get_videos_local_base_path(story_id: str):
   Returns:
       The local file system path for videos.
   """
-  return f"{os.getcwd()}/dreamboard/{story_id}/videos"
+  return f"{get_downloaded_videos_folder_path()}/{story_id}/videos"
 
 
 def get_videos_server_base_path(story_id: str):
   """
   Gets the local path where videos are stored on the server.
+  code/app = f"{os.getcwd()}/app/..."
 
   Args:
       story_id: The unique identifier for the story.
 
   Returns:
-      The server's file system path for videos, typically a mounted directory.
+      The server's file system path for videos.
   """
-  return f"{os.getcwd()}/app/mounted_files/dreamboard/{story_id}/videos"
+  return f"{get_downloaded_videos_folder_path()}/{story_id}/videos"
+
+
+def get_downloaded_videos_folder_path():
+  """Gets a folder path to download the videos."""
+  if os.getenv("ENV") == "dev":
+    return f"{os.getcwd()}/dreamboard_videos"
+  else:
+    return f"{os.getcwd()}/app/dreamboard_videos"
 
 
 def get_videos_gcs_fuse_path(story_id: str):
@@ -99,6 +109,28 @@ def get_videos_gcs_fuse_path(story_id: str):
     return get_videos_local_base_path(story_id)
   else:
     return get_videos_server_base_path(story_id)
+
+
+def delete_downloaded_video_folder_by_story_id(story_id: str):
+  """Delete folder for downloaded videos after they have been merged"""
+  parent_folder = get_downloaded_videos_folder_path()
+  subfolder_to_delete = os.path.join(parent_folder, f"{story_id}")
+
+  # Check if the subfolder exists before attempting to delete it
+  if os.path.exists(subfolder_to_delete) and os.path.isdir(subfolder_to_delete):
+    try:
+      shutil.rmtree(subfolder_to_delete)
+      print(
+          f"Subfolder '{subfolder_to_delete}' and its contents deleted"
+          " successfully."
+      )
+    except OSError as e:
+      print(f"Error: {subfolder_to_delete} : {e.strerror}")
+  else:
+    print(
+        f"Subfolder '{subfolder_to_delete}' does not exist or is not a"
+        " directory."
+    )
 
 
 def get_videos_public_bucket_path(story_id: str):
@@ -128,12 +160,9 @@ def get_scene_folder_path_from_uri(uri: str):
       The extracted scene folder path.
   """
   uri_paths = uri.split("/")
-  if os.getenv("ENV") == "dev":
-    scene_folder_path = uri_paths[len(uri_paths) - 2]
-  else:
-    scene_folder_path_id = uri_paths[len(uri_paths) - 2]
-    scene_folder_path_number = uri_paths[len(uri_paths) - 3]
-    scene_folder_path = f"{scene_folder_path_number}/{scene_folder_path_id}"
+  scene_folder_path_id = uri_paths[len(uri_paths) - 2]
+  scene_folder_path_number = uri_paths[len(uri_paths) - 3]
+  scene_folder_path = f"{scene_folder_path_number}/{scene_folder_path_id}"
 
   return scene_folder_path
 
@@ -162,9 +191,9 @@ def get_images_server_base_path(story_id: str):
       story_id: The unique identifier for the story.
 
   Returns:
-      The server's file system path for images, typically a mounted directory.
+      The server's file system path for images.
   """
-  return f"{os.getcwd()}/app/mounted_files/dreamboard/{story_id}/images"
+  return f"{os.getcwd()}/app/dreamboard/{story_id}/images"
 
 
 def get_images_gcs_fuse_path(story_id: str):
@@ -414,36 +443,41 @@ def execute_tasks_in_parallel(tasks: list[any]) -> None:
       results.append(running_task.result())
   return results
 
+
 def update_signed_uris_in_story(story_data: Dict) -> Dict:
-    """
-    Generates new signed URIs for all videos and images in a story.
-    """
+  """
+  Generates new signed URIs for all videos and images in a story.
+  """
 
-    def _update_list(media_list: list):
-      """Helper to update signed URIs in a list of media items."""
-      for media_item in media_list:
-        gcs_uri = media_item.get("gcsUri")
-        if gcs_uri:
-          media_item["signed_uri"] = get_signed_uri_from_gcs_uri(gcs_uri)
+  def _update_list(media_list: list):
+    """Helper to update signed URIs in a list of media items."""
+    for media_item in media_list:
+      gcs_uri = media_item.get("gcsUri")
+      if gcs_uri:
+        media_item["signedUri"] = get_signed_uri_from_gcs_uri(gcs_uri)
 
-    # Update generated video URIs
-    _update_list(story_data.get("generatedVideos", []))
+  # Update generated video URIs
+  _update_list(story_data.get("generatedVideos", []))
 
-    scenes = story_data.get("scenes", [])
-    for scene in scenes:
-      # Update image URIs
-      image_generation_settings = scene.get("imageGenerationSettings", {})
-      _update_list(image_generation_settings.get("generatedImages", []))
-      selected_image = image_generation_settings.get("selectedImageForVideo", {})
-      if selected_image.get("gcsUri"):
-        selected_image["signedUri"] = get_signed_uri_from_gcs_uri(selected_image.get("gcsUri"))
-      _update_list(image_generation_settings.get("referenceImages", []))
+  scenes = story_data.get("scenes", [])
+  for scene in scenes:
+    # Update image URIs
+    image_generation_settings = scene.get("imageGenerationSettings", {})
+    _update_list(image_generation_settings.get("generatedImages", []))
+    selected_image = image_generation_settings.get("selectedImageForVideo", {})
+    if selected_image.get("gcsUri"):
+      selected_image["signedUri"] = get_signed_uri_from_gcs_uri(
+          selected_image.get("gcsUri")
+      )
+    _update_list(image_generation_settings.get("referenceImages", []))
 
-      # Update video URIs
-      video_generation_settings = scene.get("videoGenerationSettings", {})
-      _update_list(video_generation_settings.get("generatedVideos", []))
-      selected_video = video_generation_settings.get("selectedVideo", {})
-      if selected_video.get("gcsUri"):
-        selected_video["signedUri"] = get_signed_uri_from_gcs_uri(selected_video.get("gcsUri"))
+    # Update video URIs
+    video_generation_settings = scene.get("videoGenerationSettings", {})
+    _update_list(video_generation_settings.get("generatedVideos", []))
+    selected_video = video_generation_settings.get("selectedVideo", {})
+    if selected_video.get("gcsUri"):
+      selected_video["signedUri"] = get_signed_uri_from_gcs_uri(
+          selected_video.get("gcsUri")
+      )
 
-    return story_data
+  return story_data
