@@ -64,7 +64,7 @@
       <mat-option value="no-image">No image</mat-option>
       @for (image of scene.imageGenerationSettings.generatedImages; track image;
       let i = $index) {
-      <mat-option [value]="image.signedUri" [id]="i.toString()">{{
+      <mat-option [value]="image.gcsUri" [id]="i.toString()">{{
         image.name
       }}</mat-option>
       }

@@ -136,21 +136,23 @@ export class BrainstormComponent implements AfterViewInit {
     this.textGenerationService
       .extract_text_from_file(extractTextRequest)
       .subscribe(
-        (extractedText: string) => {
-          openSnackBar(
-            this._snackBar,
-            `File information extracted successfully!`,
-            10
-          );
-          if (file.type === UploadedFileType.CreativeBrief) {
-            this.storiesSettingsForm.controls['creativeBriefIdea'].setValue(
-              extractedText
+        (extractedText: any) => {
+          if (extractedText && extractedText.data) {
+            openSnackBar(
+              this._snackBar,
+              `File information extracted successfully!`,
+              10
             );
-          }
-          if (file.type === UploadedFileType.BrandGuidelines) {
-            this.storiesSettingsForm.controls['brandGuidelines'].setValue(
-              extractedText
-            );
+            if (file.type === UploadedFileType.CreativeBrief) {
+              this.storiesSettingsForm.controls['creativeBriefIdea'].setValue(
+                extractedText.data
+              );
+            }
+            if (file.type === UploadedFileType.BrandGuidelines) {
+              this.storiesSettingsForm.controls['brandGuidelines'].setValue(
+                extractedText.data
+              );
+            }
           }
         },
         (error: any) => {

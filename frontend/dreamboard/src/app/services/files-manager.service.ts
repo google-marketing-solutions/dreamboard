@@ -28,6 +28,7 @@ import { UploadedFileType } from '../models/settings-models';
   providedIn: 'root',
 })
 export class FilesManagerService {
+  PROXY_URL = environment.proxyURL;
   BASE_URL = environment.fileUploaderApiURL;
 
   constructor(private http: HttpClient) {}
@@ -58,8 +59,17 @@ export class FilesManagerService {
         break;
     }
 
+    /*const requestBody = {
+      url: `${this.BASE_URL}/upload_file/${bucketPath}`,
+      options: {
+        method: 'POST',
+        data: fileData,
+        otherOptions: , // TODO (ae): handle otherOptions
+      },
+    };*/
     return this.http.post<any>(
-      `${this.BASE_URL}/upload_file/${bucketPath}`,
+      `${this.PROXY_URL}/api/handleFileUploadRequest/${bucketPath}`,
+      
       fileData,
       {
         reportProgress: true,
