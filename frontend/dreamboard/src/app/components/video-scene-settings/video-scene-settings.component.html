@@ -67,7 +67,7 @@
     >
       @for (video of scene.videoGenerationSettings.generatedVideos; track video;
       let i = $index) {
-      <mat-option [value]="video.signedUri" [id]="i.toString()">{{
+      <mat-option [value]="video.gcsUri" [id]="i.toString()">{{
         video.name
       }}</mat-option>
       }

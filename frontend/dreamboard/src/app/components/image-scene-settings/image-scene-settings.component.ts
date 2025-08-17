@@ -50,7 +50,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
-import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { VideoScene } from '../../models/scene-models';
 import {
   ImageSceneRequest,
@@ -212,7 +211,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       // Add all user provided images to generated images to show in the carrousel
       this.scene.imageGenerationSettings.generatedImages.push(uploadedImage);
       const updateForm = true;
-      this.updateSelectedImage(uploadedImage.signedUri, updateForm);
+      this.updateSelectedImage(uploadedImage.gcsUri, updateForm);
     }
   }
 
@@ -280,10 +279,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     // On edit
     if (this.scene.imageGenerationSettings.selectedImageForVideo) {
       this.setCurrentGeneratedImageIndex(
-        this.scene.imageGenerationSettings.selectedImageForVideo.signedUri
+        this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri
       );
       this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        this.scene.imageGenerationSettings.selectedImageForVideo.signedUri
+        this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri
       );
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
@@ -419,7 +418,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       ];
     // Set selected generated image in form
     this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.signedUri
+      generatedImage.gcsUri
     );
     // Set selected generated image in scene
     this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;
@@ -445,7 +444,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       ];
     // Set selected generated image in form
     this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.signedUri
+      generatedImage.gcsUri
     );
     // Set selected generated image in scene
     this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;
@@ -535,9 +534,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * @param {string} imageUri - The URI of the image to find.
    * @returns {void}
    */
-  setCurrentGeneratedImageIndex(imageUri: string): void {
+  setCurrentGeneratedImageIndex(imageGCSUri: string): void {
     const index = this.scene.imageGenerationSettings.generatedImages.findIndex(
-      (image) => image.signedUri === imageUri
+      (image) => image.gcsUri === imageGCSUri
     );
     this.currentGeneratedImageIndex = index;
   }
@@ -561,23 +560,15 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       `Generating enhanced image prompt for scene ${this.scene.number}...`
     );
 
-    console.log(
-      'current image prompt: ' +
-        currentPrompt +
-        '\nScene Description:' +
-        sceneDescription
-    );
-
     this.textGenerationService
       .rewriteImagePrompt(currentPrompt, sceneDescription, withSceneDescription)
       .subscribe(
-        (enhancedPrompt: string) => {
+        (enhancedPrompt: any) => {
           // Find scene in responses to update generated videos
           closeSnackBar(this._snackBar);
-          console.log('Rewriting image prompt response: ' + enhancedPrompt);
-          if (enhancedPrompt) {
-            this.scene.imageGenerationSettings.prompt = enhancedPrompt;
-            this.imageSettingsForm.get('prompt')?.setValue(enhancedPrompt);
+          if (enhancedPrompt && enhancedPrompt.data) {
+            this.scene.imageGenerationSettings.prompt = enhancedPrompt.data;
+            this.imageSettingsForm.get('prompt')?.setValue(enhancedPrompt.data);
           }
         },
         (error: any) => {
@@ -616,25 +607,22 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.imageGenerationService
       .generateImage(this.storyId, imageGeneration)
       .subscribe(
-        (resps: HttpResponse<ImageGenerationResponse[]>) => {
+        (images: ImageGenerationResponse[]) => {
           // Find scene in responses to update generated videoss
-          if (resps.body) {
-            const executionStatus = updateScenesWithGeneratedImages(
-              resps.body,
-              [this.scene]
-            );
-            openSnackBar(
-              this._snackBar,
-              executionStatus['execution_message'],
-              20
-            );
-            const lastGenImage =
-              this.scene.imageGenerationSettings.generatedImages[
-                this.scene.imageGenerationSettings.generatedImages.length - 1
-              ];
-            const updateForm = true;
-            this.updateSelectedImage(lastGenImage.signedUri, updateForm);
-          }
+          const executionStatus = updateScenesWithGeneratedImages(images, [
+            this.scene,
+          ]);
+          openSnackBar(
+            this._snackBar,
+            executionStatus['execution_message'],
+            10
+          );
+          const lastGenImage =
+            this.scene.imageGenerationSettings.generatedImages[
+              this.scene.imageGenerationSettings.generatedImages.length - 1
+            ];
+          const updateForm = true;
+          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
         },
         (error: any) => {
           let errorMessage;
@@ -657,18 +645,18 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * This function sets the image URI, finds the full image object from the list of
    * generated images, and designates it as the selected image for video generation.
    *
-   * @param {string} imageSignedUri The signed URI of the image to be selected.
+   * @param {string} imageGCSUri The GCS URI of the image to be selected.
    * @param {boolean} updateForm A flag to determine whether to update the reactive form with the new image URI.
    */
-  updateSelectedImage(imageSignedUri: string, updateForm: boolean) {
+  updateSelectedImage(imageGCSUri: string, updateForm: boolean) {
     if (updateForm) {
       // Update selected image in form
       this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        imageSignedUri
+        imageGCSUri
       );
     }
     // Find image index in array
-    this.setCurrentGeneratedImageIndex(imageSignedUri);
+    this.setCurrentGeneratedImageIndex(imageGCSUri);
     const selectedImageForVideo =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
