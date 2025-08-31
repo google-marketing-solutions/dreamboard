@@ -107,6 +107,9 @@ export class TransitionsSettingsDialogComponent {
     if (transition === Transition.WIPE) {
       return Transition.WIPE;
     }
+    if (transition === Transition.DIP_TO_BLACK) {
+      return Transition.DIP_TO_BLACK;
+    }
     if (transition === Transition.ZOOM) {
       return Transition.ZOOM;
     }

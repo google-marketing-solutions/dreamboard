@@ -62,8 +62,8 @@ if confirm "Do you wish to proceed?"; then
     echo "${bold}${text_green}Settings${reset}"
     echo "${bold}${text_green}──────────────────────────────────────────${reset}"
     echo "${bold}${text_green}Project ID: ${GOOGLE_CLOUD_PROJECT}${reset}"
-    echo "${bold}${text_green}Frontend Cloud Run Service URL: ${FRONTEND_CLOUD_RUN_SERVICE_NAME}${reset}"
-    echo "${bold}${text_green}Backend Cloud Run Service: ${BACKEND_CLOUD_RUN_SERVICE_URL}${reset}"
+    echo "${bold}${text_green}Frontend Cloud Run Service: ${FRONTEND_CLOUD_RUN_SERVICE_NAME}${reset}"
+    echo "${bold}${text_green}Backend Cloud Run Service URL: ${BACKEND_CLOUD_RUN_SERVICE_URL}${reset}"
     echo "${bold}${text_green}Cloud Storage Bucket: ${BUCKET_NAME}${reset}"
     echo "${bold}${text_green}Location: ${LOCATION}${reset}"
     echo
@@ -86,5 +86,3 @@ if confirm "Do you wish to proceed?"; then
         echo "✅ ${bold}${text_green} Done!${reset}"
     fi
 fi
-
-

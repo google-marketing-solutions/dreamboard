@@ -24,10 +24,10 @@ import cv2
 import numpy as np
 import subprocess
 import tempfile
-import os
 from imageio_ffmpeg import get_ffmpeg_exe
 from moviepy import editor
 from scipy import ndimage
+import logging
 
 # for warping images:
 from skimage.transform import resize
@@ -50,53 +50,66 @@ class TransitionsService:
     """
     pass
 
-  def concatenate_audioclips(self, audioclip1_filename, audioclip2_filename, audioclip1_duration=None):
-      """
-      Trims the end of clip1, then concatenates clip1 and clip2 audio using ffmpeg.
+  def concatenate_audioclips(
+      self, audioclip1_filename, audioclip2_filename, audioclip1_duration=None
+  ):
+    """
+    Trims the end of clip1, then concatenates clip1 and clip2 audio using ffmpeg.
 
-      Args:
-          audioclip1_filename (str): Path to first audio file.
-          audioclip2_filename (str): Path to second audio file.
-          audioclip1_duration (float): If the first audioclip should be trimmed, the duration of that clip.
+    Args:
+        audioclip1_filename (str): Path to first audio file.
+        audioclip2_filename (str): Path to second audio file.
+        audioclip1_duration (float): If the first audioclip should be trimmed, the duration of that clip.
 
-      Returns:
-          str: Path to output audio file.
-      """
-      output_audioclip = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-      output_audioclip.close()
+    Returns:
+        str: Path to output audio file.
+    """
+    output_audioclip = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    output_audioclip.close()
 
-      filter_commands = []
-      input_args = [
-          get_ffmpeg_exe(), "-y", "-i", audioclip1_filename, "-i", audioclip2_filename
-      ]
+    filter_commands = []
+    input_args = [
+        get_ffmpeg_exe(),
+        "-y",
+        "-i",
+        audioclip1_filename,
+        "-i",
+        audioclip2_filename,
+    ]
 
-      if audioclip1_duration is not None:
-          # Trim the first audio stream
-          filter_commands.append(f"[0:a]atrim=0:{audioclip1_duration},asetpts=PTS-STARTPTS[a0]")
-      else:
-          filter_commands.append("[0:a]asetpts=PTS-STARTPTS[a0]")
-
-      filter_commands.append("[1:a]asetpts=PTS-STARTPTS[a1]")
-      filter_commands.append("[a0][a1]concat=n=2:v=0:a=1[outa]")
-
-      result = subprocess.run(
-          input_args + [
-              "-filter_complex", ";".join(filter_commands),
-              "-map", "[outa]",
-              "-c:a", "aac",
-              output_audioclip.name
-          ],
-          stdout=subprocess.PIPE,
-          stderr=subprocess.PIPE,
-          text=True,
-          check=True
+    if audioclip1_duration is not None:
+      # Trim the first audio stream
+      filter_commands.append(
+          f"[0:a]atrim=0:{audioclip1_duration},asetpts=PTS-STARTPTS[a0]"
       )
+    else:
+      filter_commands.append("[0:a]asetpts=PTS-STARTPTS[a0]")
 
-      # Debug logs
-      print("FFmpeg STDOUT:\n", result.stdout)
-      print("FFmpeg STDERR:\n", result.stderr)
+    filter_commands.append("[1:a]asetpts=PTS-STARTPTS[a1]")
+    filter_commands.append("[a0][a1]concat=n=2:v=0:a=1[outa]")
 
-      return output_audioclip.name
+    result = subprocess.run(
+        input_args
+        + [
+            "-filter_complex",
+            ";".join(filter_commands),
+            "-map",
+            "[outa]",
+            "-c:a",
+            "aac",
+            output_audioclip.name,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
+    # Debug logs
+    print("FFmpeg STDOUT:\n", result.stdout)
+    print("FFmpeg STDERR:\n", result.stderr)
+
+    return output_audioclip.name
 
   def crossfade(self, clip1, clip2, transition_duration, speed_curve="sigmoid"):
     """
@@ -183,9 +196,22 @@ class TransitionsService:
     final_clip = editor.CompositeVideoClip([clip1, clip2], use_bgclip=True)
     final_clip = final_clip.set_make_frame(make_frame)
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, transition_start
+              )
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def wipe(self, clip1, clip2, transition_duration, direction="left-to-right"):
     """
@@ -289,9 +315,22 @@ class TransitionsService:
         [clip2, clip1_masked], size=clip1.size
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, transition_start
+              )
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def zoom(
       self,
@@ -464,9 +503,22 @@ class TransitionsService:
         size=clip1.size,
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, transition_start
+              )
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def zoom_warp(
       self,
@@ -689,9 +741,22 @@ class TransitionsService:
         size=clip1.size,
     )
     final_clip = final_clip.set_duration(total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, transition_start)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, transition_start
+              )
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def dip_to_black(
       self, clip1, clip2, transition_duration, speed_curve="sigmoid"
@@ -787,9 +852,20 @@ class TransitionsService:
     final_clip = editor.CompositeVideoClip(
         [black_clip, clip1_fadeout, clip2_fadein]
     )
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(clip1.filename, clip2.filename)
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def concatenate(
       self, clip1, clip2, trim_end_clip1=None, trim_start_clip2=None
@@ -855,9 +931,20 @@ class TransitionsService:
 
     # Concatenate the (potentially trimmed) clips.
     final_clip = editor.concatenate_videoclips([clip1, clip2])
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(clip1.filename, clip2.filename)
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def add_blur_transition(
       self,
@@ -1003,9 +1090,20 @@ class TransitionsService:
 
     # Concatenate the blurred clips.
     final_clip = editor.concatenate_videoclips([clip1_blurred, clip2_blurred])
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(clip1.filename, clip2.filename)
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def flicker(self, clip1, clip2):
     """
@@ -1094,9 +1192,20 @@ class TransitionsService:
         blurred_frame2,  # second frame with zoom and 50% blur.
         clip2,  # clip2 unchanged.
     ])
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(clip1.filename, clip2.filename)
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def slide(self, clip1, clip2, duration=1.0, speed_curve="sigmoid"):
     """
@@ -1197,9 +1306,22 @@ class TransitionsService:
 
     # Create a new clip with the custom frame-making function.
     final_clip = editor.VideoClip(make_frame, duration=total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, clip1.duration - duration)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, clip1.duration - duration
+              )
+          )
+      )
+
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
 
   def slide_warp(
       self,
@@ -1347,7 +1469,19 @@ class TransitionsService:
 
     # Create a new clip with the custom frame-making function.
     final_clip = editor.VideoClip(make_frame, duration=total_duration)
-    final_clip = final_clip.set_audio(editor.AudioFileClip(self.concatenate_audioclips(clip1.filename, clip2.filename, clip1.duration - duration)))
 
-    return final_clip
+    # For now, If there is an error in the audio merge, return video without audio
+    try:
+      final_clip_with_audio = final_clip.set_audio(
+          editor.AudioFileClip(
+              self.concatenate_audioclips(
+                  clip1.filename, clip2.filename, clip1.duration - duration
+              )
+          )
+      )
 
+      return final_clip_with_audio, True
+    except Exception as ex:
+      logging.error(f"ERROR: Audio could not be merged. {str(ex)}")
+
+      return final_clip, False
