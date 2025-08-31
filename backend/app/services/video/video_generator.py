@@ -269,8 +269,9 @@ class VideoGenerator:
         if vsg.transition
     ]
 
+    video_with_audio_merges = []
     if len(gcs_fuse_paths_to_merge) > 1:
-      final_video_gcs_fuse_path = self.__merge(
+      final_video_gcs_fuse_path, video_with_audio_merges = self.__merge(
           output_folder, gcs_fuse_paths_to_merge, video_transitions
       )
     elif len(gcs_fuse_paths_to_merge) == 1:
@@ -279,6 +280,7 @@ class VideoGenerator:
           "there is only 1 video segment."
       )
       final_video_gcs_fuse_path = gcs_fuse_paths_to_merge[0]
+      video_with_audio_merges.append(True)
     else:
       return None
 
@@ -304,13 +306,21 @@ class VideoGenerator:
         "DreamBoard - VIDEO_GENERATOR: %s videos were merged successfully!",
         len(gcs_fuse_paths_to_merge),
     )
+
+    # Check if audio was merged succesfully to show correct message to the user
+    if any(video_with_audio_merges):
+      execution_message = f"Videos for Story {story_id} were merged successfully!"
+    else:
+      execution_message = (
+          "Video was merged successfully but audio was not processed correctly."
+          " The merged video might not contain audio."
+      )
+
     video_gen_response = VideoGenerationResponse(
         video_segment=None,  # No specific segment for final video
         done=True,
         operation_name="final_video",
-        execution_message=(
-            f"Video generated successfully in path {final_video_uri}"
-        ),
+        execution_message=execution_message,
         videos=[
             Video(
                 name=final_video_name,
@@ -463,6 +473,7 @@ class VideoGenerator:
 
     count = 0
     trans_count = 0
+    video_with_audio_merges: list[bool] = []
     while len(gcs_fuse_paths) > 1:
       video_path1 = gcs_fuse_paths.pop()
       video_path2 = gcs_fuse_paths.pop()
@@ -487,13 +498,13 @@ class VideoGenerator:
           "video %s...",
           final_video_path,
       )
-      self.__apply_transition_and_write_video(
+      video_with_audio_merges.append(self.__apply_transition_and_write_video(
           transition_type, video_path1, video_path2, final_video_path
-      )
+      ))
       count = count + 2
       trans_count = trans_count + 1
 
-    return final_video_path
+    return final_video_path, video_with_audio_merges
 
   def __get_videos_to_merge(self, videos: list[Video]):
     """Builds a stack of reversed video GCS FUSE paths to merge.
@@ -651,7 +662,7 @@ class VideoGenerator:
 
     # Create transition by type:
     if transition_type == video_request_models.VideoTransition.X_FADE.value:
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.X_FADE,
@@ -659,7 +670,7 @@ class VideoGenerator:
           speed_curve="sigmoid",
       )
     elif transition_type == video_request_models.VideoTransition.WIPE.value:
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.WIPE,
@@ -667,7 +678,7 @@ class VideoGenerator:
           direction="left-to-right",
       )
     elif transition_type == video_request_models.VideoTransition.ZOOM.value:
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.ZOOM,
@@ -678,7 +689,7 @@ class VideoGenerator:
     elif (
         transition_type == video_request_models.VideoTransition.ZOOM_WARP.value
     ):
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.ZOOM_WARP,
@@ -692,7 +703,7 @@ class VideoGenerator:
         transition_type
         == video_request_models.VideoTransition.DIP_TO_BLACK.value
     ):
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.DIP_TO_BLACK,
@@ -705,11 +716,11 @@ class VideoGenerator:
     ):
       # Concatenate might have specific kwargs like trim_end_clip1, trim_start_clip2
       # Assuming no trims for this direct replacement for now.
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1, clip2, video_request_models.VideoTransition.CONCATENATE
       )
     elif transition_type == video_request_models.VideoTransition.BLUR.value:
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.BLUR,
@@ -718,11 +729,11 @@ class VideoGenerator:
       )
     elif transition_type == video_request_models.VideoTransition.FLICKER.value:
       # Flicker takes no additional kwargs
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1, clip2, video_request_models.VideoTransition.FLICKER
       )
     elif transition_type == video_request_models.VideoTransition.SLIDE.value:
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.SLIDE,
@@ -732,7 +743,7 @@ class VideoGenerator:
     elif (
         transition_type == video_request_models.VideoTransition.SLIDE_WARP.value
     ):
-      final_clip = service.apply_transition(
+      final_clip, video_with_audio_merged = service.apply_transition(
           clip1,
           clip2,
           video_request_models.VideoTransition.SLIDE_WARP,
@@ -759,6 +770,9 @@ class VideoGenerator:
       ):  # Avoid re-writing if already handled
         fallback_clip = editor.concatenate_videoclips([clip1, clip2])
         fallback_clip.write_videofile(f"{final_video_path}", fps=24)
+
+    # Return video_with_audio_merged to provide additional details to the user in the font
+    return video_with_audio_merged
 
   def __apply_text_and_write_video(
       self,
