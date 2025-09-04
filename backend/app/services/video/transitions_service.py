@@ -50,7 +50,36 @@ class TransitionsService:
     """
     pass
 
-  def concatenate_audioclips(
+  def create_silent_audio(audioclip_duration):
+    """
+    Generates a silent audio file of a specified duration.
+
+    Args:
+        duration (float): The duration of the silent clip in seconds.
+    
+    Returns:
+        str: The path to the temporary silent audio file.
+    """
+    output_audioclip = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    output_audioclip.close()
+
+    command = [
+      get_ffmpeg_exe(),
+      "-f", "lavfi",
+      "-i", f"anullsrc=r=44100:cl=mono",
+      "-t", str(audioclip_duration),
+      "-acodec", "aac",
+      output_audioclip.name
+    ]
+
+    try:
+      subprocess.run(command, text=True, check=True)
+      return output_audioclip.name
+    except subprocess.CalledProcessError as e:
+      logging.error(f"ERROR: Silent audio stream could not be created. {e.stderr}")
+      return None
+
+  def concatenate_audioclips_with_ffmpeg(
       self, audioclip1_filename, audioclip2_filename, audioclip1_duration=None
   ):
     """
@@ -110,6 +139,22 @@ class TransitionsService:
     print("FFmpeg STDERR:\n", result.stderr)
 
     return output_audioclip.name
+  
+  def concatenate_audioclips(self, clip1, clip2, clip1_duration=None):
+    """
+    Concatenates the inputted audioclips, substituting a silent audio stream for clips without audio.
+
+    Args:
+        clip1 (VideoFileClip): First video clip.
+        clip2 (VideoFileClip): Second video clip.
+        clip1_duration (float): If the first clip should be trimmed, the duration of that clip.
+
+    Returns:
+        str: Path to output audio file.
+    """
+    audioclip1_filename = clip1.filename if clip1.audio else self.create_silent_audio(clip1.duration)
+    audioclip2_filename = clip2.filename if clip2.audio else self.create_silent_audio(clip2.duration)
+    return self.concatenate_audioclips_with_ffmpeg(audioclip1_filename, audioclip2_filename, clip1_duration)
 
   def crossfade(self, clip1, clip2, transition_duration, speed_curve="sigmoid"):
     """
@@ -202,7 +247,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, transition_start
+                  clip1, clip2, transition_start
               )
           )
       )
@@ -321,7 +366,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, transition_start
+                  clip1, clip2, transition_start
               )
           )
       )
@@ -509,7 +554,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, transition_start
+                  clip1, clip2, transition_start
               )
           )
       )
@@ -747,7 +792,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, transition_start
+                  clip1, clip2, transition_start
               )
           )
       )
@@ -857,7 +902,7 @@ class TransitionsService:
     try:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
-              self.concatenate_audioclips(clip1.filename, clip2.filename)
+              self.concatenate_audioclips(clip1, clip2)
           )
       )
 
@@ -936,7 +981,7 @@ class TransitionsService:
     try:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
-              self.concatenate_audioclips(clip1.filename, clip2.filename)
+              self.concatenate_audioclips(clip1, clip2)
           )
       )
 
@@ -1095,7 +1140,7 @@ class TransitionsService:
     try:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
-              self.concatenate_audioclips(clip1.filename, clip2.filename)
+              self.concatenate_audioclips(clip1, clip2)
           )
       )
 
@@ -1197,7 +1242,7 @@ class TransitionsService:
     try:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
-              self.concatenate_audioclips(clip1.filename, clip2.filename)
+              self.concatenate_audioclips(clip1, clip2)
           )
       )
 
@@ -1312,7 +1357,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, clip1.duration - duration
+                  clip1, clip2, clip1.duration - duration
               )
           )
       )
@@ -1475,7 +1520,7 @@ class TransitionsService:
       final_clip_with_audio = final_clip.set_audio(
           editor.AudioFileClip(
               self.concatenate_audioclips(
-                  clip1.filename, clip2.filename, clip1.duration - duration
+                  clip1, clip2, clip1.duration - duration
               )
           )
       )
