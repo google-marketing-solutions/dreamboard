@@ -50,7 +50,7 @@ class TransitionsService:
     """
     pass
 
-  def create_silent_audio(audioclip_duration):
+  def create_silent_audio(self, audioclip_duration):
     """
     Generates a silent audio file of a specified duration.
 
@@ -65,6 +65,7 @@ class TransitionsService:
 
     command = [
       get_ffmpeg_exe(),
+      "-y",
       "-f", "lavfi",
       "-i", f"anullsrc=r=44100:cl=mono",
       "-t", str(audioclip_duration),
