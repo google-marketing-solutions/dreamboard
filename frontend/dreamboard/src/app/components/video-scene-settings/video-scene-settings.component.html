@@ -103,20 +103,18 @@
       matInput
       type="number"
       min="1"
-      max="2"
+      max="4"
       formControlName="sampleCount"
     />
   </mat-form-field>
 
   <mat-form-field>
     <mat-label>Duration in Seconds</mat-label>
-    <input
-      matInput
-      type="number"
-      formControlName="durationInSecs"
-      min="8"
-      max="8"
-    />
+    <mat-select formControlName="durationInSecs">
+      <mat-option [value]="4">4</mat-option>
+      <mat-option [value]="6">6</mat-option>
+      <mat-option [value]="8">8</mat-option>
+    </mat-select>
   </mat-form-field>
 
   <mat-form-field>
@@ -179,7 +177,31 @@
     <mat-checkbox formControlName="regenerateVideo"
       >Regenerate video in bulk generation</mat-checkbox
     >
+    <mat-checkbox formControlName="cutVideo"
+      >Cut video in final video</mat-checkbox
+    >
   </div>
+  @if (videoSettingsForm.get('cutVideo')?.value) {
+  <div class="video-cut-settings">
+    <h3>Video Cut Settings</h3>
+    <mat-form-field>
+      <mat-label>Start Seconds</mat-label>
+      <input matInput type="number" formControlName="startSeconds" (change)="onStartSecondsChange($event)" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Start Frame</mat-label>
+      <input matInput type="number" formControlName="startFrame" (change)="onStartFrameChange($event)" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>End Seconds</mat-label>
+      <input matInput type="number" formControlName="endSeconds" (change)="onEndSecondsChange($event)" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>End Frame</mat-label>
+      <input matInput type="number" formControlName="endFrame" (change)="onEndFrameChange($event)" />
+      </mat-form-field>
+    </div>
+  }
 
   <div class="generate-button">
     <button

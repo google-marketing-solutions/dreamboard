@@ -111,17 +111,17 @@ export class SceneBuilderComponent {
    * @returns {void}
    */
   openSceneSettingsDialog(scene: VideoScene, sceneId: string) {
-    const dialogRef = this.sceneSettingsDialog.open(
-      SceneSettingsDialogComponent,
-      {
-        minWidth: '1200px',
-        data: {
-          storyId: this.story.id,
-          sceneId: sceneId,
-          scene: scene,
-        },
-      }
-    );
+      const dialogRef = this.sceneSettingsDialog.open(
+        SceneSettingsDialogComponent,
+        {
+          minWidth: '1200px',
+          data: {
+            storyId: this.story.id,
+            sceneId: sceneId,
+            scene: scene,
+          },
+        }
+      );
   }
 
   /**
@@ -573,6 +573,14 @@ export class SceneBuilderComponent {
           scene.videoGenerationSettings.includeVideoSegment,
         generate_video_frames: false,
         regenerate_video_segment: scene.videoGenerationSettings.regenerateVideo,
+        cut_video: scene.videoGenerationSettings.cutVideo,
+        // Conditionally add cut properties if cutVideo is true
+        ...(scene.videoGenerationSettings.cutVideo && {
+          start_seconds: scene.videoGenerationSettings.startSeconds,
+          start_frame: scene.videoGenerationSettings.startFrame,
+          end_seconds: scene.videoGenerationSettings.endSeconds,
+          end_frame: scene.videoGenerationSettings.endFrame,
+        }),
         selected_video: selectedVideo,
       };
       videoSegments.push(videoSegment);

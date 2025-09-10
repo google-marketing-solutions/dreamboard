@@ -95,6 +95,7 @@ class TextOverlayRequest(BaseModel):
       gcs_video_path: The GCS URI of the input video.
       text_overlays: A list of `TextOverlay` objects to apply to the video.
   """
+
   gcs_video_path: str
   text_overlays: list[TextOverlay]
 
@@ -224,6 +225,11 @@ class VideoSegmentRequest(BaseModel):
   generate_video_frames: bool | None = False
   selected_video: VideoItem | None = None
   generate_audio: bool | None = False
+  start_seconds: int | None = 0
+  start_frame: int | None = 0
+  end_seconds: int | None = 7
+  end_frame: int | None = 23
+  cut_video: bool = False
 
 
 class VideoGenerationRequest(BaseModel):
@@ -243,6 +249,7 @@ class VideoGenerationRequest(BaseModel):
 
   video_segments: list[VideoSegmentRequest]
   creative_direction: VideoCreativeDirectionRequest | None = None
+
 
 class LogoOverlayOptions(BaseModel):
   """
@@ -264,6 +271,7 @@ class LogoOverlayOptions(BaseModel):
   x_position: int
   y_position: int
 
+
 class LogoOverlay(BaseModel):
   """
   Represents a single logo overlay to be applied to a video.
@@ -275,6 +283,7 @@ class LogoOverlay(BaseModel):
   gcs_logo_path: str
   options: LogoOverlayOptions = Field(default_factory=LogoOverlayOptions)
 
+
 class LogoOverlayRequest(BaseModel):
   """
   Represents a request to apply a logo overlay to a video.
@@ -282,5 +291,6 @@ class LogoOverlayRequest(BaseModel):
       gcs_video_path: The GCS URI of the input video.
       logo_overlay: The logo overlay to be applied to the video.
   """
+
   gcs_video_path: str
   logo_overlay: LogoOverlay = Field(default_factory=LogoOverlay)

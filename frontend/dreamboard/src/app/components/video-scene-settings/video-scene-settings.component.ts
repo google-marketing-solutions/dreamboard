@@ -84,7 +84,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   videoSettingsForm = new FormGroup({
     prompt: new FormControl('', []),
     sampleCount: new FormControl(2, []),
-    durationInSecs: new FormControl(8, [Validators.required]),
+    durationInSecs: new FormControl(4, [Validators.required]),
     aspectRatio: new FormControl('16:9', []),
     framesPerSec: new FormControl('24', []),
     personGeneration: new FormControl('allow_adult', []),
@@ -94,6 +94,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     generateAudio: new FormControl(true, []),
     includeVideoSegment: new FormControl(true, []),
     regenerateVideo: new FormControl(true, []),
+    cutVideo: new FormControl(true, []),
+    startSeconds: new FormControl(0, [Validators.min(0), Validators.max(7)]),
+    startFrame: new FormControl(0, [Validators.min(0)]),
+    endSeconds: new FormControl(7, [Validators.min(0), Validators.max(7)]),
+    endFrame: new FormControl(0, [Validators.min(0)]),
     selectedVideoUri: new FormControl(''),
     withSceneDescription: new FormControl(true, []),
   });
@@ -151,6 +156,21 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.videoSettingsForm.controls['regenerateVideo'].setValue(
       this.scene.videoGenerationSettings.regenerateVideo!
     );
+    this.videoSettingsForm.controls['cutVideo'].setValue(
+      this.scene.videoGenerationSettings.cutVideo!
+    );
+    this.videoSettingsForm.controls['startSeconds'].setValue(
+      this.scene.videoGenerationSettings.startSeconds!
+    );
+    this.videoSettingsForm.controls['startFrame'].setValue(
+      this.scene.videoGenerationSettings.startFrame!
+    );
+    this.videoSettingsForm.controls['endSeconds'].setValue(
+      this.scene.videoGenerationSettings.endSeconds!
+    );
+    this.videoSettingsForm.controls['endFrame'].setValue(
+      this.scene.videoGenerationSettings.endFrame!
+    );
     // Update selected video if any
     if (this.scene.videoGenerationSettings.selectedVideo) {
       // Update selected video index in carrousel
@@ -190,6 +210,16 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.videoSettingsForm.get('includeVideoSegment')?.value!;
     this.scene.videoGenerationSettings.regenerateVideo =
       this.videoSettingsForm.get('regenerateVideo')?.value!;
+    this.scene.videoGenerationSettings.cutVideo =
+      this.videoSettingsForm.get('cutVideo')?.value!;
+    this.scene.videoGenerationSettings.startSeconds =
+      this.videoSettingsForm.get('startSeconds')?.value!;
+    this.scene.videoGenerationSettings.startFrame =
+      this.videoSettingsForm.get('startFrame')?.value!;
+    this.scene.videoGenerationSettings.endSeconds =
+      this.videoSettingsForm.get('endSeconds')?.value!;
+    this.scene.videoGenerationSettings.endFrame =
+      this.videoSettingsForm.get('endFrame')?.value!;
     // Set up selected image. generatedImages array is populated after API call
     const selectedVideo: Video =
       this.scene.videoGenerationSettings.generatedVideos[
@@ -390,6 +420,8 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         gcs_fuse_path: '', // Empty here, this is generated in the backend
       } as ImageItem;
     }
+
+    const cutVideo = this.videoSettingsForm.get('cutVideo')?.value!;
     const videoSegment: VideoSegmentRequest = {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
@@ -412,9 +444,18 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         ?.value!,
       generate_video_frames: false, // TODO (ae): include this later
       regenerate_video_segment: true, // true for single video generation
+      cut_video: cutVideo,
+      // Add cut video options if cutVideo checkbox is true
+      start_seconds: cutVideo ? this.videoSettingsForm.get('startSeconds')?.value! : 0,
+      start_frame: cutVideo ? this.videoSettingsForm.get('startFrame')?.value! : 0,
+      end_seconds: cutVideo ? this.videoSettingsForm.get('endSeconds')?.value! : 7,
+      end_frame: cutVideo ? this.videoSettingsForm.get('endFrame')?.value! : parseInt(
+        this.videoSettingsForm.get('framesPerSec')?.value!
+      ),
       selected_video: undefined, // Since not required for the GENERATION operation
     };
 
+    console.log('Video Segment: ' + videoSegment);
     return videoSegment;
   }
 
@@ -480,5 +521,77 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           );
         }
       );
+  }
+
+  /**
+   * Handles changes to the startSeconds form control.
+   * Validates that the value is within the acceptable range and updates the form control.
+   * @param {any} event - The change event from the input field.
+   * @returns {void}
+   */
+  onStartSecondsChange(event: any): void {
+    let value = event.target.valueAsNumber;
+    const maxDuration = this.scene.videoGenerationSettings.durationInSecs;
+    if (value < 0) {
+      value = 0;
+    } else if (value >= maxDuration) {
+      value = maxDuration - 1;
+      // Also, reset the start frame to 0 if the max is hit
+      this.videoSettingsForm.get('startFrame')?.setValue(0);
+    }
+    this.videoSettingsForm.get('startSeconds')?.setValue(value);
+  }
+
+  /**
+   * Handles changes to the endSeconds form control.
+   * Validates that the value is within the acceptable range and updates the form control.
+   * @param {any} event - The change event from the input field.
+   * @returns {void}
+   */
+  onEndSecondsChange(event: any): void {
+    let value = event.target.valueAsNumber;
+    const maxDuration = this.scene.videoGenerationSettings.durationInSecs;
+    if (value < 0) {
+      value = 0;
+    } else if (value >= maxDuration) {
+      value = maxDuration - 1;
+      // Also, reset the end frame to 0 if the max is hit
+      this.videoSettingsForm.get('endFrame')?.setValue(0);
+    }
+    this.videoSettingsForm.get('endSeconds')?.setValue(value);
+  }
+
+  /**
+   * Handles changes to the startFrame form control.
+   * Validates that the value is within the acceptable range and updates the form control.
+   * @param {any} event - The change event from the input field.
+   * @returns {void}
+   */
+  onStartFrameChange(event: any): void {
+    let value = event.target.valueAsNumber;
+    const fps = parseInt(this.videoSettingsForm.get('framesPerSec')?.value!);
+    if (value < 0) {
+      value = 0;
+    } else if (value > fps) {
+      value = fps - 1;
+    }
+    this.videoSettingsForm.get('startFrame')?.setValue(value);
+  }
+
+  /**
+   * Handles changes to the endFrame form control.
+   * Validates that the value is within the acceptable range and updates the form control.
+   * @param {any} event - The change event from the input field.
+   * @returns {void}
+   */
+  onEndFrameChange(event: any): void {
+    let value = event.target.valueAsNumber;
+    const fps = parseInt(this.videoSettingsForm.get('framesPerSec')?.value!);
+    if (value < 0) {
+      value = 0;
+    } else if (value > fps) {
+      value = fps - 1;
+    }
+    this.videoSettingsForm.get('endFrame')?.setValue(value);
   }
 }

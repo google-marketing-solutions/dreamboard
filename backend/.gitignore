@@ -15,6 +15,7 @@ database.db
 *.launch
 .settings/
 *.sublime-workspace
+launch.json
 
 # Visual Studio Code
 **/.vscode/*
@@ -30,6 +31,7 @@ database.db
 /libpeerconnection.log
 testem.log
 /typings
+*.mp4
 
 # System files
 **/.DS_Store
