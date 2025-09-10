@@ -59,6 +59,11 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     generateAudio: true,
     includeVideoSegment: true,
     regenerateVideo: true,
+    cutVideo: false,
+    startSeconds: 0,
+    startFrame: 0,
+    endSeconds: 7,
+    endFrame: 23,
     generatedVideos: [], // empty for new scene
     selectedVideo: undefined,
   };
