@@ -36,6 +36,11 @@ export interface VideoGenerationSettings {
   generateAudio: boolean;
   includeVideoSegment: boolean;
   regenerateVideo: boolean;
+  cutVideo: boolean;
+  startSeconds?: number;
+  startFrame?: number;
+  endSeconds?: number;
+  endFrame?: number;
   generatedVideos: Video[];
 }
 
@@ -92,6 +97,11 @@ export interface VideoSegmentRequest {
   include_video_segment: boolean;
   generate_video_frames: boolean;
   regenerate_video_segment: boolean;
+  cut_video: boolean;
+  start_seconds?: number;
+  start_frame?: number;
+  end_seconds?: number;
+  end_frame?: number;
   selected_video?: VideoItem; // Video that will be used for the merge operation
 }
 
