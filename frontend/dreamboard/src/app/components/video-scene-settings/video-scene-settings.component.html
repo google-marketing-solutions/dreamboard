@@ -189,8 +189,9 @@
       <input
         matInput
         type="number"
+        min="0"
+        max="7"
         formControlName="startSeconds"
-        (change)="onStartSecondsChange($event)"
       />
     </mat-form-field>
     <mat-form-field>
@@ -198,8 +199,9 @@
       <input
         matInput
         type="number"
+        min="0"
+        max="23"
         formControlName="startFrame"
-        (change)="onStartFrameChange($event)"
       />
     </mat-form-field>
     <mat-form-field>
@@ -207,8 +209,9 @@
       <input
         matInput
         type="number"
+        min="0"
+        max="7"
         formControlName="endSeconds"
-        (change)="onEndSecondsChange($event)"
       />
     </mat-form-field>
     <mat-form-field>
@@ -216,8 +219,9 @@
       <input
         matInput
         type="number"
+        min="0"
+        max="23"
         formControlName="endFrame"
-        (change)="onEndFrameChange($event)"
       />
     </mat-form-field>
   </div>

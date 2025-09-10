@@ -455,7 +455,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         : 7,
       end_frame: cutVideo
         ? this.videoSettingsForm.get('endFrame')?.value!
-        : parseInt(this.videoSettingsForm.get('framesPerSec')?.value!),
+        : (parseInt(this.videoSettingsForm.get('framesPerSec')?.value!) - 1),
       selected_video: undefined, // Since not required for the GENERATION operation
     };
 
@@ -525,77 +525,5 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           );
         }
       );
-  }
-
-  /**
-   * Handles changes to the startSeconds form control.
-   * Validates that the value is within the acceptable range and updates the form control.
-   * @param {any} event - The change event from the input field.
-   * @returns {void}
-   */
-  onStartSecondsChange(event: any): void {
-    let value = event.target.valueAsNumber;
-    const maxDuration = this.scene.videoGenerationSettings.durationInSecs;
-    if (value < 0) {
-      value = 0;
-    } else if (value >= maxDuration) {
-      value = maxDuration - 1;
-      // Also, reset the start frame to 0 if the max is hit
-      this.videoSettingsForm.get('startFrame')?.setValue(0);
-    }
-    this.videoSettingsForm.get('startSeconds')?.setValue(value);
-  }
-
-  /**
-   * Handles changes to the endSeconds form control.
-   * Validates that the value is within the acceptable range and updates the form control.
-   * @param {any} event - The change event from the input field.
-   * @returns {void}
-   */
-  onEndSecondsChange(event: any): void {
-    let value = event.target.valueAsNumber;
-    const maxDuration = this.scene.videoGenerationSettings.durationInSecs;
-    if (value < 0) {
-      value = 0;
-    } else if (value >= maxDuration) {
-      value = maxDuration - 1;
-      // Also, reset the end frame to 0 if the max is hit
-      this.videoSettingsForm.get('endFrame')?.setValue(0);
-    }
-    this.videoSettingsForm.get('endSeconds')?.setValue(value);
-  }
-
-  /**
-   * Handles changes to the startFrame form control.
-   * Validates that the value is within the acceptable range and updates the form control.
-   * @param {any} event - The change event from the input field.
-   * @returns {void}
-   */
-  onStartFrameChange(event: any): void {
-    let value = event.target.valueAsNumber;
-    const fps = parseInt(this.videoSettingsForm.get('framesPerSec')?.value!);
-    if (value < 0) {
-      value = 0;
-    } else if (value > fps) {
-      value = fps - 1;
-    }
-    this.videoSettingsForm.get('startFrame')?.setValue(value);
-  }
-
-  /**
-   * Handles changes to the endFrame form control.
-   * Validates that the value is within the acceptable range and updates the form control.
-   * @param {any} event - The change event from the input field.
-   * @returns {void}
-   */
-  onEndFrameChange(event: any): void {
-    let value = event.target.valueAsNumber;
-    const fps = parseInt(this.videoSettingsForm.get('framesPerSec')?.value!);
-    if (value < 0) {
-      value = 0;
-    } else if (value > fps) {
-      value = fps - 1;
-    }
-    this.videoSettingsForm.get('endFrame')?.setValue(value);
   }
 }
