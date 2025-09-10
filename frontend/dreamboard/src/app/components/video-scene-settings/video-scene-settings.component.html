@@ -186,21 +186,41 @@
     <h3>Video Cut Settings</h3>
     <mat-form-field>
       <mat-label>Start Seconds</mat-label>
-      <input matInput type="number" formControlName="startSeconds" (change)="onStartSecondsChange($event)" />
+      <input
+        matInput
+        type="number"
+        formControlName="startSeconds"
+        (change)="onStartSecondsChange($event)"
+      />
     </mat-form-field>
     <mat-form-field>
       <mat-label>Start Frame</mat-label>
-      <input matInput type="number" formControlName="startFrame" (change)="onStartFrameChange($event)" />
+      <input
+        matInput
+        type="number"
+        formControlName="startFrame"
+        (change)="onStartFrameChange($event)"
+      />
     </mat-form-field>
     <mat-form-field>
       <mat-label>End Seconds</mat-label>
-      <input matInput type="number" formControlName="endSeconds" (change)="onEndSecondsChange($event)" />
+      <input
+        matInput
+        type="number"
+        formControlName="endSeconds"
+        (change)="onEndSecondsChange($event)"
+      />
     </mat-form-field>
     <mat-form-field>
       <mat-label>End Frame</mat-label>
-      <input matInput type="number" formControlName="endFrame" (change)="onEndFrameChange($event)" />
-      </mat-form-field>
-    </div>
+      <input
+        matInput
+        type="number"
+        formControlName="endFrame"
+        (change)="onEndFrameChange($event)"
+      />
+    </mat-form-field>
+  </div>
   }
 
   <div class="generate-button">

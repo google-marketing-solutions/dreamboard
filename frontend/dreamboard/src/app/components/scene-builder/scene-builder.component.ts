@@ -371,11 +371,7 @@ export class SceneBuilderComponent {
       .subscribe(
         (response: VideoGenerationResponse) => {
           if (response && response.videos.length > 0) {
-            openSnackBar(
-              this._snackBar,
-              response.execution_message,
-              10
-            );
+            openSnackBar(this._snackBar, response.execution_message, 10);
             const finalVideoReponse = response.videos[0];
             const video: Video = {
               name: finalVideoReponse.name,

@@ -324,9 +324,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     }
     // Update selected video in form
     if (updateForm) {
-      this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-        gcsUri
-      );
+      this.videoSettingsForm.controls['selectedVideoUri'].setValue(gcsUri);
     }
     // Find video index in array
     this.setCurrentGeneratedVideoIndex(gcsUri);
@@ -446,12 +444,18 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       regenerate_video_segment: true, // true for single video generation
       cut_video: cutVideo,
       // Add cut video options if cutVideo checkbox is true
-      start_seconds: cutVideo ? this.videoSettingsForm.get('startSeconds')?.value! : 0,
-      start_frame: cutVideo ? this.videoSettingsForm.get('startFrame')?.value! : 0,
-      end_seconds: cutVideo ? this.videoSettingsForm.get('endSeconds')?.value! : 7,
-      end_frame: cutVideo ? this.videoSettingsForm.get('endFrame')?.value! : parseInt(
-        this.videoSettingsForm.get('framesPerSec')?.value!
-      ),
+      start_seconds: cutVideo
+        ? this.videoSettingsForm.get('startSeconds')?.value!
+        : 0,
+      start_frame: cutVideo
+        ? this.videoSettingsForm.get('startFrame')?.value!
+        : 0,
+      end_seconds: cutVideo
+        ? this.videoSettingsForm.get('endSeconds')?.value!
+        : 7,
+      end_frame: cutVideo
+        ? this.videoSettingsForm.get('endFrame')?.value!
+        : parseInt(this.videoSettingsForm.get('framesPerSec')?.value!),
       selected_video: undefined, // Since not required for the GENERATION operation
     };
 
