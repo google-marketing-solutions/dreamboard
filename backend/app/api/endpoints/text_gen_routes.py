@@ -21,8 +21,10 @@ generating/enhancing image and video prompts.
 """
 
 import logging
+import os
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from models.text import text_request_models
 from models.text.text_gen_models import SceneItem
 from models.text.text_request_models import ExtractTextRequest
@@ -403,4 +405,12 @@ async def extract_text_from_file(
         "DreamBoard - TEXT_GEN_ROUTES-extract_text_from_file: - ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+        "status_code": 500,
+        "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex

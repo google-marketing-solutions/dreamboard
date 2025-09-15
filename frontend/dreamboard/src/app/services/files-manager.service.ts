@@ -58,18 +58,10 @@ export class FilesManagerService {
         console.log(`No file type supported ${fileType}.`);
         break;
     }
-
-    /*const requestBody = {
-      url: `${this.BASE_URL}/upload_file/${bucketPath}`,
-      options: {
-        method: 'POST',
-        data: fileData,
-        otherOptions: , // TODO (ae): handle otherOptions
-      },
-    };*/
+    // Append bucket where the file will be uploaded to
+    fileData.append('bucketPath', bucketPath);
     return this.http.post<any>(
-      `${this.PROXY_URL}/api/handleFileUploadRequest/${bucketPath}`,
-      
+      `${this.PROXY_URL}/api/handleFileUploadRequest`,
       fileData,
       {
         reportProgress: true,

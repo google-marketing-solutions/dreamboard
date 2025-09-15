@@ -1,18 +1,20 @@
 const { GoogleAuth } = require("google-auth-library");
+const { Storage } = require("@google-cloud/storage");
 require("dotenv").config({ path: __dirname + "/.env" });
 const express = require("express");
 const multer = require("multer");
 const app = express();
 const cors = require("cors");
 app.use(cors());
-app.use(express.json({ limit: "100mb" }));
-let APP_FOLDER = "dist/dreamboard/browser";
-// Change path to dev
+app.use(express.json({ limit: "200mb" }));
+let ANGULAR_APP_FOLDER = "dist/dreamboard/browser";
+
+// Change path to dev when running locally
 if (process.env.ENV === "dev") {
-  APP_FOLDER = "dreamboard/dist/dreamboard/browser";
+  ANGULAR_APP_FOLDER = "dreamboard/dist/dreamboard/browser";
 }
-app.use(express.static(APP_FOLDER));
-const PORT = process.env.PORT || 8000;
+app.use(express.static(ANGULAR_APP_FOLDER));
+const PORT = process.env.PORT || 3000;
 
 async function handleGetRequest(url, options) {
   const auth = new GoogleAuth();
@@ -35,7 +37,7 @@ async function handleGetRequest(url, options) {
 
 // Serve Angular app
 app.all("/", function (req, res) {
-  res.status(200).sendFile(`/`, { root: APP_FOLDER });
+  res.status(200).sendFile(`/`, { root: ANGULAR_APP_FOLDER });
 });
 
 // Health check endpoint
@@ -46,13 +48,23 @@ app.get("/health_check", (req, res) => {
 app.post("/api/handleRequest", async (req, res) => {
   try {
     const response = await handleGetRequest(req.body.url, req.body.options);
-    if (response && response.ok) {
+    if (response && response.ok && response.data) {
       if (typeof response.data === "string") {
         // For requests that only return string like rewrite prompts, text extraction, etc
         // response.data should be handled in the client
         res.status(200).send({ data: response.data });
       } else {
-        res.status(200).send(response.data);
+        // Handle Python Backend errors manually to capture the actual error message
+        // instead of just a generic 500 error
+        if (
+          response.data.error_message &&
+          response.data.status_code &&
+          response.data.status_code === 500
+        ) {
+          return res.status(500).send({ detail: response.data.error_message });
+        }
+
+        return res.status(200).send(response.data);
       }
     } else {
       res.status(500).send({
@@ -61,26 +73,36 @@ app.post("/api/handleRequest", async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).send({ detail: error });
+    res.status(500).send({ detail: error.message });
   }
 });
 
 const upload = multer();
+const storage = new Storage({
+  projectId: process.env.PROJECT_ID,
+});
 
-async function uploadFile(filePath) {
-  try {
-    const blob = await storage.bucket(bucketName).upload(filePath, {
-      destination: destinationPath,
-      resumable: true, // Set to true for large files to enable resumable uploads
-      /*gzip: true, // Optional: compress the file during upload*/
-    });
-    console.log(
-      `${localFilePath} uploaded to ${bucketName}/${destinationFileName}`
-    );
-    return blob;
-  } catch (err) {
-    console.error(`Error uploading file: ${err}`);
+function get_mtls_uri_from_gcs_uri(uri) {
+  return uri.replace("gs://", "https://storage.mtls.cloud.google.com/");
+}
+
+async function getSignedUriFromGCSUri(gcsUri, blob) {
+  let signedURI;
+  if (process.env.ENV === "dev") {
+    signedURI = get_mtls_uri_from_gcs_uri(gcsUri);
+  } else {
+    // Sign with Service account in PROD
+    const options = {
+      version: "v4", // Recommended for better security and features
+      action: "read", // or 'write', 'delete'
+      expires: Date.now() + 15 * 60 * 1000, // URL expires in 15 minutes TODO (ae) fix this~
+      // For 'write' actions, you might also need contentType:
+      // contentType: 'application/octet-stream',
+    };
+    [signedURI] = await blob.getSignedUrl(options);
   }
+
+  return signedURI;
 }
 
 // Upload route
@@ -92,30 +114,55 @@ app.post(
       return res.status(400).send("No file uploaded.");
     }
     try {
-      const file_name = req.file.originalname.trim();
+      const fileName = req.file.originalname.trim();
       console.log(
-        `DreamBoard - FILE_UPLOADER_ROUTES: Starting file upload ${file_name} in GCS path ${bucket_path}...`
+        `DreamBoard - FILE_UPLOADER_ROUTES: Starting file upload ${fileName} in GCS path ${req.body.bucketPath}...`
       );
       // Construct the full GCS path for the file.
       // workaround: replace @ with / to get the file path
-      const GCS_BUCKET = `dreamboard/{bucket_path.replace("@", "/")}/{file_name}`;
-
-      file_path = `dreamboard/${process.env.GCS_BUCKET}/${file_name}`;
+      const filePath = `dreamboard/${req.body.bucketPath.replace(
+        "@",
+        "/"
+      )}/${fileName}`;
       // Upload the file content to GCS.
-      blob = await uploadFile(file_path);
-      // Construct the GCS URI.
-      const gcsBucket = `gs://${GCS_BUCKET}`;
-      gcs_uri = `gs://${gcsBucket}/${blob.name}`;
-      // Create an UploadedFile object with all relevant details.
-      uploaded_file = {
-        name: file_name,
-        gcs_uri: gcs_uri,
-        signed_uri: "", // TODO (ae) add later. We don't need this for now
-        gcs_fuse_path: "", // TODO (ae) add later. We don't need this for now
-        mime_type: file.content_type,
-      };
-      // Return uploaded file in response
-      res.status(200).send(uploaded_file);
+
+      const bucket = storage.bucket(process.env.GCS_BUCKET);
+      const blob = bucket.file(filePath); // Use original filename for GCS
+
+      const blobStream = blob.createWriteStream({
+        resumable: true, // For smaller files, resumable can be set to false
+        metadata: {
+          contentType: req.file.mimetype,
+        },
+      });
+
+      blobStream.on("error", (err) => {
+        console.error(`Error uploading file ${filePath} to GCS:`, err);
+        res.status(500).send({ detail: `Error uploading file. ${filePath}` });
+      });
+
+      blobStream.on("finish", async () => {
+        // Construct the GCS URI.
+        const gcsUri = `gs://${process.env.GCS_BUCKET}/${filePath}`;
+        console.log(`File ${gcsUri} successfully uploaded to GCS.`);
+
+        // Sign GCS URI to display in the frontend
+        const signedURI = await getSignedUriFromGCSUri(gcsUri, blob);
+
+        // Create an UploadedFile object with all relevant details.
+        uploadedFile = {
+          name: fileName,
+          gcs_uri: gcsUri,
+          signed_uri: signedURI,
+          gcs_fuse_path: "", // TODO (ae) add later. We don't need this for now
+          mime_type: req.file.mimetype,
+        };
+
+        // Return uploaded file in response
+        res.status(200).send(uploadedFile);
+      });
+
+      blobStream.end(req.file.buffer); // Write the file buffer to the GCS stream
     } catch (error) {
       res.status(500).send({ detail: error });
     }

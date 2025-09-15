@@ -372,7 +372,7 @@ export class SceneBuilderComponent {
           if (response && response.videos.length > 0) {
             openSnackBar(
               this._snackBar,
-              `Videos for Story ${this.story.id} were merged successfully!`,
+              response.execution_message,
               10
             );
             const finalVideoReponse = response.videos[0];

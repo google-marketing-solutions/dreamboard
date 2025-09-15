@@ -534,9 +534,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * @param {string} imageUri - The URI of the image to find.
    * @returns {void}
    */
-  setCurrentGeneratedImageIndex(imageGCSUri: string): void {
+  setCurrentGeneratedImageIndex(gcsUri: string): void {
     const index = this.scene.imageGenerationSettings.generatedImages.findIndex(
-      (image) => image.gcsUri === imageGCSUri
+      (image) => image.gcsUri === gcsUri
     );
     this.currentGeneratedImageIndex = index;
   }
@@ -645,18 +645,18 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * This function sets the image URI, finds the full image object from the list of
    * generated images, and designates it as the selected image for video generation.
    *
-   * @param {string} imageGCSUri The GCS URI of the image to be selected.
+   * @param {string} gcsUri The GCS URI of the image to be selected.
    * @param {boolean} updateForm A flag to determine whether to update the reactive form with the new image URI.
    */
-  updateSelectedImage(imageGCSUri: string, updateForm: boolean) {
+  updateSelectedImage(gcsUri: string, updateForm: boolean) {
     if (updateForm) {
       // Update selected image in form
       this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        imageGCSUri
+        gcsUri
       );
     }
     // Find image index in array
-    this.setCurrentGeneratedImageIndex(imageGCSUri);
+    this.setCurrentGeneratedImageIndex(gcsUri);
     const selectedImageForVideo =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex

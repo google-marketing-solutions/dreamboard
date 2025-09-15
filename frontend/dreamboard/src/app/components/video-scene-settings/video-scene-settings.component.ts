@@ -275,17 +275,17 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   /**
    * Sets the `currentGeneratedVideoIndex` to the index of the video with the given URI
    * within the `generatedVideos` array of the current scene.
-   * @param {string} videoGCSUri - The URI of the video to find.
+   * @param {string} gcsUri - The URI of the video to find.
    * @returns {void}
    */
-  setCurrentGeneratedVideoIndex(videoGCSUri: string): void {
+  setCurrentGeneratedVideoIndex(gcsUri: string): void {
     const index = this.scene.videoGenerationSettings.generatedVideos.findIndex(
-      (video) => video.gcsUri === videoGCSUri
+      (video) => video.gcsUri === gcsUri
     );
     this.currentGeneratedVideoIndex = index;
   }
 
-  updateSelectedVideo(videoGCSUri: string, updateForm: boolean) {
+  updateSelectedVideo(gcsUri: string, updateForm: boolean) {
     // Reload video in the Scene Builder HTML element to update it
     // since reload does not happen when the object is updated
     const videoHTML: any = document.getElementById(`video@${this.scene.id}`);
@@ -295,11 +295,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     // Update selected video in form
     if (updateForm) {
       this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-        videoGCSUri
+        gcsUri
       );
     }
     // Find video index in array
-    this.setCurrentGeneratedVideoIndex(videoGCSUri);
+    this.setCurrentGeneratedVideoIndex(gcsUri);
     const selectedVideo =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
