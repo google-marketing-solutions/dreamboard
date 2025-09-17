@@ -47,7 +47,7 @@ export function getNewVideoScene(existingScenesLen: number) {
 export function getNewVideoSettings(): VideoGenerationSettings {
   const newVideoGenSettings: VideoGenerationSettings = {
     prompt: '',
-    durationInSecs: 8,
+    durationInSecs: 4,
     aspectRatio: '16:9',
     framesPerSec: 24,
     personGeneration: 'allow_adult',
@@ -59,6 +59,11 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     generateAudio: true,
     includeVideoSegment: true,
     regenerateVideo: true,
+    cutVideo: false,
+    startSeconds: 0,
+    startFrame: 0,
+    endSeconds: 7,
+    endFrame: 23,
     generatedVideos: [], // empty for new scene
     selectedVideo: undefined,
   };
