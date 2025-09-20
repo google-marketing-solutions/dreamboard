@@ -452,7 +452,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
 
     openSnackBar(
       this._snackBar,
-      `Generating enhanced video prompt for scene ${this.scene.number}.`
+      `Generating enhanced video prompt for scene ${this.scene.number}...`
     );
 
     this.textGenerationService
