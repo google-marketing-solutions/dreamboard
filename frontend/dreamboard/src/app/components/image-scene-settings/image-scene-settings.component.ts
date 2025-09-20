@@ -50,7 +50,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
-import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { VideoScene } from '../../models/scene-models';
 import {
   ImageSceneRequest,
@@ -561,23 +560,15 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       `Generating enhanced image prompt for scene ${this.scene.number}...`
     );
 
-    console.log(
-      'current image prompt: ' +
-        currentPrompt +
-        '\nScene Description:' +
-        sceneDescription
-    );
-
     this.textGenerationService
       .rewriteImagePrompt(currentPrompt, sceneDescription, withSceneDescription)
       .subscribe(
-        (enhancedPrompt: string) => {
+        (enhancedPrompt: any) => {
           // Find scene in responses to update generated videos
           closeSnackBar(this._snackBar);
-          console.log('Rewriting image prompt response: ' + enhancedPrompt);
-          if (enhancedPrompt) {
-            this.scene.imageGenerationSettings.prompt = enhancedPrompt;
-            this.imageSettingsForm.get('prompt')?.setValue(enhancedPrompt);
+          if (enhancedPrompt && enhancedPrompt.data) {
+            this.scene.imageGenerationSettings.prompt = enhancedPrompt.data;
+            this.imageSettingsForm.get('prompt')?.setValue(enhancedPrompt.data);
           }
         },
         (error: any) => {
@@ -616,25 +607,22 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.imageGenerationService
       .generateImage(this.storyId, imageGeneration)
       .subscribe(
-        (resps: HttpResponse<ImageGenerationResponse[]>) => {
+        (images: ImageGenerationResponse[]) => {
           // Find scene in responses to update generated videoss
-          if (resps.body) {
-            const executionStatus = updateScenesWithGeneratedImages(
-              resps.body,
-              [this.scene]
-            );
-            openSnackBar(
-              this._snackBar,
-              executionStatus['execution_message'],
-              20
-            );
-            const lastGenImage =
-              this.scene.imageGenerationSettings.generatedImages[
-                this.scene.imageGenerationSettings.generatedImages.length - 1
-              ];
-            const updateForm = true;
-            this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
-          }
+          const executionStatus = updateScenesWithGeneratedImages(images, [
+            this.scene,
+          ]);
+          openSnackBar(
+            this._snackBar,
+            executionStatus['execution_message'],
+            10
+          );
+          const lastGenImage =
+            this.scene.imageGenerationSettings.generatedImages[
+              this.scene.imageGenerationSettings.generatedImages.length - 1
+            ];
+          const updateForm = true;
+          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
         },
         (error: any) => {
           let errorMessage;

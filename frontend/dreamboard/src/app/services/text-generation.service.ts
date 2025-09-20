@@ -32,21 +32,30 @@ import { environment } from '../../environments/environment.development';
   providedIn: 'root',
 })
 export class TextGenerationService {
+  PROXY_URL = environment.proxyURL;
   BASE_URL = environment.textGenerationApiURL;
 
   constructor(private http: HttpClient) {}
 
   generateStories(storiesGeneration: StoriesGenerationRequest): any {
+    const requestBody = {
+      url: `${this.BASE_URL}/brainstorm_stories`,
+      options: { method: 'POST', data: storiesGeneration },
+    };
     return this.http.post<any[]>(
-      `${this.BASE_URL}/brainstorm_stories`,
-      storiesGeneration
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 
   generateScenes(scenesGeneration: ScenesGenerationRequest): any {
+    const requestBody = {
+      url: `${this.BASE_URL}/brainstorm_scenes`,
+      options: { method: 'POST', data: scenesGeneration },
+    };
     return this.http.post<any[]>(
-      `${this.BASE_URL}/brainstorm_scenes`,
-      scenesGeneration
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 
@@ -57,15 +66,32 @@ export class TextGenerationService {
   ): any {
     // Change Endpoints because prompts are different
     if (withSceneDescription) {
+      const requestBody = {
+        url: `${this.BASE_URL}/enhance_image_prompt_with_scene`,
+        options: {
+          method: 'POST',
+          data: { prompt: prompt, scene: scene_description },
+        },
+      };
       return this.http.post<any>(
-        `${this.BASE_URL}/enhance_image_prompt_with_scene`,
-        { prompt: prompt, scene: scene_description }
+        `${this.PROXY_URL}/api/handleRequest`,
+        requestBody
       );
     } else {
-      return this.http.post<any>(`${this.BASE_URL}/enhance_image_prompt`, {
-        prompt: prompt,
-        scene: scene_description,
-      });
+      const requestBody = {
+        url: `${this.BASE_URL}/enhance_image_prompt`,
+        options: {
+          method: 'POST',
+          data: {
+            prompt: prompt,
+            scene: scene_description,
+          },
+        },
+      };
+      return this.http.post<any>(
+        `${this.PROXY_URL}/api/handleRequest`,
+        requestBody
+      );
     }
   }
 
@@ -76,28 +102,63 @@ export class TextGenerationService {
   ): any {
     // Change Endpoints because prompts are different
     if (withSceneDescription) {
+      const requestBody = {
+        url: `${this.BASE_URL}/enhance_video_prompt_with_scene`,
+        options: {
+          method: 'POST',
+          data: { prompt: prompt, scene: scene_description },
+        },
+      };
       return this.http.post<any>(
-        `${this.BASE_URL}/enhance_video_prompt_with_scene`,
-        { prompt: prompt, scene: scene_description }
+        `${this.PROXY_URL}/api/handleRequest`,
+        requestBody
       );
     } else {
-      return this.http.post<any>(`${this.BASE_URL}/enhance_video_prompt`, {
-        prompt: prompt,
-        scene: scene_description,
-      });
+      const requestBody = {
+        url: `${this.BASE_URL}/enhance_video_prompt`,
+        options: {
+          method: 'POST',
+          data: {
+            prompt: prompt,
+            scene: scene_description,
+          },
+        },
+      };
+      return this.http.post<any>(
+        `${this.PROXY_URL}/api/handleRequest`,
+        requestBody
+      );
     }
   }
 
   rewriteBrainstormPrompt(idea: string): any {
-    return this.http.post<any>(`${this.BASE_URL}/rewrite_brainstorm_prompt`, {
-      idea: idea,
-    });
+    const requestBody = {
+      url: `${this.BASE_URL}/rewrite_brainstorm_prompt`,
+      options: {
+        method: 'POST',
+        data: {
+          idea: idea,
+        },
+      },
+    };
+    return this.http.post<any>(
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
+    );
   }
 
   extract_text_from_file(extract_text_request: ExtractTextItem): any {
+    // TODO(ae) TEST
+    const requestBody = {
+      url: `${this.BASE_URL}/extract_text_from_file`,
+      options: {
+        method: 'POST',
+        data: extract_text_request,
+      },
+    };
     return this.http.post<any>(
-      `${this.BASE_URL}/extract_text_from_file`,
-      extract_text_request
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 }

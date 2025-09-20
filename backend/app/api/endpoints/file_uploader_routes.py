@@ -24,6 +24,7 @@ import logging
 import os
 import utils
 from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from models.request_models import UploadedFile
 from services import storage_service
 
@@ -33,7 +34,7 @@ file_uploader_router = APIRouter(prefix="/file_uploader")
 
 @file_uploader_router.post("/upload_file/{bucket_path}")
 async def upload_file(bucket_path: str, file: UploadFile) -> UploadedFile:
-  """TODO"""
+  """Uploads a file to GCS"""
   try:
     file_name = file.filename.strip()
     logging.info(
@@ -52,19 +53,27 @@ async def upload_file(bucket_path: str, file: UploadFile) -> UploadedFile:
         file_path, file.file, file.content_type
     )
     # Construct the GCS URI.
-    gcs_uri = f'gs://{os.getenv('GCS_BUCKET')}/{blob.name}'
+    gcs_uri = f"gs://{os.getenv('GCS_BUCKET')}/{blob.name}"
     # Create an UploadedFile object with all relevant details.
     uploaded_file = UploadedFile(
         name=file_name,
         gcs_uri=gcs_uri,
         signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
-        gcs_fuse_path="", # TODO (ae) add later. We don't need this for now
+        gcs_fuse_path="",  # TODO (ae) add later. We don't need this for now
         mime_type=file.content_type,
     )
 
     return uploaded_file
   except Exception as ex:
     logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES: - UPLOAD FILE ERROR: %s", str(ex)
+        "DreamBoard - FILE_UPLOADER_ROUTES-upload_file: - ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
