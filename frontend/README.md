@@ -58,7 +58,7 @@ To install it on GCP:
 4. Navigate to the frontend folder and run deploy_frontend.sh with the following arguments noted from the previous step in the following order:
 
    - **GCP Project ID**
-   - **Service Account Email**
+   - **Service Account Email** (the SA created during the backend deployment)
    - **Cloud Storage Bucket Name**
    - **Location to deploy**
    - **Cloud Run Service URL**
@@ -98,5 +98,8 @@ NodeJS Web Server:
 
 The NodeJS web server will be available on `http://127.0.0.1:3000`.
 
-**Important Note:** To test the solution locally, the web application, NodeJS web server, and FastAPI backend must all be running simultaneously. An easy way to manage this is to open three separate instances of your IDE (like VSCode), one for each component.
+**Important Notes:**
+
+1. To test the solution locally, the web application, NodeJS web server, and FastAPI backend must all be running simultaneously. An easy way to manage this is to open three separate instances of your IDE (like VSCode), one for each component.
 In this setup, the NodeJS server acts as a proxy. When the frontend sends a request, the server will intercept it, add the required authentication token, and then redirect the request to the FastAPI backend.
+2. After deployment, remember to revert the changes in `dreamboard/src/environments/environment.development.ts` This file was temporarily modified with the production backend URL for the deployment process and must be restored for local development: `git restore dreamboard/src/environments/environment.development.ts`.
