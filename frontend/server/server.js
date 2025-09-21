@@ -40,6 +40,14 @@ app.all("/", function (req, res) {
   res.status(200).sendFile(`/`, { root: ANGULAR_APP_FOLDER });
 });
 
+app.all("/login", function (req, res) {
+  res.status(200).sendFile(`/`, { root: ANGULAR_APP_FOLDER });
+});
+
+app.all("/storyboard", function (req, res) {
+  res.status(200).sendFile(`/`, { root: ANGULAR_APP_FOLDER });
+});
+
 // Health check endpoint
 app.get("/health_check", (req, res) => {
   res.status(200).send("OK");
@@ -73,6 +81,7 @@ app.post("/api/handleRequest", async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(`NodeJS handleRequest - ERROR: ${error}`);
     res.status(500).send({ detail: error.message });
   }
 });
@@ -95,7 +104,7 @@ async function getSignedUriFromGCSUri(gcsUri, blob) {
     const options = {
       version: "v4", // Recommended for better security and features
       action: "read", // or 'write', 'delete'
-      expires: Date.now() + 15 * 60 * 1000, // URL expires in 15 minutes TODO (ae) fix this~
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // URL expires in 7 days
       // For 'write' actions, you might also need contentType:
       // contentType: 'application/octet-stream',
     };
@@ -116,7 +125,7 @@ app.post(
     try {
       const fileName = req.file.originalname.trim();
       console.log(
-        `DreamBoard - FILE_UPLOADER_ROUTES: Starting file upload ${fileName} in GCS path ${req.body.bucketPath}...`
+        `DreamBoard - NodeJS handleFileUploadRequest: Starting file upload ${fileName} in GCS path ${req.body.bucketPath}...`
       );
       // Construct the full GCS path for the file.
       // workaround: replace @ with / to get the file path
@@ -129,6 +138,7 @@ app.post(
       const bucket = storage.bucket(process.env.GCS_BUCKET);
       const blob = bucket.file(filePath); // Use original filename for GCS
 
+      console.log('Creating write stream...');
       const blobStream = blob.createWriteStream({
         resumable: true, // For smaller files, resumable can be set to false
         metadata: {
@@ -136,11 +146,13 @@ app.post(
         },
       });
 
+      console.log('Setting OnError function...');
       blobStream.on("error", (err) => {
         console.error(`Error uploading file ${filePath} to GCS:`, err);
         res.status(500).send({ detail: `Error uploading file. ${filePath}` });
       });
 
+      console.log('Setting OnFinish function...');
       blobStream.on("finish", async () => {
         // Construct the GCS URI.
         const gcsUri = `gs://${process.env.GCS_BUCKET}/${filePath}`;
@@ -164,7 +176,8 @@ app.post(
 
       blobStream.end(req.file.buffer); // Write the file buffer to the GCS stream
     } catch (error) {
-      res.status(500).send({ detail: error });
+      console.log(`NodeJS handleFileUploadRequest - ERROR: ${error}`);
+      res.status(500).send({ detail: error.message });
     }
   }
 );

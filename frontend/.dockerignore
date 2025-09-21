@@ -1,0 +1,24 @@
+# Visual Studio Code
+**/.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+dreamboard/Docker
+.dockerignore
+deploy.sh
+README.md
+
+dreamboard/dist
+dreamboard/node_modules
+server/node_modules
+server/.env
+.vscode
