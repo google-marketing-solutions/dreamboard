@@ -21,8 +21,10 @@ generating/enhancing image and video prompts.
 """
 
 import logging
+import os
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from models.text import text_request_models
 from models.text.text_gen_models import SceneItem
 from models.text.text_request_models import ExtractTextRequest
@@ -64,7 +66,15 @@ def brainstorm_stories(
     logging.error(
         "DreamBoard - TEXT_GEN_ROUTES-brainstorm_stories: - ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -101,7 +111,15 @@ def brainstorm_scenes(
     logging.error(
         "DreamBoard - TEXT_GEN_ROUTES-brainstorm_scenes: - ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -133,7 +151,15 @@ def create_image_prompt_from_scene(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -165,7 +191,15 @@ def create_video_prompt_from_scene(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -194,7 +228,15 @@ def enhance_image_prompt(
         "DreamBoard - TEXT_GEN_ROUTES-enhance_image_prompt: - ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -226,7 +268,15 @@ def enhance_image_prompt_with_scene(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -256,7 +306,15 @@ def enhance_video_prompt(
         "DreamBoard - TEXT_GEN_ROUTES-enhance_video_prompt: - ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -288,7 +346,15 @@ def enhance_video_prompt_with_scene(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -320,7 +386,15 @@ def generate_image_prompts_from_scenes(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -352,7 +426,15 @@ def generate_video_prompts_from_scenes(
         " ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
   return gen_status
 
@@ -403,4 +485,12 @@ async def extract_text_from_file(
         "DreamBoard - TEXT_GEN_ROUTES-extract_text_from_file: - ERROR: %s",
         str(ex),
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex

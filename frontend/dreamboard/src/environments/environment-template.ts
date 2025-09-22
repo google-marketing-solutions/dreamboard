@@ -26,5 +26,6 @@ export const environment = {
   textGenerationApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/text_generation',
   fileUploaderApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/file_uploader',
   storiesStorageApiURL: '{BACKEND_CLOUD_RUN_SERVICE_URL}/api/story_storage',
-  clientID: '{CLIENT_ID}'
+  clientID: '{CLIENT_ID}',
+  proxyURL: '', // proxy url is just api/handleRequest for Nodejs server in PROD
 };

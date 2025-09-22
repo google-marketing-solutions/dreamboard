@@ -137,8 +137,7 @@ deploy_cloud_run_service() {
     --timeout 3600 \
     --memory 16Gi \
     --cpu=4 \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB \
-    --allow-unauthenticated # REMOVE
+    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,LOCATION=$LOCATION,GCS_BUCKET=$BUCKET_NAME,FIRESTORE_DB=$FIRESTORE_DB,USE_AUTH_MIDDLEWARE=True
     echo
 }
 

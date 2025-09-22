@@ -302,8 +302,7 @@ export class SceneBuilderComponent {
     const user = localStorage.getItem('user')!;
 
     this.storiesStorageService.addNewStory(user, this.story).subscribe(
-      (response: string) => {
-        console.log(response);
+      (response: any) => {
         openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
       },
       (error: any) => {
@@ -469,20 +468,17 @@ export class SceneBuilderComponent {
     this.imageGenerationService
       .generateImage(this.story.id, imageGeneration)
       .subscribe(
-        (resps: HttpResponse<ImageGenerationResponse[]>) => {
-          // Find scene in responses to update generated images
-          if (resps.body) {
-            if (isExport) {
-              openSnackBar(this._snackBar, `Scenes exported successfully!`, 15);
-              this.story.scenes = videoScenes;
-              this.exportingScenes = false;
-            }
-            const executionStatus = updateScenesWithGeneratedImages(
-              resps.body,
-              this.story.scenes
-            );
-            console.log(executionStatus['succeded']);
+        (images: ImageGenerationResponse[]) => {
+          if (isExport) {
+            openSnackBar(this._snackBar, `Scenes exported successfully!`, 15);
+            this.story.scenes = videoScenes;
+            this.exportingScenes = false;
           }
+          // Find scene in responses to update generated images
+          const executionStatus = updateScenesWithGeneratedImages(
+            images,
+            this.story.scenes
+          );
         },
         (error: any) => {
           let errorMessage;

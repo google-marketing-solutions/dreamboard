@@ -22,8 +22,10 @@ using the Veo platform.
 
 import logging
 from typing import Annotated
+import os
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 from models import request_models
 from models.video import video_request_models
@@ -77,8 +79,19 @@ def get_default_video_prompt(
     # TODO: Implement actual default video prompt generation logic here.
     return ""
   except Exception as ex:
-    logging.error("Dreamboard - ERROR: %s", str(ex))
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    logging.error(
+        "Dreamboard - VIDEO_GEN_ROUTES-get_default_video_prompt: - ERROR: %s",
+        str(ex),
+    )
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
 @video_gen_router.post("/generate_videos_from_scenes/{story_id}")
@@ -116,8 +129,20 @@ def generate_videos_from_scenes(
 
     return video_gen_resps
   except Exception as ex:
-    logging.error("DreamBoard - VIDEO_GEN_ROUTES: - ERROR: %s", str(ex))
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    logging.error(
+        "DreamBoard - VIDEO_GEN_ROUTES-generate_videos_from_scenes: -"
+        " ERROR: %s",
+        str(ex),
+    )
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
 @video_gen_router.post("/merge_videos/{story_id}")
@@ -161,8 +186,19 @@ def merge_videos(
           status_code=500,
       )
   except Exception as ex:
-    logging.error("DreamBoard - VIDEO_GEN_ROUTES: - ERROR: %s", str(ex))
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    logging.error(
+        "DreamBoard - VIDEO_GEN_ROUTES-merge_videos: - ERROR: %s", str(ex)
+    )
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
+
 
 @video_gen_router.post("/apply_text_overlay/{story_id}")
 def apply_text_overlay(
@@ -201,10 +237,18 @@ def apply_text_overlay(
     return video_gen_response
   except Exception as ex:
     logging.error(
-        "DreamBoard - VIDEO_GEN_ROUTES: - APPLY TEXT OVERLAY ERROR: %s", str(ex)
+        "DreamBoard - VIDEO_GEN_ROUTES-apply_text_overlay: ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
- 
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
+
 
 @video_gen_router.post("/extract_frames")
 def extract_frames(
@@ -214,25 +258,39 @@ def extract_frames(
     time_sec: int,
     frame_count: int,
 ):
-    try:        
+  try:
 
-        frame_extractor = FrameExtractorService()
-        extracted_frame_filenames = frame_extractor.extract_frames(
-            gcs_uri=gcs_uri,
-            story_id=story_id,
-            scene_num=scene_num,
-            time_sec=time_sec,
-            frame_count=frame_count,
-        )
-        return {
-            "message": f"Frames extracted successfully for scene {scene_num} at {time_sec}s",
-            "frames": extracted_frame_filenames,
-        }
+    frame_extractor = FrameExtractorService()
+    extracted_frame_filenames = frame_extractor.extract_frames(
+        gcs_uri=gcs_uri,
+        story_id=story_id,
+        scene_num=scene_num,
+        time_sec=time_sec,
+        frame_count=frame_count,
+    )
+    return {
+        "message": (
+            f"Frames extracted successfully for scene {scene_num} at"
+            f" {time_sec}s"
+        ),
+        "frames": extracted_frame_filenames,
+    }
 
-    except Exception as ex:
-        logging.error("DreamBoard - VIDEO_GEN_ROUTES: - EXTRACT_FRAMES ERROR: %s", str(ex))
-        raise HTTPException(status_code=500, detail=str(ex))
-    
+  except Exception as ex:
+    logging.error(
+        "DreamBoard - VIDEO_GEN_ROUTES-extract_frames: ERROR: %s", str(ex)
+    )
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
+
+
 @video_gen_router.post("/apply_logo_overlay/{story_id}")
 def overlay_logo(
     story_id: str,
@@ -267,6 +325,14 @@ def overlay_logo(
     return video_gen_response
   except Exception as ex:
     logging.error(
-        "DreamBoard - VIDEO_GEN_ROUTES: - APPLY LOGO OVERLAY ERROR: %s", str(ex)
+        "DreamBoard - VIDEO_GEN_ROUTES-overlay_logo: ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex

@@ -22,6 +22,7 @@ and uploads to Google Cloud Storage.
 
 import datetime
 import logging
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -88,8 +89,18 @@ def generate_image(
     )
     return gen_status
   except Exception as ex:
-    logging.error("DreamBoard - IMAGE_GEN_ROUTES: - ERROR: %s", str(ex))
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    logging.error(
+        "DreamBoard - IMAGE_GEN_ROUTES-generate_image: - ERROR: %s", str(ex)
+    )
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
 @image_gen_router.post("/download_image")
@@ -109,16 +120,22 @@ async def download_image(image_uri: str):
   """
   try:
     logging.info("Received download request for URI: %s", image_uri)
-
     response = storage_service.storage_service.download_file(image_uri)
 
     return JSONResponse(content=response)
-
   except Exception as ex:
     logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES: - IMAGE UPLOAD ERROR: %s", str(ex)
+        "DreamBoard - IMAGE_GEN_ROUTES-download_image: - ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
 @image_gen_router.post("/upload_image")
@@ -191,6 +208,14 @@ async def upload_image(
 
   except Exception as ex:
     logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES: - IMAGE UPLOAD ERROR: %s", str(ex)
+        "DreamBoard - IMAGE_GEN_ROUTES-upload_image: - ERROR: %s", str(ex)
     )
-    raise HTTPException(status_code=500, detail=str(ex)) from ex
+    if os.getenv("USE_AUTH_MIDDLEWARE"):
+      error_response = {
+          "status_code": 500,
+          "error_message": str(ex),
+      }
+      # Workaround to send the actual error message to NodeJS middleware request handler
+      return JSONResponse(content=error_response)
+    else:
+      raise HTTPException(status_code=500, detail=str(ex)) from ex

@@ -28,6 +28,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root',
 })
 export class ImageGenerationService {
+  PROXY_URL = environment.proxyURL;
   BASE_URL = environment.imageGenerationApiURL;
 
   constructor(private http: HttpClient) {}
@@ -36,24 +37,29 @@ export class ImageGenerationService {
     story_id: string,
     imageGeneration: ImageGenerationRequest
   ): any {
+    const requestBody = {
+      url: `${this.BASE_URL}/generate_image/${story_id}`,
+      options: { method: 'POST', data: imageGeneration },
+    };
     return this.http.post<any>(
-      `${this.BASE_URL}/generate_image/${story_id}`,
-      imageGeneration,
-      {
-        reportProgress: true,
-        observe: 'events',
-      }
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 
   uploadImage(story_id: string, imageData: FormData): any {
-    return this.http.post<any>(
-      `${this.BASE_URL}/upload_file/${story_id}`,
-      imageData,
-      {
+    // TODO (ae) check
+    const requestBody = {
+      url: `${this.BASE_URL}/upload_file/${story_id}`,
+      options: { method: 'POST', data: imageData },
+    };
+    /*  {
         reportProgress: true,
         observe: 'events',
-      }
+      } */
+    return this.http.post<any>(
+      `${this.PROXY_URL}/api/handleFileUploadRequest`,
+      requestBody
     );
   }
 }

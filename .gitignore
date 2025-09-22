@@ -1,11 +1,16 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
-# Python
-app/venv
-.env
-**/__pycache__/
-app/dreamboard_videos
-database.db
+# Backend
+backend/app/venv
+backend/app/.env
+backend/**/__pycache__/
+backend/app/dreamboard_videos
+backend/database.db
+
+# Frontend
+frontend/dreamboard/dist
+frontend/server/.env
+frontend/server/node_modules
 
 # IDEs and editors
 .idea/
@@ -37,4 +42,3 @@ Thumbs.db
 
 # Git
 .git
-.env

@@ -31,6 +31,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root',
 })
 export class VideoGenerationService {
+  PROXY_URL = environment.proxyURL;
   BASE_URL = environment.videoGenerationApiURL;
 
   constructor(private http: HttpClient) {}
@@ -39,16 +40,24 @@ export class VideoGenerationService {
     story_id: string,
     videoGeneration: VideoGenerationRequest
   ): any {
+    const requestBody = {
+      url: `${this.BASE_URL}/generate_videos_from_scenes/${story_id}`,
+      options: { method: 'POST', data: videoGeneration },
+    };
     return this.http.post<VideoGenerationResponse[]>(
-      `${this.BASE_URL}/generate_videos_from_scenes/${story_id}`,
-      videoGeneration
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 
   mergeVideos(story_id: string, videoGeneration: VideoGenerationRequest) {
+    const requestBody = {
+      url: `${this.BASE_URL}/merge_videos/${story_id}`,
+      options: { method: 'POST', data: videoGeneration },
+    };
     return this.http.post<VideoGenerationResponse>(
-      `${this.BASE_URL}/merge_videos/${story_id}`,
-      videoGeneration
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
     );
   }
 }

@@ -452,18 +452,18 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
 
     openSnackBar(
       this._snackBar,
-      `Generating enhanced video prompt for scene ${this.scene.number}.`
+      `Generating enhanced video prompt for scene ${this.scene.number}...`
     );
 
     this.textGenerationService
       .rewriteVideoPrompt(currentPrompt, sceneDescription, withSceneDescription)
       .subscribe(
-        (enhancedPrompt: string) => {
+        (enhancedPrompt: any) => {
           // Find scene in responses to update generated videos
           closeSnackBar(this._snackBar);
-          if (enhancedPrompt) {
-            this.scene.imageGenerationSettings.prompt = enhancedPrompt;
-            this.videoSettingsForm.get('prompt')?.setValue(enhancedPrompt);
+          if (enhancedPrompt && enhancedPrompt.data) {
+            this.scene.imageGenerationSettings.prompt = enhancedPrompt.data;
+            this.videoSettingsForm.get('prompt')?.setValue(enhancedPrompt.data);
           }
         },
         (error: any) => {
