@@ -36,7 +36,7 @@ To install it on GCP:
 
 1. Deploy the backend code and make note of the following when creating :
    - GCP Project Id
-   - Cloud Storage Bucket Name
+   - Service Account
    - Location the service is deployed
    - Cloud Run Service URL
 2. Configure the OAuth Consent Screen if not configured yet.
