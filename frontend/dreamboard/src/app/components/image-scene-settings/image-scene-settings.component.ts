@@ -107,7 +107,6 @@ import { v4 as uuidv4 } from 'uuid';
 export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
-  @Output() storyDataChanged = new EventEmitter<void>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
   
@@ -882,7 +881,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
   }
 
   refreshImages(): void {
-    this.storyDataChanged.emit();
   }
 
   onFramesExtracted(newImages: Image[]): void {

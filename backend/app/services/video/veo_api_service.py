@@ -166,7 +166,7 @@ class VeoAPIService:
             uri=gen_video.video.uri
         )
         file_name = utils.get_file_name_from_uri(gen_video.video.uri)
-        gcs_fuse_path = f"{gcs_fuse}/{scene_folder.split('/')[0]}/{file_name}"
+        gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
         videos.append(
             Video(
                 name=f"{scene_folder}/{file_name}",

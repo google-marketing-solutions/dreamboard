@@ -16,10 +16,9 @@
   </form>
   <mat-stepper #stepper (selectionChange)="onStepChange($event)">
     <mat-step label="Image Generation Settings">
-<app-image-scene-settings
-        [scene]="this.scene"
-        [storyId]="this.storyId"
-        (storyDataChanged)="onStoryDataChanged()"
+      <app-image-scene-settings
+        [scene]="scene"
+        [storyId]="storyId"
       ></app-image-scene-settings>
       <div class="next-actions">
         <button mat-button (click)="onImageSettingsViewChange()" matStepperNext>

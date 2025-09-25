@@ -190,8 +190,4 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     const description = event.target.value;
     this.scene.description = description;
   }
-
-  onStoryDataChanged(): void {
-    this.dialogRef.close({ refresh: true });
-  }
 }
