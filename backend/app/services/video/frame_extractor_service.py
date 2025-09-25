@@ -38,7 +38,7 @@ class FrameExtractorService:
     pass
 
     @staticmethod
-    def extract_frames(gcs_uri: str, story_id: str, scene_num: str, time_sec: int, frame_count: int) -> list[str]:
+    def extract_frames(gcs_uri: str, story_id: str, scene_num: str, time_sec: float, frame_count: int) -> list[str]:
         """
         Extracts a number of frames from a video at a specific timestamp and uploads them to GCS.
 
@@ -46,7 +46,7 @@ class FrameExtractorService:
             gcs_uri (str): The GCS URI of the video file to extract frames from.
             story_id (str): The unique identifier for the story.
             scene_num (str): The number of the scene (used to locate the video).
-            time_sec (int): The timestamp in seconds from which to extract frames.
+            time_sec (float): The timestamp in seconds from which to extract frames.
             frame_count (int): The number of frames to extract from the given timestamp.
 
         Returns:
@@ -77,7 +77,12 @@ class FrameExtractorService:
 
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                raise RuntimeError(f"ffmpeg failed with return code {result.returncode}")
+                raise RuntimeError(f"ffmpeg failed with return code {result.returncode}: {result.stderr}")
+
+            # Verify that the first frame was created before proceeding
+            first_frame_file = os.path.join(tmp_dir, "frame_001.png")
+            if not os.path.exists(first_frame_file):
+                raise RuntimeError(f"Could not produce the requested number of frames. This can happen if the requested number of frames exceeds the video duration.")
 
             # Upload extracted frames to GCS and collect URLs
             frame_urls = []
@@ -85,6 +90,7 @@ class FrameExtractorService:
                 frame_file = os.path.join(tmp_dir, f"frame_{i:03d}.png")
                 blob_name = f"{utils.get_images_bucket_folder_path(story_id)}/{scene_num}/frames/{time_sec}s_frame_{i}.png"
                 storage_service.storage_service.upload_from_filename(frame_file, blob_name)
-                frame_urls.append(blob_name)
+                gcs_uri = f"gs://{os.getenv('GCS_BUCKET')}/{blob_name}"
+                frame_urls.append(gcs_uri)
 
             return frame_urls

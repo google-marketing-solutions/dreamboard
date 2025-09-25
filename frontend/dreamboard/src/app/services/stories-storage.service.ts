@@ -55,6 +55,17 @@ export class StoriesStorageService {
     );
   }
 
+  getStoryById(userId: string, storyId: string): any {
+    const requestBody = {
+      url: `${this.BASE_URL}/read_story/${userId}/${storyId}`,
+      options: { method: 'GET' },
+    };
+    return this.http.post<any>(
+      `${this.PROXY_URL}/api/handleRequest`,
+      requestBody
+    );
+  }
+
   deleteStoryById(userId: string, storyId: string): any {
     const requestBody = {
       url: `${this.BASE_URL}/remove_story/${userId}/${storyId}`,

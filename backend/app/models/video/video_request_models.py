@@ -140,6 +140,7 @@ class VideoItem(BaseModel):
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
+  frames_uris: list[str] | None = None
 
 
 class ImageItem(BaseModel):
@@ -207,7 +208,7 @@ class VideoSegmentRequest(BaseModel):
 
   scene_id: str
   segment_number: int
-  prompt: str
+  prompt: str | None = None
   seed_image: ImageItem | None = None
   regenerate_video_segment: bool = False
   duration_in_secs: int | None = 8
@@ -284,3 +285,19 @@ class LogoOverlayRequest(BaseModel):
   """
   gcs_video_path: str
   logo_overlay: LogoOverlay = Field(default_factory=LogoOverlay)
+
+class FrameExtractionRequest(BaseModel):
+  """
+  Represents a request to extract frames from a video.
+  Attributes:
+      gcs_uri: The GCS URI of the input video.
+      story_id: The ID of the story.
+      scene_num: The number of the scene.
+      time_sec: The time in seconds to extract frames from.
+      frame_count: The number of frames to extract.
+  """
+  gcs_uri: str
+  story_id: str
+  scene_num: str
+  time_sec: float
+  frame_count: int

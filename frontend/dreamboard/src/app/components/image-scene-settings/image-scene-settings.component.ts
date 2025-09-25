@@ -33,6 +33,7 @@ import {
   AfterViewInit,
   inject,
   ViewChild,
+  OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -80,11 +81,13 @@ import {
   getImageReferenceTypes,
 } from '../../image-utils';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
+import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Component({
   selector: 'app-image-scene-settings',
+  standalone: true,
   imports: [
     MatButtonModule,
     MatInputModule,
@@ -96,16 +99,19 @@ import { v4 as uuidv4 } from 'uuid';
     ReactiveFormsModule,
     MatExpansionModule,
     FileUploaderComponent,
+    FrameExtractionComponent,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
 })
-export class ImageSceneSettingsComponent implements AfterViewInit {
+export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
-  @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
+  @Output() storyDataChanged = new EventEmitter<void>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
+  
+  scenes: VideoScene[] = [];
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();
@@ -143,6 +149,12 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     private textGenerationService: TextGenerationService,
     private componentsCommunicationService: ComponentsCommunicationService
   ) {}
+
+  ngOnInit(): void {
+    this.componentsCommunicationService.scenes$.subscribe((scenes: VideoScene[]) => {
+      this.scenes = scenes;
+    });
+  }
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -286,6 +298,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       );
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
+      this.currentGeneratedImageIndex = -1; // Ensure carousel clears
     }
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
@@ -298,6 +311,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * @returns {void}
    */
   setImageSettings(): void {
+    // Save all form values
     this.scene.imageGenerationSettings.prompt =
       this.imageSettingsForm.get('prompt')?.value!;
     this.scene.imageGenerationSettings.numImages =
@@ -316,13 +330,13 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.imageSettingsForm.get('personGeneration')?.value!;
     this.scene.imageGenerationSettings.negativePrompt =
       this.imageSettingsForm.get('negativePrompt')?.value!;
-    // Set up selected image. generatedImages array is populated after API call
-    const selectedImageForVideo: Image =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.currentGeneratedImageIndex
-      ];
-    this.scene.imageGenerationSettings.selectedImageForVideo =
-      selectedImageForVideo;
+
+    // Ensure the generated images and the current selection are also saved
+    const selectedImageUri = this.imageSettingsForm.get('selectedImageUri')?.value;
+    const selectedImage = this.scene.imageGenerationSettings.generatedImages.find(
+      (img) => img.gcsUri === selectedImageUri
+    );
+    this.scene.imageGenerationSettings.selectedImageForVideo = selectedImage;
   }
 
   /**
@@ -464,7 +478,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
     }
     const imageUri = event.value;
-    const updateForm = false;
+    const updateForm = true;
     this.updateSelectedImage(imageUri, updateForm);
   }
 
@@ -865,5 +879,35 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   disableGenerateImageButton(): boolean {
     return !this.imageSettingsForm.valid;
+  }
+
+  refreshImages(): void {
+    this.storyDataChanged.emit();
+  }
+
+  onFramesExtracted(newImages: Image[]): void {
+    // Create a new generatedImages array with the new images
+    const updatedGeneratedImages = [
+      ...this.scene.imageGenerationSettings.generatedImages,
+      ...newImages,
+    ];
+
+    // Create a new scene object with the updated generatedImages to ensure change detection
+    this.scene = {
+      ...this.scene,
+      imageGenerationSettings: {
+        ...this.scene.imageGenerationSettings,
+        generatedImages: updatedGeneratedImages,
+      },
+    };
+
+    // After adding new images, select the last one by default
+    const lastImage =
+      this.scene.imageGenerationSettings.generatedImages[
+        this.scene.imageGenerationSettings.generatedImages.length - 1
+      ];
+    if (lastImage) {
+      this.updateSelectedImage(lastImage.gcsUri, true);
+    }
   }
 }

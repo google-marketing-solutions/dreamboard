@@ -20,9 +20,9 @@
  ***************************************************************************/
 
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { VideoStory } from '../models/story-models';
-import { ExportScenes } from '../models/scene-models';
+import { ExportScenes, VideoScene } from '../models/scene-models';
 import { ExportStory } from '../models/story-models';
 import { UploadedFile } from '../models/settings-models';
 
@@ -40,6 +40,7 @@ export class ComponentsCommunicationService {
   private fileUploadedSource = new Subject<UploadedFile>();
   private referenceImageRemovedSource = new Subject<string>();
   private userLoggedInSource = new Subject<boolean>();
+  private scenesSubject = new BehaviorSubject<VideoScene[]>([]);
 
   // Observable streams
   videoGenerated$ = this.videoGeneratedSource.asObservable();
@@ -50,6 +51,7 @@ export class ComponentsCommunicationService {
   referenceImageRemovedSource$ =
     this.referenceImageRemovedSource.asObservable();
   userLoggedInSource$ = this.userLoggedInSource.asObservable();
+  scenes$ = this.scenesSubject.asObservable();
 
   videoGenerated(story: VideoStory) {
     this.videoGeneratedSource.next(story);
@@ -78,5 +80,9 @@ export class ComponentsCommunicationService {
 
   userLoggedIn(loggedIn: boolean) {
     this.userLoggedInSource.next(loggedIn);
+  }
+
+  updateScenes(scenes: VideoScene[]) {
+    this.scenesSubject.next(scenes);
   }
 }

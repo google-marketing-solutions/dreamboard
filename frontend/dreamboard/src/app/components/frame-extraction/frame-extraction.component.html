@@ -1,0 +1,53 @@
+<mat-expansion-panel expanded="false">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon>movie</mat-icon> Extract Images from Generated Video
+      </mat-panel-title>
+      <mat-panel-description>
+        Use a frame from a previously generated video to ground the video generation
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+  
+    <div class="frame-extraction-container">
+      <div class="item-container">
+        <mat-form-field>
+          <mat-label>Selected Video for Image Extraction</mat-label>
+          <mat-select (selectionChange)="onVideoSelected($event)" [(ngModel)]="selectedVideoUrl">
+            <mat-option value="">Select a scene's video</mat-option>
+            @for (scene of scenes; track scene) {
+              @if(scene.videoGenerationSettings.selectedVideo) {
+                <mat-option [value]="scene.videoGenerationSettings.selectedVideo.signedUri">
+                  Scene {{ scene.number }} - {{ scene.videoGenerationSettings.selectedVideo.name }}
+                </mat-option>
+              }
+            }
+          </mat-select>
+        </mat-form-field>
+        <button mat-flat-button (click)="extractFrames()" [disabled]="!selectedVideoUrl">
+          <mat-icon>photo_library</mat-icon>
+          Extract Frames
+        </button>
+      </div>
+  
+      @if (selectedVideoUrl) {
+        <div class="video-player-container">
+            <video #videoPlayer controls (timeupdate)="onTimeUpdate()">
+                <source [src]="selectedVideoUrl" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+      }
+  
+      <div class="extraction-controls">
+        <mat-form-field>
+          <mat-label>Time in seconds</mat-label>
+          <input matInput type="number" step="any" [(ngModel)]="extractionTime" (input)="onTimeInputChange($event)" />
+        </mat-form-field>
+  
+        <mat-form-field>
+          <mat-label>Number of frames</mat-label>
+          <input matInput type="number" [(ngModel)]="numFrames" />
+        </mat-form-field>
+      </div>
+    </div>
+  </mat-expansion-panel>

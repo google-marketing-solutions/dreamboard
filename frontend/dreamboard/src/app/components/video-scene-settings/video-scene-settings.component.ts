@@ -72,13 +72,28 @@ import { TextGenerationService } from '../../services/text-generation.service';
   styleUrl: './video-scene-settings.component.css',
 })
 export class VideoSceneSettingsComponent implements AfterViewInit {
-  @Input() scene!: VideoScene;
+  private _scene!: VideoScene;
+  @Input()
+  set scene(value: VideoScene) {
+    this._scene = value;
+    // When the scene is set or changed, sync the display video
+    if (this._scene.imageGenerationSettings.selectedImageForVideo) {
+      this.selectedVideoForDisplay = this._scene.imageGenerationSettings.selectedImageForVideo as unknown as Video;
+    } else {
+      this.selectedVideoForDisplay = this._scene.videoGenerationSettings.selectedVideo;
+    }
+  }
+  get scene(): VideoScene {
+    return this._scene;
+  }
+
   @Input() storyId!: string;
   aspectRatios: SelectItem[] = getAspectRatios();
   framesPerSecOptions: SelectItem[] = getFramesPerSecondOptions();
   imageMimeTypes: SelectItem[] = getOutputMimeTypes();
   personGenerationOptions: SelectItem[] = getPersonGenerationOptions();
   currentGeneratedVideoIndex: number = 0;
+  selectedVideoForDisplay: Video | undefined;
   private _snackBar = inject(MatSnackBar);
 
   videoSettingsForm = new FormGroup({
@@ -88,7 +103,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     aspectRatio: new FormControl('16:9', []),
     framesPerSec: new FormControl('24', []),
     personGeneration: new FormControl('allow_adult', []),
-    /*seed: new FormControl(-1, []),*/
     negativePrompt: new FormControl('', []),
     enhancePrompt: new FormControl(true, []),
     generateAudio: new FormControl(true, []),
@@ -103,20 +117,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     private textGenerationService: TextGenerationService
   ) {}
 
-  /**
-   * Lifecycle hook that is called after Angular has fully initialized a component's view.
-   * It initializes the video settings form with values from the current scene.
-   * @returns {void}
-   */
   ngAfterViewInit(): void {
     this.initVideoSettingsForm();
   }
 
-  /**
-   * Initializes the `videoSettingsForm` with the current video generation settings
-   * from the `scene` input property. This ensures the form reflects the existing state.
-   * @returns {void}
-   */
   initVideoSettingsForm(): void {
     this.videoSettingsForm.controls['prompt'].setValue(
       this.scene.videoGenerationSettings.prompt
@@ -151,7 +155,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.videoSettingsForm.controls['regenerateVideo'].setValue(
       this.scene.videoGenerationSettings.regenerateVideo!
     );
-    // Update selected video if any
     if (this.scene.videoGenerationSettings.selectedVideo) {
       // Update selected video index in carrousel
       const updateForm = true;
@@ -162,12 +165,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     }
   }
 
-  /**
-   * Updates the `scene.videoGenerationSettings` object with the current values from the `videoSettingsForm`.
-   * This method ensures that changes made in the UI form are reflected in the underlying scene data model.
-   * It also sets the `selectedVideo` based on the `currentGeneratedVideoIndex`.
-   * @returns {void}
-   */
   setVideoSettings(): void {
     this.scene.videoGenerationSettings.prompt =
       this.videoSettingsForm.get('prompt')?.value!;
@@ -179,7 +176,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.videoSettingsForm.get('personGeneration')?.value!;
     this.scene.videoGenerationSettings.sampleCount =
       this.videoSettingsForm.get('sampleCount')?.value!;
-    /*this.scene.videoGenerationSettings.seed = this.videoSettingsForm.get('seed')?.value!;*/
     this.scene.videoGenerationSettings.negativePrompt =
       this.videoSettingsForm.get('negativePrompt')?.value!;
     this.scene.videoGenerationSettings.enhancePrompt =
@@ -190,7 +186,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.videoSettingsForm.get('includeVideoSegment')?.value!;
     this.scene.videoGenerationSettings.regenerateVideo =
       this.videoSettingsForm.get('regenerateVideo')?.value!;
-    // Set up selected image. generatedImages array is populated after API call
     const selectedVideo: Video =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
@@ -198,47 +193,23 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
   }
 
-  /**
-   * Checks if a previous video segment has been generated and selected for the current scene.
-   * @returns {boolean} `true` if a video segment is selected, `false` otherwise.
-   */
   isPrevVideoSegmentGenerated(): boolean {
     return this.scene.videoGenerationSettings.selectedVideo !== undefined;
   }
 
-  /**
-   * Navigates to the previous generated video in the `generatedVideos` array.
-   * It updates `currentGeneratedVideoIndex` and sets the `selectedVideoUri` in the form
-   * and `selectedVideo` in the scene to the previous video.
-   * It loops back to the last video if currently at the first video.
-   * @returns {void}
-   */
   onPrev(): void {
     const previousVideoIndex = this.currentGeneratedVideoIndex - 1;
     this.currentGeneratedVideoIndex =
       previousVideoIndex < 0
         ? this.scene.videoGenerationSettings.generatedVideos.length - 1
         : previousVideoIndex;
-
     const generatedVideo =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
       ];
-    // Set selected generated image in form
-    this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-      generatedVideo.gcsUri
-    );
-    // Set selected generated image in scene
-    this.scene.videoGenerationSettings.selectedVideo = generatedVideo;
+    this.updateSelectedVideo(generatedVideo.gcsUri, true);
   }
 
-  /**
-   * Navigates to the next generated video in the `generatedVideos` array.
-   * It updates `currentGeneratedVideoIndex` and sets the `selectedVideoUri` in the form
-   * and `selectedVideo` in the scene to the next video.
-   * It loops back to the first video if currently at the last video.
-   * @returns {void}
-   */
   onNext(): void {
     const nextVideoIndex = this.currentGeneratedVideoIndex + 1;
     this.currentGeneratedVideoIndex =
@@ -250,34 +221,13 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
       ];
-    // Set selected generated image in form
-    this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-      generatedVideo.gcsUri
-    );
-    // Set selected generated image in scene
-    this.scene.videoGenerationSettings.selectedVideo = generatedVideo;
+    this.updateSelectedVideo(generatedVideo.gcsUri, true);
   }
 
-  /**
-   * Handles the selection of a video from the dropdown.
-   * It updates `currentGeneratedVideoIndex` based on the selected video's URI
-   * and sets the `selectedVideo` in the scene.
-   * @param {MatSelectChange} event - The change event from the MatSelect component,
-   * containing the URI of the selected video in `event.value`.
-   * @returns {void}
-   */
   onVideoSelected(event: MatSelectChange): void {
-    const videoUri = event.value;
-    const updateForm = false;
-    this.updateSelectedVideo(videoUri, updateForm);
+    this.updateSelectedVideo(event.value, true);
   }
 
-  /**
-   * Sets the `currentGeneratedVideoIndex` to the index of the video with the given URI
-   * within the `generatedVideos` array of the current scene.
-   * @param {string} gcsUri - The URI of the video to find.
-   * @returns {void}
-   */
   setCurrentGeneratedVideoIndex(gcsUri: string): void {
     const index = this.scene.videoGenerationSettings.generatedVideos.findIndex(
       (video) => video.gcsUri === gcsUri
@@ -286,25 +236,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   }
 
   updateSelectedVideo(gcsUri: string, updateForm: boolean) {
-    // Reload video in the Scene Builder HTML element to update it
-    // since reload does not happen when the object is updated
-    const videoHTML: any = document.getElementById(`video@${this.scene.id}`);
-    if (videoHTML) {
-      videoHTML.load();
-    }
-    // Update selected video in form
     if (updateForm) {
-      this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-        gcsUri
-      );
+      this.videoSettingsForm.controls['selectedVideoUri'].setValue(gcsUri);
     }
-    // Find video index in array
     this.setCurrentGeneratedVideoIndex(gcsUri);
     const selectedVideo =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
       ];
-    // Set selected video in scene to be used as selectedVideo segment in final video
     this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
   }
 
@@ -312,41 +251,28 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
   }
 
-  /**
-   * Initiates the video generation process for the current scene.
-   * It displays a loading snackbar, constructs a `VideoGenerationRequest`,
-   * sends it to the `VideoGenerationService`, and handles the API response.
-   * Upon successful generation, it updates the scene's `generatedVideos` and selects the first one.
-   * It also handles error responses by displaying an error snackbar.
-   * @returns {void}
-   */
   generateVideosFromScene(): void {
     openSnackBar(
       this._snackBar,
       `Generating video for scene ${this.scene.number}. This might take some time...`
     );
-
     const videoGeneration: VideoGenerationRequest = {
       video_segments: [this.buildVideoSegment()],
-      creative_direction: undefined, // for now
+      creative_direction: undefined,
     };
     this.videoGenerationService
       .generateVideosFromScenes(this.storyId, videoGeneration)
-      .subscribe(
-        (resps: VideoGenerationResponse[]) => {
-          // Find scene in responses to update generated videos
+      .subscribe({
+        next: (resps: VideoGenerationResponse[]) => {
           const executionStatus = updateScenesWithGeneratedVideos(resps, [
             this.scene,
           ]);
-          // Set selected video for video segment generation
           if (this.scene.videoGenerationSettings.generatedVideos.length > 0) {
-            // Select the last video
             const lastVideo =
               this.scene.videoGenerationSettings.generatedVideos[
                 this.scene.videoGenerationSettings.generatedVideos.length - 1
               ];
-            const updateForm = true;
-            this.updateSelectedVideo(lastVideo.gcsUri, updateForm);
+            this.updateSelectedVideo(lastVideo.gcsUri, true);
           }
           openSnackBar(
             this._snackBar,
@@ -354,7 +280,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
             20
           );
         },
-        (error: any) => {
+        error: (error: any) => {
           let errorMessage;
           if (error.error.hasOwnProperty('detail')) {
             errorMessage = error.error.detail;
@@ -366,16 +292,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
             this._snackBar,
             `ERROR: ${errorMessage}. Please try again.`
           );
-        }
-      );
+        },
+      });
   }
 
-  /**
-   * Constructs a `VideoSegmentRequest` object based on the current values in the `videoSettingsForm`
-   * and the associated `scene` data. This request object is used to send to the video generation API.
-   * It includes details like prompt, duration, aspect ratio, and an optional seed image.
-   * @returns {VideoSegmentRequest} The constructed video segment request object.
-   */
   buildVideoSegment(): VideoSegmentRequest {
     let seedImage;
     if (this.scene.imageGenerationSettings.selectedImageForVideo) {
@@ -387,14 +307,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
         mime_type:
           this.scene.imageGenerationSettings.selectedImageForVideo.mimeType,
-        gcs_fuse_path: '', // Empty here, this is generated in the backend
+        gcs_fuse_path: '',
       } as ImageItem;
     }
     const videoSegment: VideoSegmentRequest = {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
-      seed_image: seedImage, // Can be null for text to video generation
+      seed_image: seedImage,
       duration_in_secs: this.videoSettingsForm.get('durationInSecs')?.value!,
       aspect_ratio: this.videoSettingsForm.get('aspectRatio')?.value!,
       frames_per_sec: parseInt(
@@ -402,75 +322,56 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       ),
       person_generation: this.videoSettingsForm.get('personGeneration')?.value!,
       sample_count: this.videoSettingsForm.get('sampleCount')?.value!,
-      /*seed?: this.videoSettingsForm.get('prompt')?.value;*/
       negative_prompt: this.videoSettingsForm.get('negativePrompt')?.value!,
-      transition: Transition.CONCATENATE, // default since it's not used for single video
+      transition: Transition.CONCATENATE,
       generate_audio: this.videoSettingsForm.get('generateAudio')?.value!,
-      enhance_prompt: true, // Always true for Veo3
-      use_last_frame: false, // False for now
+      enhance_prompt: true,
+      use_last_frame: false,
       include_video_segment: this.videoSettingsForm.get('includeVideoSegment')
         ?.value!,
-      generate_video_frames: false, // TODO (ae): include this later
-      regenerate_video_segment: true, // true for single video generation
-      selected_video: undefined, // Since not required for the GENERATION operation
+      generate_video_frames: false,
+      regenerate_video_segment: true,
+      selected_video: undefined,
     };
-
     return videoSegment;
   }
 
-  /**
-   * Determines whether the "Generate Video" button should be disabled.
-   * The button is enabled if a seed image is selected for the scene,
-   * or if the video prompt in the form is valid.
-   * @returns {boolean} `true` if the button should be disabled, `false` otherwise.
-   */
   disableGenerateVideoButton(): boolean {
     if (
       this.scene.imageGenerationSettings.selectedImageForVideo ||
       this.videoSettingsForm.get('prompt')?.value
     ) {
-      // For Image to Video, prompt is not required
       return false;
     }
-
     return true;
   }
 
-  /**
-   * Rewrites the video prompt for the current scene using the `TextGenerationService`.
-   * It displays a loading snackbar, sends the current prompt and scene description
-   * to the text generation API, and updates the form and scene with the enhanced prompt.
-   * It also handles error responses by displaying an error snackbar.
-   * @returns {void}
-   */
   rewriteVideoPrompt(): void {
-    let currentPrompt = this.videoSettingsForm.get('prompt')?.value!;
-    let sceneDescription = this.scene.description;
+    const currentPrompt = this.videoSettingsForm.get('prompt')?.value!;
+    const sceneDescription = this.scene.description;
     const withSceneDescription = this.videoSettingsForm.get(
       'withSceneDescription'
     )?.value!;
-
     openSnackBar(
       this._snackBar,
       `Generating enhanced video prompt for scene ${this.scene.number}...`
     );
-
     this.textGenerationService
       .rewriteVideoPrompt(currentPrompt, sceneDescription, withSceneDescription)
-      .subscribe(
-        (enhancedPrompt: any) => {
-          // Find scene in responses to update generated videos
+      .subscribe({
+        next: (enhancedPrompt: any) => {
           closeSnackBar(this._snackBar);
           if (enhancedPrompt && enhancedPrompt.data) {
             this.scene.imageGenerationSettings.prompt = enhancedPrompt.data;
             this.videoSettingsForm.get('prompt')?.setValue(enhancedPrompt.data);
           }
         },
-        (error: any) => {
+        error: (error: any) => {
           let errorMessage;
           if (error.error.hasOwnProperty('detail')) {
             errorMessage = error.error.detail;
-          } else {
+          }
+          else {
             errorMessage = error.error.message;
           }
           console.error(errorMessage);
@@ -478,7 +379,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
             this._snackBar,
             `ERROR: ${errorMessage}. Please try again.`
           );
-        }
-      );
+        },
+      });
   }
 }

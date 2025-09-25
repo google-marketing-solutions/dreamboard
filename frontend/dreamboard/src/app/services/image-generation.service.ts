@@ -21,8 +21,9 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ImageGenerationRequest } from '../models/image-gen-models';
+import { Image, ImageGenerationRequest } from '../models/image-gen-models';
 import { environment } from '../../environments/environment';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +31,7 @@ import { environment } from '../../environments/environment';
 export class ImageGenerationService {
   PROXY_URL = environment.proxyURL;
   BASE_URL = environment.imageGenerationApiURL;
+  STORIES_BASE_URL = environment.storiesStorageApiURL;
 
   constructor(private http: HttpClient) {}
 
@@ -59,6 +61,17 @@ export class ImageGenerationService {
       } */
     return this.http.post<any>(
       `${this.PROXY_URL}/api/handleFileUploadRequest`,
+      requestBody
+    );
+  }
+
+  getImagesForScene(storyId: string, sceneId: string): Observable<Image[]> {
+    const requestBody = {
+      url: `${this.STORIES_BASE_URL}/${storyId}/scenes/${sceneId}/images`,
+      options: { method: 'GET' },
+    };
+    return this.http.post<any>(
+      `${this.PROXY_URL}/api/handleRequest`,
       requestBody
     );
   }

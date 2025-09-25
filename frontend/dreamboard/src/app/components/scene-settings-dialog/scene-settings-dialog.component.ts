@@ -31,6 +31,7 @@ import {
   MatDialogTitle,
   MatDialogContent,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -41,6 +42,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ImageSceneSettingsComponent } from '../image-scene-settings/image-scene-settings.component';
 import { VideoSceneSettingsComponent } from '../video-scene-settings/video-scene-settings.component';
 import { VideoScene } from '../../models/scene-models';
+import { Video } from '../../models/video-gen-models';
 
 @Component({
   selector: 'app-scene-settings-dialog',
@@ -73,7 +75,7 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     sceneDescription: new FormControl('', []),
   });
 
-  constructor() {}
+  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {}
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -88,11 +90,13 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   }
 
   onStepChange(event: StepperSelectionEvent): void {
-    // If moving to image settings index === 0 save video settings
-    if(event.selectedIndex === 0) {
+    // If moving to image settings (index 0), save video settings and re-init image settings
+    if (event.selectedIndex === 0) {
       this.updateSceneVideoSettings(true);
+      this.imageSceneSettingsComponent.initImageSettingsForm();
     }
-    if(event.selectedIndex === 1) {
+    // If moving to video settings (index 1), save image settings
+    if (event.selectedIndex === 1) {
       this.updateSceneImageSettings(true);
     }
   }
@@ -130,6 +134,11 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   save(): void {
     this.updateSceneImageSettings(false);
     this.updateSceneVideoSettings(false);
+    
+    // Explicitly update the scene with the latest settings from the child component
+    this.scene.imageGenerationSettings = this.imageSceneSettingsComponent.scene.imageGenerationSettings;
+
+    this.dialogRef.close(this.scene);
   }
 
   /**
@@ -145,6 +154,8 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     this.scene.description =
       this.sceneSettingsForm.get('sceneDescription')?.value!;
     this.imageSceneSettingsComponent.setImageSettings();
+    // Explicitly pull the updated settings from the child to the parent's scene object
+    this.scene.imageGenerationSettings = this.imageSceneSettingsComponent.scene.imageGenerationSettings;
     if (initView) {
       this.videoSceneSettingsComponent.initVideoSettingsForm();
     }
@@ -178,5 +189,9 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   onDescriptionUpdated(event: any): void {
     const description = event.target.value;
     this.scene.description = description;
+  }
+
+  onStoryDataChanged(): void {
+    this.dialogRef.close({ refresh: true });
   }
 }

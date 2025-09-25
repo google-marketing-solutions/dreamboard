@@ -30,7 +30,7 @@ from google.genai.types import GenerateVideosConfig, Image, HttpOptions, Generat
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
 
-DEFAULT_MODEL_NAME = "veo-3.0-generate-preview"
+DEFAULT_MODEL_NAME = "veo-2.0-generate-001"
 # "veo-2.0-generate-001"
 
 
@@ -166,7 +166,7 @@ class VeoAPIService:
             uri=gen_video.video.uri
         )
         file_name = utils.get_file_name_from_uri(gen_video.video.uri)
-        gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
+        gcs_fuse_path = f"{gcs_fuse}/{scene_folder.split('/')[0]}/{file_name}"
         videos.append(
             Video(
                 name=f"{scene_folder}/{file_name}",

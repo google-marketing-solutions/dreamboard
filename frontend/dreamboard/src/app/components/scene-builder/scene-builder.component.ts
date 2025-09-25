@@ -26,7 +26,7 @@
  * scene-specific settings and handle API responses.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -72,7 +72,7 @@ import { StoriesStorageService } from '../../services/stories-storage.service';
   templateUrl: './scene-builder.component.html',
   styleUrl: './scene-builder.component.css',
 })
-export class SceneBuilderComponent {
+export class SceneBuilderComponent implements OnInit {
   story: VideoStory = getNewVideoStory();
   sceneSettingsDialog = inject(MatDialog);
   creativeDirectionSettingsDialog = inject(MatDialog);
@@ -89,6 +89,7 @@ export class SceneBuilderComponent {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
         this.story = exportStory.story;
+        this.componentsCommunicationService.updateScenes(this.story.scenes);
         this.exportingScenes = true;
         if (exportStory.replaceExistingStoryOnExport) {
           if (exportStory.generateInitialImageForScenes) {
@@ -102,6 +103,10 @@ export class SceneBuilderComponent {
         }
       }
     );
+  }
+
+  ngOnInit(): void {
+    this.componentsCommunicationService.updateScenes(this.story.scenes);
   }
 
   /**
@@ -122,6 +127,12 @@ export class SceneBuilderComponent {
         },
       }
     );
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.refresh) {
+        this.refreshStory();
+      }
+    });
   }
 
   /**
@@ -157,6 +168,7 @@ export class SceneBuilderComponent {
     }
     const newScene = getNewVideoScene(this.story.scenes.length);
     this.story.scenes.push(newScene);
+    this.componentsCommunicationService.updateScenes(this.story.scenes);
   }
 
   createStory() {
@@ -204,6 +216,7 @@ export class SceneBuilderComponent {
       // If all scenes removed, create new story
       this.story = getNewVideoStory();
     }
+    this.componentsCommunicationService.updateScenes(this.story.scenes);
   }
 
   /**
@@ -630,5 +643,20 @@ export class SceneBuilderComponent {
       scene.videoGenerationSettings.generatedVideos.length > 0 &&
       scene.videoGenerationSettings.selectedVideo !== undefined
     );
+  }
+
+  refreshStory(): void {
+    // TODO(nsampsell): Get the user ID from a shared service.
+    const userId = '123';
+    this.storiesStorageService.getStoryById(userId, this.story.id).subscribe({
+      next: (story: VideoStory) => {
+        this.story = story;
+        this.componentsCommunicationService.updateScenes(this.story.scenes);
+      },
+      error: (error: any) => {
+        console.error(error);
+        openSnackBar(this._snackBar, `Error refreshing story: ${error.error.detail}`, 5);
+      }
+    });
   }
 }

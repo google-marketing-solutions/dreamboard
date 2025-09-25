@@ -22,7 +22,14 @@ from fastapi import FastAPI
 from starlette.middleware import cors
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename="myapp.log", level=logging.INFO)
+# Configure logging to output to the console
+logging.basicConfig(
+  level=logging.INFO,
+  format="%(asctime)s - %(levelname)s - %(message)s",
+  handlers=[
+      logging.StreamHandler()
+  ]
+)
 
 from dotenv import load_dotenv
 
@@ -82,4 +89,4 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # Run the Uvicorn server when the script is executed directly
 if __name__ == "__main__":
-  uvicorn.run(app, host="127.0.0.1", port=8000)
+  uvicorn.run(app, host="127.0.0.1", port=8000, log_config=None, log_level="info")
