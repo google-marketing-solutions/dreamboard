@@ -90,12 +90,10 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   onStepChange(event: StepperSelectionEvent): void {
     // If moving to image settings index === 0 save video settings
     if(event.selectedIndex === 0) {
-      this.updateSceneVideoSettings(false);
-      this.imageSceneSettingsComponent.initImageSettingsForm();
+      this.updateSceneVideoSettings(true);
     }
     if(event.selectedIndex === 1) {
-      this.updateSceneImageSettings(false);
-      this.videoSceneSettingsComponent.initVideoSettingsForm();
+      this.updateSceneImageSettings(true);
     }
   }
 

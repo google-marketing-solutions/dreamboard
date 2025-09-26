@@ -127,17 +127,6 @@ export class SceneBuilderComponent implements OnInit {
         },
       }
     );
-
-    dialogRef.afterClosed().subscribe((updatedScene: VideoScene) => {
-      if (updatedScene) {
-        // Find the scene in the local array and update it with the returned data
-        const index = this.story.scenes.findIndex(s => s.id === updatedScene.id);
-        if (index !== -1) {
-          this.story.scenes[index] = updatedScene;
-          this.componentsCommunicationService.updateScenes(this.story.scenes);
-        }
-      }
-    });
   }
 
   /**

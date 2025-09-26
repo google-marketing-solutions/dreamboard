@@ -475,7 +475,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
       this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
     }
     const imageUri = event.value;
-    const updateForm = true;
+    const updateForm = false;
     this.updateSelectedImage(imageUri, updateForm);
   }
 
@@ -879,7 +879,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
   }
 
   onFramesExtracted(newImages: Image[]): void {
-    // Push the new images into the existing array to maintain the object reference.
     this.scene.imageGenerationSettings.generatedImages.push(...newImages);
 
     // After adding new images, select the last one by default
