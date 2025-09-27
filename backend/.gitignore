@@ -32,6 +32,7 @@ launch.json
 testem.log
 /typings
 *.mp4
+*.mov
 
 # System files
 **/.DS_Store
