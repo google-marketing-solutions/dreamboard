@@ -94,7 +94,15 @@ NodeJS Web Server:
 
 1. `cd frontend/dreamboard/server`
 2. `npm install`
-3. `node server.js`
+3. Create a `.env` file and include the following variables:
+```
+   - GCS_BUCKET="The same bucket created in the backend deployment"
+   - PROJECT_ID="Your project ID"
+   - LOCATION="The location where the backend was deployed. Default is: us-central1"
+   - ENV="dev"
+   - FIRESTORE_DB="The Firestore DB created in the backend deployment. Default is: dreamboard-db"
+```
+4. Execute `node server.js`
 
 The NodeJS web server will be available on `http://127.0.0.1:3000`.
 
