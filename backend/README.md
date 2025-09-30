@@ -48,14 +48,12 @@ Locally, this code can run with the following commands in a Linux-based CLI (cha
 Create a `.env` folder in `/backend/app` (next to `main.py`) with the following fields:
 
 ```
-PROJECT_ID=<YOUR_PROJECT_ID>
-LOCATION=<YOUR_PROJECT_LOCATION>
-GCS_BUCKET=<YOUR_GCS_BUCKET>
-ENV=dev
-FIRESTORE_DB=dreamboard-db
-
-DEFAULTUSERPW=<a default user password>
-DEFAULTADMINPW=<a default admin password>
+  - PROJECT_ID=<YOUR_PROJECT_ID>
+  - LOCATION=<YOUR_PROJECT_LOCATION>
+  - GCS_BUCKET=<YOUR_GCS_BUCKET>
+  - ENV=dev
+  - FIRESTORE_DB=dreamboard-db
+  - USE_AUTH_MIDDLEWARE=true
 ```
 
 - `uv run fastapi dev app/main.py`
