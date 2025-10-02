@@ -33,6 +33,8 @@ from utils import get_images_bucket_path
 
 from google.genai.types import GenerateImagesResponse
 
+DEFAULT_MODEL_NAME = "imagen-3.0-generate-002"
+
 
 class ImageService:
   """
@@ -203,7 +205,7 @@ class ImageService:
 
       # Call the Imagen API to edit the image.
       response = self.client.models.edit_image(
-          model="imagen-3.0-capability-001",
+          model=DEFAULT_MODEL_NAME,
           prompt=scene.img_prompt,
           reference_images=ref_images,
           config=types.EditImageConfig(**edit_config_params),

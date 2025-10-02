@@ -24,7 +24,8 @@ import datetime
 import functools
 import logging
 import os
-
+import subprocess
+import tempfile
 import utils
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
@@ -242,32 +243,70 @@ class VideoGenerator:
     )
 
     # 1. Get video URIs and transitions from video segments
-    videos = [
-        vsg.selected_video
-        for vsg in video_generation.video_segments
-        if vsg.selected_video  # Merge only scenes with generated videos
-    ]
+    videos = []
+    video_cut_specs = []
+    video_cut = 0
+    for vsg in video_generation.video_segments:
+      if vsg.selected_video:
+        videos.append(vsg.selected_video)
 
-    # Download to local/server folder
+        video_cut_specs.append({
+            "start_seconds": vsg.start_seconds if vsg.start_seconds else 0,
+            "start_frame": vsg.start_frame if vsg.start_frame else 1,
+            "end_seconds": vsg.end_seconds if vsg.end_seconds else 7,
+            "end_frame": vsg.end_frame if vsg.end_frame else vsg.frames_per_sec,
+            "cut_video": vsg.cut_video,
+            "fps": vsg.frames_per_sec,
+        })
+        if video_cut:
+          video_cut = 1
+        elif vsg.cut_video:
+          video_cut = 1
+        else:
+          video_cut = 0
+
+    # Download to local/server folder.
     self.__download_videos(story_id, videos)
 
-    # 2. Generate final video
+    # 2. Cut any video segments into the specified size:
+    # a) Call cut_video_segment function.
+    # b) Goes to editing_service.py to cut a bunch of videos.
+    # c) Puts the videos in a new location.
+    for video, video_cut_spec in zip(videos, video_cut_specs):
+      # Get the new output URI for the shortened video.
+      if video_cut_spec["cut_video"]:
+        shortened_vid_uri = self.editing_service.cut_video_segment(
+            video, video_cut_spec
+        )
+
+        # Update the URI for each video.
+        video.gcs_fuse_path = shortened_vid_uri
+
+    # 3. Generate final video.
     logging.info(
         "DreamBoard - VIDEO_GENERATOR: Getting video uris to merge for "
         "story id %s...",
         story_id,
     )
     gcs_fuse_paths_to_merge = self.__get_videos_to_merge(videos)
-    video_transitions = [
-        # Default to concatenate if transition not provided
-        (
-            vsg.transition.value
-            if vsg.transition
-            else video_request_models.VideoTransition.CONCATENATE.value
+    video_transitions = []
+    for vsg in video_generation.video_segments:
+      if vsg.cut_video:
+        # Highest priority: If the video is to be cut, force the transition
+        # to CONCATENATE.
+        transition_value = (
+            video_request_models.VideoTransition.CONCATENATE.value
         )
-        for vsg in video_generation.video_segments
-        if vsg.transition
-    ]
+      elif vsg.transition:
+        # Second priority: If a specific transition is provided, use its value.
+        transition_value = vsg.transition.value
+      else:
+        # Default: If no other conditions are met, use CONCATENATE as the
+        # fallback.
+        transition_value = (
+            video_request_models.VideoTransition.CONCATENATE.value
+        )
+      video_transitions.append(transition_value)
 
     video_with_audio_merges = []
     if len(gcs_fuse_paths_to_merge) > 1:
@@ -286,18 +325,18 @@ class VideoGenerator:
 
     final_video_name = utils.get_file_name_from_uri(final_video_gcs_fuse_path)
 
-    # Override scene folder in dev since local paths are different
+    # Override scene folder in dev since local paths are different.
     output_gcs_path = (
         f"{utils.get_videos_bucket_folder_path(story_id)}/{final_video_name}"
     )
-    # Upload merged final video tO GCS
+    # Upload merged final video to GCS.
     storage_service.storage_service.upload_from_filename(
         final_video_gcs_fuse_path, output_gcs_path
     )
-    # Remove local/server folder after upload to GCS
+    # Remove local/server folder after upload to GCS.
     utils.delete_downloaded_video_folder_by_story_id(story_id)
 
-    # Get bucket URI from GCS FUSE path URI
+    # Get bucket URI from GCS FUSE path URI.
     final_video_uri = (
         f"{utils.get_videos_bucket_base_path(story_id)}/{final_video_name}"
     )
@@ -307,9 +346,11 @@ class VideoGenerator:
         len(gcs_fuse_paths_to_merge),
     )
 
-    # Check if audio was merged succesfully to show correct message to the user
+    # Check if audio was merged succesfully to show correct message to the user.
     if any(video_with_audio_merges):
-      execution_message = f"Videos for Story {story_id} were merged successfully!"
+      execution_message = (
+          f"Videos for Story {story_id} were merged successfully!"
+      )
     else:
       execution_message = (
           "Video was merged successfully but audio was not processed correctly."
@@ -498,9 +539,11 @@ class VideoGenerator:
           "video %s...",
           final_video_path,
       )
-      video_with_audio_merges.append(self.__apply_transition_and_write_video(
-          transition_type, video_path1, video_path2, final_video_path
-      ))
+      video_with_audio_merges.append(
+          self.__apply_transition_and_write_video(
+              transition_type, video_path1, video_path2, final_video_path
+          )
+      )
       count = count + 2
       trans_count = trans_count + 1
 
