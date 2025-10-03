@@ -23,11 +23,13 @@ using the Veo platform.
 import logging
 from typing import Annotated
 import os
+import utils
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 from models import request_models
+from models.image.image_gen_models import Image
 from models.video import video_request_models
 from models.video.video_gen_models import VideoGenerationResponse
 from services.video.frame_extractor_service import FrameExtractorService
@@ -252,28 +254,38 @@ def apply_text_overlay(
 
 @video_gen_router.post("/extract_frames")
 def extract_frames(
-    gcs_uri: str,
-    story_id: str,
-    scene_num: str,
-    time_sec: int,
-    frame_count: int,
+    request: video_request_models.FrameExtractionRequest
 ):
   try:
 
     frame_extractor = FrameExtractorService()
-    extracted_frame_filenames = frame_extractor.extract_frames(
-        gcs_uri=gcs_uri,
-        story_id=story_id,
-        scene_num=scene_num,
-        time_sec=time_sec,
-        frame_count=frame_count,
+    extracted_frame_gcs_uris = frame_extractor.extract_frames(
+        gcs_uri=request.gcs_uri,
+        story_id=request.story_id,
+        scene_num=request.scene_num,
+        time_sec=request.time_sec,
+        frame_count=request.frame_count,
     )
+
+    images = []
+    for i, gcs_uri in enumerate(extracted_frame_gcs_uris):
+        signed_uri = utils.get_signed_uri_from_gcs_uri(gcs_uri)
+        # Create a more descriptive name for the frontend dropdown
+        name = f"Scene {request.scene_num} - {request.time_sec}s - Frame {i+1}"
+        image = Image(
+            name=name,
+            gcs_uri=gcs_uri,
+            signed_uri=signed_uri,
+            mime_type='image/png'
+        )
+        images.append(image)
+
     return {
         "message": (
-            f"Frames extracted successfully for scene {scene_num} at"
-            f" {time_sec}s"
+            f"Frames extracted successfully for scene {request.scene_num} at"
+            f" {request.time_sec}s"
         ),
-        "frames": extracted_frame_filenames,
+        "data": images,
     }
 
   except Exception as ex:
