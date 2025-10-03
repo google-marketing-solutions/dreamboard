@@ -26,7 +26,7 @@
  * scene-specific settings and handle API responses.
  */
 
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -72,7 +72,7 @@ import { StoriesStorageService } from '../../services/stories-storage.service';
   templateUrl: './scene-builder.component.html',
   styleUrl: './scene-builder.component.css',
 })
-export class SceneBuilderComponent implements OnInit {
+export class SceneBuilderComponent {
   story: VideoStory = getNewVideoStory();
   sceneSettingsDialog = inject(MatDialog);
   creativeDirectionSettingsDialog = inject(MatDialog);
@@ -89,7 +89,6 @@ export class SceneBuilderComponent implements OnInit {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
         this.story = exportStory.story;
-        this.componentsCommunicationService.updateScenes(this.story.scenes);
         this.exportingScenes = true;
         if (exportStory.replaceExistingStoryOnExport) {
           if (exportStory.generateInitialImageForScenes) {
@@ -105,10 +104,6 @@ export class SceneBuilderComponent implements OnInit {
     );
   }
 
-  ngOnInit(): void {
-    this.componentsCommunicationService.updateScenes(this.story.scenes);
-  }
-
   /**
    * Opens a dialog for editing the settings of a specific video scene.
    * This dialog allows users to configure image and video generation parameters for the scene.
@@ -116,17 +111,17 @@ export class SceneBuilderComponent implements OnInit {
    * @returns {void}
    */
   openSceneSettingsDialog(scene: VideoScene, sceneId: string) {
-    const dialogRef = this.sceneSettingsDialog.open(
-      SceneSettingsDialogComponent,
-      {
-        minWidth: '1200px',
-        data: {
-          storyId: this.story.id,
-          sceneId: sceneId,
-          scene: scene,
-        },
-      }
-    );
+      const dialogRef = this.sceneSettingsDialog.open(
+        SceneSettingsDialogComponent,
+        {
+          minWidth: '1200px',
+          data: {
+            storyId: this.story.id,
+            sceneId: sceneId,
+            scene: scene,
+          },
+        }
+      );
   }
 
   /**
@@ -162,7 +157,6 @@ export class SceneBuilderComponent implements OnInit {
     }
     const newScene = getNewVideoScene(this.story.scenes.length);
     this.story.scenes.push(newScene);
-    this.componentsCommunicationService.updateScenes(this.story.scenes);
   }
 
   createStory() {
@@ -210,7 +204,6 @@ export class SceneBuilderComponent implements OnInit {
       // If all scenes removed, create new story
       this.story = getNewVideoStory();
     }
-    this.componentsCommunicationService.updateScenes(this.story.scenes);
   }
 
   /**
@@ -377,11 +370,7 @@ export class SceneBuilderComponent implements OnInit {
       .subscribe(
         (response: VideoGenerationResponse) => {
           if (response && response.videos.length > 0) {
-            openSnackBar(
-              this._snackBar,
-              response.execution_message,
-              10
-            );
+            openSnackBar(this._snackBar, response.execution_message, 10);
             const finalVideoReponse = response.videos[0];
             const video: Video = {
               name: finalVideoReponse.name,
@@ -576,6 +565,14 @@ export class SceneBuilderComponent implements OnInit {
           scene.videoGenerationSettings.includeVideoSegment,
         generate_video_frames: false,
         regenerate_video_segment: scene.videoGenerationSettings.regenerateVideo,
+        cut_video: scene.videoGenerationSettings.cutVideo,
+        // Conditionally add cut properties if cutVideo is true
+        ...(scene.videoGenerationSettings.cutVideo && {
+          start_seconds: scene.videoGenerationSettings.startSeconds,
+          start_frame: scene.videoGenerationSettings.startFrame,
+          end_seconds: scene.videoGenerationSettings.endSeconds,
+          end_frame: scene.videoGenerationSettings.endFrame,
+        }),
         selected_video: selectedVideo,
       };
       videoSegments.push(videoSegment);

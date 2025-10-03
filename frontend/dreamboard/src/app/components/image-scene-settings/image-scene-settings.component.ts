@@ -33,7 +33,6 @@ import {
   AfterViewInit,
   inject,
   ViewChild,
-  OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -81,7 +80,6 @@ import {
   getImageReferenceTypes,
 } from '../../image-utils';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
-import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -98,18 +96,16 @@ import { v4 as uuidv4 } from 'uuid';
     ReactiveFormsModule,
     MatExpansionModule,
     FileUploaderComponent,
-    FrameExtractionComponent,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
 })
-export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
+export class ImageSceneSettingsComponent implements AfterViewInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
-  scenes: VideoScene[] = [];
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();
@@ -147,12 +143,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
     private textGenerationService: TextGenerationService,
     private componentsCommunicationService: ComponentsCommunicationService
   ) {}
-
-  ngOnInit(): void {
-    this.componentsCommunicationService.scenes$.subscribe((scenes: VideoScene[]) => {
-      this.scenes = scenes;
-    });
-  }
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -296,7 +286,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
       );
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
-      this.currentGeneratedImageIndex = -1;
     }
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
@@ -876,18 +865,5 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
    */
   disableGenerateImageButton(): boolean {
     return !this.imageSettingsForm.valid;
-  }
-
-  onFramesExtracted(newImages: Image[]): void {
-    this.scene.imageGenerationSettings.generatedImages.push(...newImages);
-
-    // After adding new images, select the last one by default
-    const lastImage =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.scene.imageGenerationSettings.generatedImages.length - 1
-      ];
-    if (lastImage) {
-      this.updateSelectedImage(lastImage.gcsUri, true);
-    }
   }
 }
