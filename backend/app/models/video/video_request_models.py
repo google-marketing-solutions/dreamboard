@@ -224,7 +224,11 @@ class VideoSegmentRequest(BaseModel):
   generate_video_frames: bool | None = False
   selected_video: VideoItem | None = None
   generate_audio: bool | None = False
-
+  start_seconds: int | None = 0
+  start_frame: int | None = 0
+  end_seconds: int | None = 7
+  end_frame: int | None = 23
+  cut_video: bool = False
 
 class VideoGenerationRequest(BaseModel):
   """
@@ -271,7 +275,6 @@ class LogoOverlay(BaseModel):
       gcs_logo_path: The GCS URI of the logo image.
       options: Details about how the overlay should be applied.
   """
-
   gcs_logo_path: str
   options: LogoOverlayOptions = Field(default_factory=LogoOverlayOptions)
 
