@@ -92,7 +92,7 @@ To install it on GCP:
    - Permission propagation may take up to 5 minutes to complete.
    - Access the URL at: https://dreamboard-frontend-{PROJECT_ NUMBER}.{LOCATION}.run.app
 
-   Note: As of current, IAP for Cloud Run Service is a preview feature with a [limitation that only users from same org can access](https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run). Alternatively, user can deploy a load balancer along with IAP to provide access to users outside of the org domain.
+   Note: As of current, `IAP for Cloud Run Service` (different than IAP) is a preview feature with a [limitation that only users from same org can access](https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run). Alternatively, user can deploy an [global external load balancer](https://cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless) along with [IAP](https://cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless#enable-iap) to provide access to users outside of the org domain, which also enables options for custom domain.
 
 ## Installing Locally
 
