@@ -85,12 +85,14 @@ To install it on GCP:
    - Save the changes.
 
    WARNING: If you don't include the deployed frontend URL you will get the following error when trying to log in with a Google account: 'Access blocked: Authorization Error ... Error 400: origin_mismatch
-7. Secure the application using Identity Aware Proxy (IAP). In order to grant access to specific users, you can use IAP to close the application.
+7. Secure the application using Identity Aware Proxy for Cloud Run Service (IAP). In order to grant access to specific users, you can use IAP to close the application.
    - Go to the [Cloud Run page](http://console.cloud.google.com/run) and click on the the deployed frontend service.
    - Go to the 'Security' tab and in the 'Authentication' section enable the 'Identity Aware Proxy (IAP)' option.
    - Click on the 'Edit policy' button and add the users that should have access to the application.
    - Permission propagation may take up to 5 minutes to complete.
    - Access the URL at: https://dreamboard-frontend-{PROJECT_ NUMBER}.{LOCATION}.run.app
+
+   Note: As of current, IAP for Cloud Run Service is a preview feature with a [limitation that only users from same org can access](https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run). Alternatively, user can deploy a load balancer along with IAP to provide access to users outside of the org domain.
 
 ## Installing Locally
 
