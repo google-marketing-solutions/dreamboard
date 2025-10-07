@@ -53,24 +53,39 @@ To install it on GCP:
    - On the 'Authorized JavaScript origins' section, include the following URLs if you are testing the solution on your local machine:
       - http://localhost
       - http://localhost:4200
-
+  
+   Click Sumbit, note down the Client ID
+   
    Note: You will add the production URL in the next step once the frontend is deployed.
-4. Navigate to the frontend folder and run deploy_frontend.sh with the following arguments noted from the previous step in the following order:
+5. Navigate to the frontend folder and run `deploy_frontend.sh` with the following arguments noted from the previous step in the following order:
 
    - **GCP Project ID**
-   - **Service Account Email** (the SA created during the backend deployment)
    - **Cloud Storage Bucket Name**
+   - **Service Account Email** (the SA created during the backend deployment)
    - **Location to deploy**
    - **Cloud Run Service URL**
    - **Client ID**
-5. Add the deployed frontend URL to the 'Authorized JavaScript origins' in your Client ID.
+  
+   
+   Example:
+    ```bash
+    ./deploy_frontend.sh \
+    your-project-id \
+    your-dreamboard-gcs-bucket-name \
+    dreamboard-service-account@example.iam.gserviceaccount.com \
+    us-central1 \
+    https://dreamboard-backend-12345.us-central1.run.app \
+    oauth-client-id.apps.googleusercontent.com
+  
+    ```
+6. Add the deployed frontend URL to the 'Authorized JavaScript origins' in your Client ID.
    - The frontend URL should look something like: https://dreamboard-frontend-{PROJECT_NUMBER}.{LOCATION}.run.app
    - Go to the [Credentials page](http://console.cloud.google.com/apis/credentials) in the Google Cloud console.
    - Edit the Client ID created on step 2 and include the deployed frontend URL.
    - Save the changes.
 
    WARNING: If you don't include the deployed frontend URL you will get the following error when trying to log in with a Google account: 'Access blocked: Authorization Error ... Error 400: origin_mismatch
-6. Secure the application using Identity Aware Proxy (IAP). In order to grant access to specific users, you can use IAP to close the application.
+7. Secure the application using Identity Aware Proxy (IAP). In order to grant access to specific users, you can use IAP to close the application.
    - Go to the [Cloud Run page](http://console.cloud.google.com/run) and click on the the deployed frontend service.
    - Go to the 'Security' tab and in the 'Authentication' section enable the 'Identity Aware Proxy (IAP)' option.
    - Click on the 'Edit policy' button and add the users that should have access to the application.
