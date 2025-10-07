@@ -54,7 +54,7 @@ To install it on GCP:
       - http://localhost
       - http://localhost:4200
   
-   Click Sumbit, note down the Client ID
+4. Click `Sumbit`, note down the Client ID
    
    Note: You will add the production URL in the next step once the frontend is deployed.
 5. Navigate to the frontend folder and run `deploy_frontend.sh` with the following arguments noted from the previous step in the following order:
