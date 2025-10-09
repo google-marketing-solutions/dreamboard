@@ -95,6 +95,7 @@ class TextOverlayRequest(BaseModel):
       gcs_video_path: The GCS URI of the input video.
       text_overlays: A list of `TextOverlay` objects to apply to the video.
   """
+
   gcs_video_path: str
   text_overlays: list[TextOverlay]
 
@@ -133,13 +134,16 @@ class VideoItem(BaseModel):
       signed_uri: A pre-signed URL for temporary public access to the video.
       gcs_fuse_path: The FUSE path if the GCS bucket is mounted locally.
       mime_type: The MIME type of the video (e.g., 'video/mp4').
+      duration: The duration of the generated video
   """
 
+  id: str
   name: str
   gcs_uri: str
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
+  duration: float
 
 
 class ImageItem(BaseModel):
@@ -186,6 +190,7 @@ class VideoSegmentRequest(BaseModel):
                       Defaults to 24.
       person_generation: Controls the generation of human figures
                          (e.g., "allow_adult"). Defaults to "allow_adult".
+      output_resolution: The resolution of the generated video.
       sample_count: The number of video samples to generate for this
                     segment. Defaults to 1.
       seed: An optional integer seed for reproducible video generation.
@@ -214,6 +219,7 @@ class VideoSegmentRequest(BaseModel):
   aspect_ratio: str | None = "16:9"
   frames_per_sec: int | None = 24
   person_generation: str | None = "allow_adult"
+  output_resolution: str | None = "1080p"
   sample_count: int | None = 1
   seed: int | None = None
   negative_prompt: str | None = None
@@ -229,6 +235,7 @@ class VideoSegmentRequest(BaseModel):
   end_seconds: int | None = 7
   end_frame: int | None = 23
   cut_video: bool = False
+
 
 class VideoGenerationRequest(BaseModel):
   """
@@ -247,6 +254,7 @@ class VideoGenerationRequest(BaseModel):
 
   video_segments: list[VideoSegmentRequest]
   creative_direction: VideoCreativeDirectionRequest | None = None
+
 
 class LogoOverlayOptions(BaseModel):
   """
@@ -268,6 +276,7 @@ class LogoOverlayOptions(BaseModel):
   x_position: int
   y_position: int
 
+
 class LogoOverlay(BaseModel):
   """
   Represents a single logo overlay to be applied to a video.
@@ -275,8 +284,10 @@ class LogoOverlay(BaseModel):
       gcs_logo_path: The GCS URI of the logo image.
       options: Details about how the overlay should be applied.
   """
+
   gcs_logo_path: str
   options: LogoOverlayOptions = Field(default_factory=LogoOverlayOptions)
+
 
 class LogoOverlayRequest(BaseModel):
   """
@@ -285,5 +296,6 @@ class LogoOverlayRequest(BaseModel):
       gcs_video_path: The GCS URI of the input video.
       logo_overlay: The logo overlay to be applied to the video.
   """
+
   gcs_video_path: str
   logo_overlay: LogoOverlay = Field(default_factory=LogoOverlay)

@@ -35,3 +35,8 @@
 form {
     margin-top: 32px;
 }
+
+.close-button {
+  margin-top: 10px;
+  float: right;
+}

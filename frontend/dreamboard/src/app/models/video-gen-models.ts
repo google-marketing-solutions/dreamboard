@@ -28,6 +28,7 @@ export interface VideoGenerationSettings {
   aspectRatio?: string;
   framesPerSec?: number;
   personGeneration?: string;
+  outputResolution?: string;
   sampleCount?: number;
   seed?: number;
   negativePrompt?: string;
@@ -45,22 +46,26 @@ export interface VideoGenerationSettings {
 }
 
 export interface Video {
+  id: string;
   name: string;
   gcsUri: string;
   signedUri: string;
   gcsFusePath: string;
   mimeType: string;
+  duration: number;
   frameUris?: Image[];
 }
 
 /* Models for backend interactions */
 
 export interface VideoItem {
+  id: string;
   name: string;
   gcs_uri: string;
   signed_uri: string;
   gcs_fuse_path: string;
   mime_type: string;
+  duration: number;
   frames_uris: ImageItem[];
 }
 
@@ -87,6 +92,7 @@ export interface VideoSegmentRequest {
   aspect_ratio?: string;
   frames_per_sec?: number;
   person_generation?: string;
+  outputResolution?: string;
   sample_count?: number;
   seed?: number;
   negative_prompt?: string;

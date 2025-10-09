@@ -53,6 +53,7 @@ export interface ExportScenes {
 export interface SceneValidations {
   scenesWithNoGeneratedVideo: number[];
   invalidTextToVideoScenes: number[];
+  invalidScenesCutVideoParams: number[];
   sceneVideosToGenerate: number[];
   sceneVideosToMerge: number[];
 }

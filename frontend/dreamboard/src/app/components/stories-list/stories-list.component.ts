@@ -81,6 +81,7 @@ export class StoriesListComponent {
     const dialogRef = this.newStoryDialog.open(NewStoryDialogComponent, {
       minWidth: '800px',
       data: storyToEdit,
+      disableClose: true // Prevents closing on Escape key and backdrop click
     });
 
     // Subscribe to the afterClosed() observable to receive data upon closure

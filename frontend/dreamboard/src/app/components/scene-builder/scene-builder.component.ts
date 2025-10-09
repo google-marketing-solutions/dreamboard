@@ -50,7 +50,7 @@ import {
   ImageGenerationResponse,
 } from '../../models/image-gen-models';
 import { openSnackBar } from '../../utils';
-import { SceneValidations } from '../../models/scene-models';
+import { validateScenes } from '../../scene-utils';
 import { VideoStory } from '../../models/story-models';
 import { VideoGenerationService } from '../../services/video-generation.service';
 import { ImageGenerationService } from '../../services/image-generation.service';
@@ -60,7 +60,6 @@ import {
 } from '../../video-utils';
 import { getNewVideoStory } from '../../story-utils';
 import { updateScenesWithGeneratedImages } from '../../image-utils';
-import { HttpResponse } from '@angular/common/http';
 import { SceneSettingsDialogComponent } from '../scene-settings-dialog/scene-settings-dialog.component';
 import { TransitionsSettingsDialogComponent } from '../transitions-settings-dialog/transitions-settings-dialog.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
@@ -111,17 +110,18 @@ export class SceneBuilderComponent {
    * @returns {void}
    */
   openSceneSettingsDialog(scene: VideoScene, sceneId: string) {
-      const dialogRef = this.sceneSettingsDialog.open(
-        SceneSettingsDialogComponent,
-        {
-          minWidth: '1200px',
-          data: {
-            storyId: this.story.id,
-            sceneId: sceneId,
-            scene: scene,
-          },
-        }
-      );
+    const dialogRef = this.sceneSettingsDialog.open(
+      SceneSettingsDialogComponent,
+      {
+        minWidth: '1200px',
+        data: {
+          storyId: this.story.id,
+          sceneId: sceneId,
+          scene: scene,
+        },
+        disableClose: true, // Prevents closing on Escape key and backdrop click
+      }
+    );
   }
 
   /**
@@ -234,7 +234,7 @@ export class SceneBuilderComponent {
    */
   generateVideosFromScenes(): void {
     // Validate required prompts when needed
-    const validations = this.validateScenes();
+    const validations = validateScenes(this.story);
     if (validations['invalidTextToVideoScenes'].length > 0) {
       openSnackBar(
         this._snackBar,
@@ -331,7 +331,7 @@ export class SceneBuilderComponent {
    */
   mergeVideos(): void {
     // Validate if videos for all scenes have been generated
-    const validations = this.validateScenes();
+    const validations = validateScenes(this.story);
     if (validations['scenesWithNoGeneratedVideo'].length > 0) {
       openSnackBar(
         this._snackBar,
@@ -349,6 +349,18 @@ export class SceneBuilderComponent {
         this._snackBar,
         `There are not videos to merge since the 'Include video segment in final video' option was disabled for all videos.
         Please enable the option and try again.`
+      );
+      return;
+    }
+
+    if (validations['invalidScenesCutVideoParams'].length > 0) {
+      openSnackBar(
+        this._snackBar,
+        `The following scenes contain invalid video cut settings: ${validations[
+          'invalidScenesCutVideoParams'
+        ].join(
+          ', '
+        )}. Please edit the scene, correct the errors highlighted in red and try again.`
       );
       return;
     }
@@ -371,13 +383,15 @@ export class SceneBuilderComponent {
         (response: VideoGenerationResponse) => {
           if (response && response.videos.length > 0) {
             openSnackBar(this._snackBar, response.execution_message, 10);
-            const finalVideoReponse = response.videos[0];
+            const finalVideoResponse = response.videos[0];
             const video: Video = {
-              name: finalVideoReponse.name,
-              signedUri: finalVideoReponse.signed_uri,
-              gcsUri: finalVideoReponse.gcs_uri,
-              gcsFusePath: finalVideoReponse.gcs_fuse_path,
-              mimeType: finalVideoReponse.mime_type,
+              id: finalVideoResponse.id,
+              name: finalVideoResponse.name,
+              signedUri: finalVideoResponse.signed_uri,
+              gcsUri: finalVideoResponse.gcs_uri,
+              gcsFusePath: finalVideoResponse.gcs_fuse_path,
+              mimeType: finalVideoResponse.mime_type,
+              duration: finalVideoResponse.duration,
               frameUris: [], // TODO (ae) include later
             };
             this.story.generatedVideos = [video];
@@ -400,53 +414,6 @@ export class SceneBuilderComponent {
           );
         }
       );
-  }
-
-  /**
-   * Validates the current state of all video scenes for various conditions
-   * necessary for video generation and merging.
-   * It checks for:
-   * - Scenes without a selected generated video (for merging).
-   * - Scenes requiring a text prompt for video generation (text-to-video).
-   * - Scenes explicitly marked for video generation in bulk.
-   * - Scenes explicitly marked for inclusion in the final merged video.
-   * @returns {SceneValidations} An object containing arrays of scene numbers
-   * for each validation category.
-   */
-  validateScenes(): SceneValidations {
-    let validations: SceneValidations = {
-      scenesWithNoGeneratedVideo: [],
-      invalidTextToVideoScenes: [],
-      sceneVideosToGenerate: [],
-      sceneVideosToMerge: [],
-    };
-    this.story.scenes.forEach((scene: VideoScene) => {
-      // Check if videos are generated and one is selected for merge
-      if (
-        !this.isVideoGenerated(scene) &&
-        scene.videoGenerationSettings.includeVideoSegment
-      ) {
-        validations['scenesWithNoGeneratedVideo'].push(scene.number);
-      }
-      // Check prompt required
-      if (
-        !scene.imageGenerationSettings.selectedImageForVideo &&
-        !scene.videoGenerationSettings.prompt
-      ) {
-        // Prompt is required for Text to Video
-        validations['invalidTextToVideoScenes'].push(scene.number);
-      }
-      // Check scenes whose video will be generated
-      if (scene.videoGenerationSettings.regenerateVideo) {
-        validations['sceneVideosToGenerate'].push(scene.number);
-      }
-      // Check scenes to include in final video
-      if (scene.videoGenerationSettings.includeVideoSegment) {
-        validations['sceneVideosToMerge'].push(scene.number);
-      }
-    });
-
-    return validations;
   }
 
   /**
@@ -535,12 +502,14 @@ export class SceneBuilderComponent {
       let selectedVideo: VideoItem | undefined = undefined;
       if (scene.videoGenerationSettings.selectedVideo) {
         selectedVideo = {
-          name: scene.videoGenerationSettings.selectedVideo?.name!,
-          gcs_uri: scene.videoGenerationSettings.selectedVideo?.gcsUri!,
-          signed_uri: scene.videoGenerationSettings.selectedVideo?.signedUri!,
+          id: scene.videoGenerationSettings.selectedVideo.id,
+          name: scene.videoGenerationSettings.selectedVideo.name,
+          gcs_uri: scene.videoGenerationSettings.selectedVideo.gcsUri,
+          signed_uri: scene.videoGenerationSettings.selectedVideo.signedUri,
           gcs_fuse_path:
-            scene.videoGenerationSettings.selectedVideo?.gcsFusePath!,
+            scene.videoGenerationSettings.selectedVideo?.gcsFusePath,
           mime_type: scene.videoGenerationSettings.selectedVideo.mimeType,
+          duration: scene.videoGenerationSettings.selectedVideo.duration,
           frames_uris: [],
         };
       }
@@ -621,18 +590,5 @@ export class SceneBuilderComponent {
     };
 
     return imageGeneration;
-  }
-
-  /**
-   * Checks if a video has been successfully generated and selected for a given scene.
-   * This is crucial for determining if a scene is ready for video merging.
-   * @param {VideoScene} scene - The video scene to check.
-   * @returns {boolean} `true` if generated videos exist and one is selected; `false` otherwise.
-   */
-  isVideoGenerated(scene: VideoScene): boolean {
-    return (
-      scene.videoGenerationSettings.generatedVideos.length > 0 &&
-      scene.videoGenerationSettings.selectedVideo !== undefined
-    );
   }
 }

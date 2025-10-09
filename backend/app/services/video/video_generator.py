@@ -24,8 +24,7 @@ import datetime
 import functools
 import logging
 import os
-import subprocess
-import tempfile
+import uuid
 import utils
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
@@ -266,7 +265,7 @@ class VideoGenerator:
           video_cut = 0
 
     # Download to local/server folder.
-    self.__download_videos(story_id, videos)
+    utils.download_videos(story_id, videos)
 
     # 2. Cut any video segments into the specified size:
     # a) Call cut_video_segment function.
@@ -333,6 +332,18 @@ class VideoGenerator:
     storage_service.storage_service.upload_from_filename(
         final_video_gcs_fuse_path, output_gcs_path
     )
+
+    try:
+      final_video_clip = editor.VideoFileClip(final_video_gcs_fuse_path)
+      final_video_duration = final_video_clip.duration
+    except Exception as ex:
+      logging.error(
+          "DreamBoard - VIDEO_GENERATOR-merge_videos: Error getting duration"
+          " for final video %s",
+          final_video_duration,
+      )
+      final_video_duration = None
+
     # Remove local/server folder after upload to GCS.
     utils.delete_downloaded_video_folder_by_story_id(story_id)
 
@@ -364,11 +375,13 @@ class VideoGenerator:
         execution_message=execution_message,
         videos=[
             Video(
+                id=uuid.uuid4(),
                 name=final_video_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
                 gcs_fuse_path=final_video_gcs_fuse_path,
                 mime_type="video/mp4",
+                duration=final_video_duration,
                 frames_uris=[],
             )
         ],
@@ -637,48 +650,6 @@ class VideoGenerator:
             )
         ],
     )
-
-  def __download_videos(self, story_id: str, videos: list[Video]):
-    """
-    Downloads videos from GCS to a local folder (for dev environment).
-
-    Args:
-        story_id: The unique identifier for the story.
-        videos: A list of `Video` objects, each representing a video
-                to be downloaded.
-    """
-    for video in videos:
-      _, output_folder, output_full_path = self.__get_dev_paths(
-          story_id, video.gcs_fuse_path
-      )
-      # Download only for local testing if folder doesn't exist
-      if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-      storage_service.storage_service.download_file_to_server(
-          output_full_path, video.gcs_uri
-      )
-      video.gcs_fuse_path = output_full_path
-
-  def __get_dev_paths(self, story_id: str, gcs_fuse_path: str):
-    """
-    Gets local file paths in the development environment.
-
-    Args:
-        story_id: The unique identifier for the story.
-        gcs_fuse_path: The GCS FUSE path of the file.
-
-    Returns:
-        A tuple containing the scene folder, file folder, and full
-        file path.
-    """
-    # Get URI; public URI is used for testing in dev
-    base_path = utils.get_videos_gcs_fuse_path(story_id)
-    scene_folder = utils.get_scene_folder_path_from_uri(uri=gcs_fuse_path)
-    file_folder = f"{base_path}/{scene_folder}"
-    file_name = utils.get_file_name_from_uri(gcs_fuse_path)
-    file_full_path = f"{file_folder}/{file_name}"
-
-    return scene_folder, file_folder, file_full_path
 
   def __apply_transition_and_write_video(
       self,

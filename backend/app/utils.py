@@ -17,9 +17,13 @@
 import os
 from concurrent import futures
 import shutil
+import uuid
+import logging
 import google.cloud.logging as gcp_logging
 from services import storage_service
 from typing import Dict
+from models.video.video_gen_models import Video
+from moviepy.editor import VideoFileClip
 
 # Attach the Cloud Logging handler to the Python root logger
 logging_client = gcp_logging.Client()
@@ -481,3 +485,128 @@ def update_signed_uris_in_story(story_data: Dict) -> Dict:
       )
 
   return story_data
+
+
+def get_dev_paths(story_id: str, gcs_fuse_path: str):
+  """
+  Gets local file paths in the development environment.
+
+  Args:
+      story_id: The unique identifier for the story.
+      gcs_fuse_path: The GCS FUSE path of the file.
+
+  Returns:
+      A tuple containing the scene folder, file folder, and full
+      file path.
+  """
+  # Get URI; public URI is used for testing in dev
+  base_path = get_videos_gcs_fuse_path(story_id)
+  scene_folder = get_scene_folder_path_from_uri(uri=gcs_fuse_path)
+  file_folder = f"{base_path}/{scene_folder}"
+  file_name = get_file_name_from_uri(gcs_fuse_path)
+  file_full_path = f"{file_folder}/{file_name}"
+
+  return scene_folder, file_folder, file_full_path
+
+
+def download_videos(story_id: str, videos: list[Video]):
+  """
+  Downloads videos from GCS to a local folder (for dev environment).
+
+  Args:
+      story_id: The unique identifier for the story.
+      videos: A list of `Video` objects, each representing a video
+              to be downloaded.
+  """
+  for video in videos:
+    _, output_folder, output_full_path = get_dev_paths(
+        story_id, video.gcs_fuse_path
+    )
+    # Download only for local testing if folder doesn't exist
+    if not os.path.exists(output_folder):
+      os.makedirs(output_folder)
+    blob_name = storage_service.storage_service.download_file_to_server(
+        output_full_path, video.gcs_uri
+    )
+    if not blob_name:
+      logging.warning(f"{video.gcs_fuse_path} does not exist in GCS.")
+    video.gcs_fuse_path = output_full_path
+
+
+def backfill_missing_fields(stories: dict) -> None:
+  """Backfills story fields for videos and images for backwards compatibility.
+
+  This function iterates through a dictionary of stories and their scenes.
+  For each scene, it checks for any missing fields in generated videos / images
+  as well a selected video / image.
+
+  Args:
+    stories: A dictionary containing the story data to be processed.
+
+  Returns:
+    None. The dictionary is modified in place.
+  """
+
+  def _backfill_fields_list(story_id: str, type: str, media_list: list[any]):
+    """Helper to add any missing field in a story."""
+    for media_item in media_list:
+      # Check for missing id
+      if not hasattr(media_item, "id"):
+        media_item["id"] = uuid.uuid4()
+      # Check for missing duration
+      if type == "video":
+        if not hasattr(media_item, "duration"):
+          # Create dummy Video obj just to download the video
+          vid = Video(
+              id=media_item["id"],
+              name=media_item["name"],
+              gcs_uri=media_item["gcsUri"],
+              signed_uri=media_item["signedUri"],
+              gcs_fuse_path=media_item["gcsFusePath"],
+              mime_type=media_item["mimeType"],
+              duration=0,
+              frames_uris=[],
+          )
+          # Downloads a video in media_item.gcs_fuse_path path to get duration backfill
+          download_videos(story_id, [vid])
+          try:
+            clip = VideoFileClip(vid.gcs_fuse_path)
+            media_item["duration"] = clip.duration
+          except Exception as ex:
+            logging.error(f"ERROR: Video duration calculation failed. File {vid.gcs_uri} not found in GCS.")
+            media_item["duration"] = None
+
+          # Delete videos after
+          delete_downloaded_video_folder_by_story_id(story_id)
+
+  for story in stories:
+    scenes = story.get("scenes", [])
+    for scene in scenes:
+      # Backfill missing fields for videos
+      video_generation_settings = scene.get("videoGenerationSettings", {})
+      _backfill_fields_list(
+          story["id"],
+          "video",
+          video_generation_settings.get("generatedVideos", []),
+      )
+      selected_video = video_generation_settings.get("selectedVideo", {})
+      if selected_video and not hasattr(selected_video, "id"):
+        selected_video["id"] = uuid.uuid4()
+
+      # Backfill missing fields for images
+      image_generation_settings = scene.get("imageGenerationSettings", {})
+      _backfill_fields_list(
+          story["id"],
+          "image",
+          image_generation_settings.get("generatedImages", []),
+      )
+      selected_image = image_generation_settings.get(
+          "selectedImageForVideo", {}
+      )
+      if selected_image and not hasattr(selected_image, "id"):
+        selected_image["id"] = uuid.uuid4()
+      _backfill_fields_list(
+          story["id"],
+          "image",
+          image_generation_settings.get("referenceImages", []),
+      )

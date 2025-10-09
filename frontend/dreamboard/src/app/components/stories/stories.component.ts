@@ -158,6 +158,6 @@ export class StoriesComponent {
   }
 
   onCreateYourOwnStory() {
-    this.componentsCommunicationService.tabChanged(1);
+    this.componentsCommunicationService.tabChanged(0);
   }
 }

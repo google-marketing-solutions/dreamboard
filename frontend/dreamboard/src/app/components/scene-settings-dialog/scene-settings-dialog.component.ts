@@ -133,6 +133,14 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   }
 
   /**
+   * Closes the dialog and saves all the changes.
+   * @returns {void}
+   */
+  close(): void {
+    this.save();
+  }
+
+  /**
    * Updates the image generation settings of the current scene based on the form values
    * and the `ImageSceneSettingsComponent`.
    * It also updates the scene's description from the form.

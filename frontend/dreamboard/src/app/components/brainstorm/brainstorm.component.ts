@@ -29,7 +29,7 @@
 import { Component, AfterViewInit, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -38,6 +38,9 @@ import {
   FormGroup,
   ReactiveFormsModule,
   Validators,
+  AbstractControl,
+  ValidationErrors,
+  ValidatorFn,
 } from '@angular/forms';
 import { Scene, SceneItem } from '../../models/scene-models';
 import { SelectItem } from '../../models/settings-models';
@@ -89,6 +92,7 @@ export class BrainstormComponent implements AfterViewInit {
     targetAudience: new FormControl('', [Validators.required]),
     brandGuidelines: new FormControl('', []),
     videoFormat: new FormControl('', [Validators.required]),
+    numScenes: new FormControl(1, [Validators.required]),
     generateInitialImageForScenes: new FormControl(false, []),
   });
 
@@ -291,6 +295,11 @@ export class BrainstormComponent implements AfterViewInit {
   }
 
   calculateNumScenesByVideoFormatType(formatType: string): number {
+    // Return custom numScenes if 'Other' video format was selected
+    if(this.storiesSettingsForm.get('videoFormat')?.value === 'other') {
+      return this.storiesSettingsForm.get('numScenes')?.value!
+    }
+
     const videoFormat = this.videoFormats.filter((format: SelectItem) => {
       return format.value === formatType;
     });
@@ -312,5 +321,14 @@ export class BrainstormComponent implements AfterViewInit {
    */
   disableGenerateStoriesButton() {
     return !this.storiesSettingsForm.valid;
+  }
+
+  onVideoFormatChange(event: MatSelectChange) {
+    if (event.value !== 'other') {
+      // Reset numScenes form control to 1 on change
+      this.storiesSettingsForm.controls['numScenes'].setValue(
+        1
+      );
+    }
   }
 }
