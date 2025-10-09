@@ -32,11 +32,11 @@ The general folder structure is as follows under backend/app:
 
 # Installation
 
-DreamBoard can be deployed locally on a laptop for personal use or on Google Cloud as Cloud Run Service. 
+DreamBoard can be deployed locally on a laptop for personal use or on Google Cloud as Cloud Run Service.
 
 ### Deploy on Google Cloud
 
-Run `deploy_backend.sh` in the backend folder. 
+Run `deploy_backend.sh` in the backend folder.
 
 Make note of the following items for use in deploying the frontend:
 - GCP Project Id
@@ -44,7 +44,7 @@ Make note of the following items for use in deploying the frontend:
 - Location
 - Cloud Run Service Name Deployed
 
-If you wish to change the name of items such as the service account name, service name, or bucket name you may modify the `deploy_backend.sh`. Follow the prompts to create the service. 
+If you wish to change the name of items such as the service account name, service name, or bucket name you may modify the `deploy_backend.sh`. Follow the prompts to create the service.
 
 
 ### Deploy Locally

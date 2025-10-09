@@ -53,9 +53,9 @@ To install it on GCP:
    - On the 'Authorized JavaScript origins' section, include the following URLs if you are testing the solution on your local machine:
       - http://localhost
       - http://localhost:4200
-  
+
 4. Click `Sumbit`, note down the Client ID
-   
+
    Note: You will add the production URL in the next step once the frontend is deployed.
 5. Navigate to the frontend folder and run `deploy_frontend.sh` with the following arguments noted from the previous step in the following order:
 
@@ -65,8 +65,7 @@ To install it on GCP:
    - **Location to deploy**
    - **Cloud Run Service URL**
    - **Client ID**
-  
-   
+
    Example:
     ```bash
     ./deploy_frontend.sh \
@@ -76,7 +75,7 @@ To install it on GCP:
     us-central1 \
     https://dreamboard-backend-12345.us-central1.run.app \
     oauth-client-id.apps.googleusercontent.com
-  
+
     ```
 6. Add the deployed frontend URL to the 'Authorized JavaScript origins' in your Client ID.
    - The frontend URL should look something like: https://dreamboard-frontend-{PROJECT_NUMBER}.{LOCATION}.run.app
