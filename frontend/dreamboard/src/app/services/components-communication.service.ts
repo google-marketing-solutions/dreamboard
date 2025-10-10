@@ -20,9 +20,9 @@
  ***************************************************************************/
 
 import { Injectable } from '@angular/core';
-import { Subject, BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { VideoStory } from '../models/story-models';
-import { ExportScenes, VideoScene } from '../models/scene-models';
+import { ExportScenes } from '../models/scene-models';
 import { ExportStory } from '../models/story-models';
 import { UploadedFile } from '../models/settings-models';
 

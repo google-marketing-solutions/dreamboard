@@ -61,7 +61,6 @@ import {
   ImageReferenceItem,
   ReferenceImageCard,
 } from '../../models/image-gen-models';
-import { Video } from '../../models/video-gen-models';
 import { ImageGenerationService } from '../../services/image-generation.service';
 import { TextGenerationService } from '../../services/text-generation.service';
 import {
@@ -82,7 +81,6 @@ import {
 } from '../../image-utils';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
 import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
-
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -111,7 +109,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
-  video?: Video;
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();

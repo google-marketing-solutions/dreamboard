@@ -88,7 +88,6 @@ export class SceneBuilderComponent {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
         this.story = exportStory.story;
-
         this.exportingScenes = true;
         if (exportStory.replaceExistingStoryOnExport) {
           if (exportStory.generateInitialImageForScenes) {
