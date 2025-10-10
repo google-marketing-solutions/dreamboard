@@ -65,6 +65,7 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   storyId = this.dialogData.storyId;
   sceneId: string = this.dialogData.sceneId;
   scene: VideoScene = this.dialogData.scene;
+  scenes: VideoScene[] = this.dialogData.scenes;
   @ViewChild(ImageSceneSettingsComponent)
   imageSceneSettingsComponent!: ImageSceneSettingsComponent;
   @ViewChild(VideoSceneSettingsComponent)
