@@ -36,7 +36,9 @@ confirm() {
 
 deploy_frontend_cloud_run_service() {
     echo "Deploying Frontend Cloud Run Service..."
-    gcloud run deploy $FRONTEND_CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
+    gcloud run deploy $FRONTEND_CLOUD_RUN_SERVICE_NAME --project="$GOOGLE_CLOUD_PROJECT" \
+    --region=$LOCATION \
+    --source="." \
     --service-account $SERVICE_ACCOUNT \
     --timeout 3600 \
     --memory 8Gi \

@@ -132,7 +132,9 @@ create_firestore_database() {
 
 deploy_cloud_run_service() {
     echo "Deploying Cloud Run Service..."
-    gcloud run deploy $CLOUD_RUN_SERVICE_NAME --region=$LOCATION --source="." \
+    gcloud run deploy $CLOUD_RUN_SERVICE_NAME --project="$GOOGLE_CLOUD_PROJECT" \
+    --region=$LOCATION \
+    --source="." \
     --service-account $SERVICE_ACCOUNT \
     --timeout 3600 \
     --memory 16Gi \
@@ -166,7 +168,7 @@ function init() {
         BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
         BUCKET="gs://$BUCKET_NAME"
 
-        read -p "Please enter a location where you wish to deploy the backend (press enter to use default us-central1)" -r LOCATION
+        read -p "Please enter a location where you wish to deploy the backend (press enter to use default us-central1) : " -r LOCATION
         if [ -z "${LOCATION}" ]; then
             LOCATION='us-central1'
         fi
