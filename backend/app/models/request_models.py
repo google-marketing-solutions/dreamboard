@@ -64,7 +64,7 @@ class CreativeDirection(BaseModel):
   """
 
   aspect_ratio: str | None = "1:1"
-  model: str = "imagen-4.0-generate-preview-06-06"
+  model: str = "imagen-4.0-generate-001"
   number_of_images: int | None = 1
   output_mime_type: Optional[str] | None = "image/png"
   person_generation: str | None = "allow_adult"
