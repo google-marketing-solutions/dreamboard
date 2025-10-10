@@ -33,7 +33,6 @@ import {
   AfterViewInit,
   inject,
   ViewChild,
-  OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -62,6 +61,7 @@ import {
   ImageReferenceItem,
   ReferenceImageCard,
 } from '../../models/image-gen-models';
+import { Video } from '../../models/video-gen-models';
 import { ImageGenerationService } from '../../services/image-generation.service';
 import { TextGenerationService } from '../../services/text-generation.service';
 import {
@@ -104,13 +104,14 @@ import { v4 as uuidv4 } from 'uuid';
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
 })
-export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
+export class ImageSceneSettingsComponent implements AfterViewInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
+  @Input() scenes!: VideoScene[];
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
-  scenes: VideoScene[] = [];
+  video?: Video;
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();
@@ -149,12 +150,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
     private componentsCommunicationService: ComponentsCommunicationService
   ) {}
 
-  ngOnInit(): void {
-    this.componentsCommunicationService.scenes$.subscribe((scenes: VideoScene[]) => {
-      this.scenes = scenes;
-    });
-  }
-
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
    * It initializes the image settings form with values from the current scene.
@@ -163,6 +158,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit, OnInit {
   ngAfterViewInit(): void {
     // viewChild is set after the view has been initialized
     this.initImageSettingsForm();
+  }
+
+  getAllVideos() {
+    return this.scenes.flatMap(scene => scene.videoGenerationSettings.generatedVideos);
   }
 
   /**
