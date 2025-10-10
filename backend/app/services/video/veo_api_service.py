@@ -22,7 +22,7 @@ from the Veo API.
 import logging
 import os
 import time
-
+import uuid
 import utils
 from core.config import settings
 from google import genai
@@ -94,6 +94,7 @@ class VeoAPIService:
               duration_seconds=video_segment.duration_in_secs,
               aspect_ratio=video_segment.aspect_ratio,
               person_generation=video_segment.person_generation,
+              resolution=video_segment.output_resolution,
               enhance_prompt=video_segment.enhance_prompt,
               negative_prompt=video_segment.negative_prompt,
               generate_audio=video_segment.generate_audio,
@@ -169,6 +170,7 @@ class VeoAPIService:
         gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
         videos.append(
             Video(
+                id=uuid.uuid4(),
                 name=f"{scene_folder}/{file_name}",
                 gcs_uri=gen_video.video.uri,
                 # Get a signed URI for direct access
@@ -177,6 +179,7 @@ class VeoAPIService:
                 ),
                 gcs_fuse_path=gcs_fuse_path,
                 mime_type="video/mp4",
+                duration=video_segment.duration_in_secs,
                 frames_uris=[],
             )
         )

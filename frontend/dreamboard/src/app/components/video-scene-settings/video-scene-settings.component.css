@@ -122,3 +122,10 @@ a:hover {
   text-decoration: none;
   cursor: pointer;
 }
+
+.video-cut-settings {
+  p {
+    font-size: 12px;
+    margin-bottom: 15px;
+  }
+}

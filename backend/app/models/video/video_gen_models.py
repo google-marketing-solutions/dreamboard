@@ -40,11 +40,13 @@ class Video:
                    that comprise the video. Defaults to an empty list.
   """
 
+  id: str
   name: str
   gcs_uri: str
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
+  duration: float
   frames_uris: list[str] | None = field(default_factory=list)
 
 

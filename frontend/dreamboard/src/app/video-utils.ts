@@ -51,6 +51,7 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     aspectRatio: '16:9',
     framesPerSec: 24,
     personGeneration: 'allow_adult',
+    outputResolution: '1080p',
     sampleCount: 2,
     seed: 0,
     negativePrompt: '',
@@ -106,6 +107,19 @@ export function getFramesPerSecondOptions() {
   ] as SelectItem[];
 }
 
+export function getOutputResolutionOptions() {
+  return [
+    {
+      displayName: '720p',
+      value: '720p',
+    },
+    {
+      displayName: '1080p',
+      value: '1080p',
+    },
+  ] as SelectItem[];
+}
+
 export function findSceneResponse(
   resps: VideoGenerationResponse[],
   scene: VideoScene
@@ -140,14 +154,16 @@ export function updateScenesWithGeneratedVideos(
       if (response.done) {
         // For only 1 video per request is generated
         const genVideos: Video[] = response.videos.map((video: VideoItem) => {
-          return {
+          const vid: Video = {
+            id: video.id,
             name: video.name,
             gcsUri: video.gcs_uri,
             signedUri: video.signed_uri,
             gcsFusePath: video.gcs_fuse_path,
             mimeType: video.mime_type,
-            frameUris: [],
-          } as Video;
+            duration: video.duration
+          };
+          return vid;
         });
         // Add new videos
         scene.videoGenerationSettings.generatedVideos.push.apply(
@@ -251,6 +267,11 @@ export function getVideoFormats() {
     {
       displayName: 'Bumper',
       value: 'bumper',
+      field1: 6, // length of the format
+    },
+    {
+      displayName: 'Other',
+      value: 'other',
       field1: 6, // length of the format
     },
   ];

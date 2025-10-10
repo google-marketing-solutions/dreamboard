@@ -38,7 +38,11 @@
 
         <mat-form-field>
           <mat-label>Select Video Format</mat-label>
-          <mat-select name="videoFormat" formControlName="videoFormat">
+          <mat-select
+            name="videoFormat"
+            formControlName="videoFormat"
+            (selectionChange)="onVideoFormatChange($event)"
+          >
             @for (videoFormat of videoFormats; track videoFormat; let i =
             $index) {
             <mat-option [value]="videoFormat.value" [id]="i.toString()">{{
@@ -47,6 +51,13 @@
             }
           </mat-select>
         </mat-form-field>
+
+        @if (storiesSettingsForm.get('videoFormat')?.value === 'other') {
+        <mat-form-field>
+          <mat-label>Number of Scenes</mat-label>
+          <input matInput type="number" formControlName="numScenes" min="1" />
+        </mat-form-field>
+        }
 
         <!-- File Uploaders for Creative Brief and Brand Guidelines-->
         <div class="button-actions">

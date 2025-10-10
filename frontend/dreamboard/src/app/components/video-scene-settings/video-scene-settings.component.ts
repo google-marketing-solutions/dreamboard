@@ -50,6 +50,7 @@ import {
   getAspectRatios,
   getFramesPerSecondOptions,
   getPersonGenerationOptions,
+  getOutputResolutionOptions,
   updateScenesWithGeneratedVideos,
 } from '../../video-utils';
 import { getOutputMimeTypes } from '../../image-utils';
@@ -78,6 +79,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   framesPerSecOptions: SelectItem[] = getFramesPerSecondOptions();
   imageMimeTypes: SelectItem[] = getOutputMimeTypes();
   personGenerationOptions: SelectItem[] = getPersonGenerationOptions();
+  outputResolutionOptions: SelectItem[] = getOutputResolutionOptions();
   currentGeneratedVideoIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
 
@@ -88,19 +90,39 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     aspectRatio: new FormControl('16:9', []),
     framesPerSec: new FormControl('24', []),
     personGeneration: new FormControl('allow_adult', []),
+    outputResolution: new FormControl('1080p', []),
     /*seed: new FormControl(-1, []),*/
     negativePrompt: new FormControl('', []),
     enhancePrompt: new FormControl(true, []),
     generateAudio: new FormControl(true, []),
     includeVideoSegment: new FormControl(true, []),
     regenerateVideo: new FormControl(true, []),
-    cutVideo: new FormControl(true, []),
-    startSeconds: new FormControl(0, [Validators.min(0), Validators.max(7)]),
-    startFrame: new FormControl(0, [Validators.min(0)]),
-    endSeconds: new FormControl(7, [Validators.min(0), Validators.max(7)]),
-    endFrame: new FormControl(0, [Validators.min(0)]),
+    cutVideo: new FormControl(false, []),
     selectedVideoUri: new FormControl(''),
     withSceneDescription: new FormControl(true, []),
+  });
+
+  videoCutSettingsForm = new FormGroup({
+    startSeconds: new FormControl(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(7),
+    ]),
+    startFrame: new FormControl(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(23),
+    ]),
+    endSeconds: new FormControl(7, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(7),
+    ]),
+    endFrame: new FormControl(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(23),
+    ]),
   });
 
   constructor(
@@ -138,6 +160,9 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.videoSettingsForm.controls['personGeneration'].setValue(
       this.scene.videoGenerationSettings.personGeneration!
     );
+    this.videoSettingsForm.controls['outputResolution'].setValue(
+      this.scene.videoGenerationSettings.outputResolution!
+    );
     this.videoSettingsForm.controls['sampleCount'].setValue(
       this.scene.videoGenerationSettings.sampleCount!
     );
@@ -159,16 +184,16 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.videoSettingsForm.controls['cutVideo'].setValue(
       this.scene.videoGenerationSettings.cutVideo!
     );
-    this.videoSettingsForm.controls['startSeconds'].setValue(
+    this.videoCutSettingsForm.controls['startSeconds'].setValue(
       this.scene.videoGenerationSettings.startSeconds!
     );
-    this.videoSettingsForm.controls['startFrame'].setValue(
+    this.videoCutSettingsForm.controls['startFrame'].setValue(
       this.scene.videoGenerationSettings.startFrame!
     );
-    this.videoSettingsForm.controls['endSeconds'].setValue(
+    this.videoCutSettingsForm.controls['endSeconds'].setValue(
       this.scene.videoGenerationSettings.endSeconds!
     );
-    this.videoSettingsForm.controls['endFrame'].setValue(
+    this.videoCutSettingsForm.controls['endFrame'].setValue(
       this.scene.videoGenerationSettings.endFrame!
     );
     // Update selected video if any
@@ -179,6 +204,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         this.scene.videoGenerationSettings.selectedVideo.gcsUri,
         updateForm
       );
+    }
+
+    // Trigger validation for Video cut settings
+    if (this.scene.videoGenerationSettings.cutVideo) {
+      this.videoCutSettingsForm.get('startSeconds')?.markAsTouched();
+      this.videoCutSettingsForm.get('startFrame')?.markAsTouched();
+      this.videoCutSettingsForm.get('endSeconds')?.markAsTouched();
+      this.videoCutSettingsForm.get('endFrame')?.markAsTouched();
     }
   }
 
@@ -213,13 +246,13 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.cutVideo =
       this.videoSettingsForm.get('cutVideo')?.value!;
     this.scene.videoGenerationSettings.startSeconds =
-      this.videoSettingsForm.get('startSeconds')?.value!;
+      this.videoCutSettingsForm.get('startSeconds')?.value!;
     this.scene.videoGenerationSettings.startFrame =
-      this.videoSettingsForm.get('startFrame')?.value!;
+      this.videoCutSettingsForm.get('startFrame')?.value!;
     this.scene.videoGenerationSettings.endSeconds =
-      this.videoSettingsForm.get('endSeconds')?.value!;
+      this.videoCutSettingsForm.get('endSeconds')?.value!;
     this.scene.videoGenerationSettings.endFrame =
-      this.videoSettingsForm.get('endFrame')?.value!;
+      this.videoCutSettingsForm.get('endFrame')?.value!;
     // Set up selected image. generatedImages array is populated after API call
     const selectedVideo: Video =
       this.scene.videoGenerationSettings.generatedVideos[
@@ -431,6 +464,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         this.videoSettingsForm.get('framesPerSec')?.value!
       ),
       person_generation: this.videoSettingsForm.get('personGeneration')?.value!,
+      outputResolution: this.videoSettingsForm.get('outputResolution')?.value!,
       sample_count: this.videoSettingsForm.get('sampleCount')?.value!,
       /*seed?: this.videoSettingsForm.get('prompt')?.value;*/
       negative_prompt: this.videoSettingsForm.get('negativePrompt')?.value!,
@@ -445,17 +479,17 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       cut_video: cutVideo,
       // Add cut video options if cutVideo checkbox is true
       start_seconds: cutVideo
-        ? this.videoSettingsForm.get('startSeconds')?.value!
+        ? this.videoCutSettingsForm.get('startSeconds')?.value!
         : 0,
       start_frame: cutVideo
-        ? this.videoSettingsForm.get('startFrame')?.value!
+        ? this.videoCutSettingsForm.get('startFrame')?.value!
         : 0,
       end_seconds: cutVideo
-        ? this.videoSettingsForm.get('endSeconds')?.value!
+        ? this.videoCutSettingsForm.get('endSeconds')?.value!
         : 7,
       end_frame: cutVideo
-        ? this.videoSettingsForm.get('endFrame')?.value!
-        : (parseInt(this.videoSettingsForm.get('framesPerSec')?.value!) - 1),
+        ? this.videoCutSettingsForm.get('endFrame')?.value!
+        : parseInt(this.videoSettingsForm.get('framesPerSec')?.value!) - 1,
       selected_video: undefined, // Since not required for the GENERATION operation
     };
 

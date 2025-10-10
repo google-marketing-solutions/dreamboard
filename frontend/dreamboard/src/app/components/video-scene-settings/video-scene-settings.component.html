@@ -152,6 +152,18 @@
     </mat-select>
   </mat-form-field>
 
+  <mat-form-field>
+    <mat-label>Output Resolution</mat-label>
+    <mat-select formControlName="outputResolution">
+      @for (outputResolutionOption of outputResolutionOptions; track
+      outputResolutionOption) {
+      <mat-option [value]="outputResolutionOption.value">{{
+        outputResolutionOption.displayName
+      }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
   <!--mat-form-field>
     <mat-label>Seed</mat-label>
     <input matInput formControlName="seed" />
@@ -181,50 +193,57 @@
       >Cut video in final video</mat-checkbox
     >
   </div>
+
   @if (videoSettingsForm.get('cutVideo')?.value) {
-  <div class="video-cut-settings">
-    <h3>Video Cut Settings</h3>
-    <mat-form-field>
-      <mat-label>Start Seconds</mat-label>
-      <input
-        matInput
-        type="number"
-        min="0"
-        max="7"
-        formControlName="startSeconds"
-      />
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>Start Frame</mat-label>
-      <input
-        matInput
-        type="number"
-        min="0"
-        max="23"
-        formControlName="startFrame"
-      />
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>End Seconds</mat-label>
-      <input
-        matInput
-        type="number"
-        min="0"
-        max="7"
-        formControlName="endSeconds"
-      />
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>End Frame</mat-label>
-      <input
-        matInput
-        type="number"
-        min="0"
-        max="23"
-        formControlName="endFrame"
-      />
-    </mat-form-field>
-  </div>
+  <form [formGroup]="videoCutSettingsForm">
+    <div class="video-cut-settings">
+      <h3>Video Cut Settings</h3>
+      <p>
+        <strong>Note:</strong> The videos will be cut on merge action when you
+        click on the 'Merge Videos' button.
+      </p>
+      <mat-form-field>
+        <mat-label>Start Seconds</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="7"
+          formControlName="startSeconds"
+        />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Start Frame</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="23"
+          formControlName="startFrame"
+        />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>End Seconds</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="7"
+          formControlName="endSeconds"
+        />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>End Frame</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="23"
+          formControlName="endFrame"
+        />
+      </mat-form-field>
+    </div>
+  </form>
   }
 
   <div class="generate-button">

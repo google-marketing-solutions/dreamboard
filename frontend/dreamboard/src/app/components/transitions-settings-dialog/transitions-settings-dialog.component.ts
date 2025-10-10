@@ -63,7 +63,7 @@ export class TransitionsSettingsDialogComponent {
   transitions: SelectItem[] = getVideoTransitions();
 
   transitionsSettingsForm = new FormGroup({
-    transition: new FormControl('', []),
+    transition: new FormControl('CONCATENATE', []),
   });
 
   /**
@@ -73,9 +73,15 @@ export class TransitionsSettingsDialogComponent {
    * @returns {void}
    */
   ngAfterViewInit(): void {
-    this.transitionsSettingsForm.controls['transition'].setValue(
-      this.scene.videoGenerationSettings.transition!
-    );
+    if (this.scene.videoGenerationSettings.transition) {
+      this.transitionsSettingsForm.controls['transition'].setValue(
+        this.scene.videoGenerationSettings.transition
+      );
+    } else {
+      this.transitionsSettingsForm.controls['transition'].setValue(
+        'CONCATENATE'
+      );
+    }
   }
 
   /**

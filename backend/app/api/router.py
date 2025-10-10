@@ -30,7 +30,6 @@ from api.endpoints import (
     file_uploader_routes,
     story_routes,
 )
-from api.admin import agents_crud, scenarios_crud, subagent_links_crud
 
 load_dotenv()
 
@@ -58,6 +57,7 @@ api_router.include_router(story_routes.story_router, tags=["story_routes"])
 if os.getenv("USE_AGENTS"):
 
   from api.endpoints import login_router, scenario_router, agent_router
+  from api.admin import agents_crud, scenarios_crud, subagent_links_crud
 
   api_router.include_router(login_router.router, tags=["user"])
   api_router.include_router(agent_router.router, tags=["agent"])

@@ -40,3 +40,9 @@
   justify-content: flex-start;
   margin: 16px 0px;
 }
+
+
+.close-button {
+  margin-top: 10px;
+  float: right;
+}

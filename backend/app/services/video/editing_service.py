@@ -225,9 +225,18 @@ class EditingService:
       start_time = video_cut_spec["start_seconds"] + (
           video_cut_spec["start_frame"] / fps
       )
+
+      # Validate start_time, set to 0 just to have a valid default value
+      if start_time > original_clip.duration or start_time < 0:
+        start_time = 0
+
       end_time = video_cut_spec["end_seconds"] + (
           video_cut_spec["end_frame"] / fps
       )
+
+      # Validate end_time
+      if end_time > original_clip.duration or end_time < 0:
+        end_time = original_clip.duration
 
       print(f"Cutting video from {start_time:.2f}s to {end_time:.2f}s...")
 

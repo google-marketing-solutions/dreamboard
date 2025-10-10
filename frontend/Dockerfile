@@ -1,5 +1,5 @@
 # Stage 0, "build-stage", based on Node.js, to build and compile the frontend with multi-stage builds
-FROM node:22.12 as angular-build-stage
+FROM node:22.20 as angular-build-stage
 
 WORKDIR /app
 
