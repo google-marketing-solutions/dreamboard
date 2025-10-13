@@ -21,6 +21,7 @@ video assets and structured responses from video generation APIs.
 """
 
 from dataclasses import dataclass, field
+import uuid
 
 from models.video import video_request_models
 
@@ -46,7 +47,7 @@ class Video:
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
-  duration: float
+  duration: float | None = None
   frames_uris: list[str] | None = field(default_factory=list)
 
 

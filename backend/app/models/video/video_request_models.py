@@ -137,14 +137,14 @@ class VideoItem(BaseModel):
       duration: The duration of the generated video
   """
 
-  id: str
+  id: str | None = None
   name: str
   gcs_uri: str
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
-  frame_uris: list[str] | None = None
-  duration: float
+  frames_uris: list[str] | None = None
+  duration: float | None = None
 
 
 class ImageItem(BaseModel):
@@ -163,7 +163,7 @@ class ImageItem(BaseModel):
   name: str
   gcs_uri: str
   signed_uri: str
-  gcs_fuse_path: str
+  gcs_fuse_path: str | None = None
   mime_type: str
 
 

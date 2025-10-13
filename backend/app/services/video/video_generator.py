@@ -375,7 +375,7 @@ class VideoGenerator:
         execution_message=execution_message,
         videos=[
             Video(
-                id=uuid.uuid4(),
+                id=str(uuid.uuid4()),
                 name=final_video_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
