@@ -118,6 +118,7 @@ export class SceneBuilderComponent {
           storyId: this.story.id,
           sceneId: sceneId,
           scene: scene,
+            scenes: this.story.scenes,
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
       }

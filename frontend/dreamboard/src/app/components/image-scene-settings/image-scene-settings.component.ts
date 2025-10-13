@@ -80,6 +80,7 @@ import {
   getImageReferenceTypes,
 } from '../../image-utils';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
+import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -96,6 +97,7 @@ import { v4 as uuidv4 } from 'uuid';
     ReactiveFormsModule,
     MatExpansionModule,
     FileUploaderComponent,
+    FrameExtractionComponent,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
@@ -103,6 +105,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class ImageSceneSettingsComponent implements AfterViewInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
+  @Input() scenes!: VideoScene[];
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
@@ -152,6 +155,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     // viewChild is set after the view has been initialized
     this.initImageSettingsForm();
+  }
+
+  getAllVideos() {
+    return this.scenes.flatMap(scene => scene.videoGenerationSettings.generatedVideos);
   }
 
   /**
@@ -286,6 +293,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       );
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
+      this.currentGeneratedImageIndex = -1;
     }
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
@@ -865,5 +873,21 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   disableGenerateImageButton(): boolean {
     return !this.imageSettingsForm.valid;
+  }
+
+  /**
+   * Updates the images in the image dropdown after frames have been extracted.
+   */
+  onFramesExtracted(newImages: Image[]): void {
+    this.scene.imageGenerationSettings.generatedImages.push(...newImages);
+
+    // After adding new images, select the last one by default
+    const lastImage =
+      this.scene.imageGenerationSettings.generatedImages[
+        this.scene.imageGenerationSettings.generatedImages.length - 1
+      ];
+    if (lastImage) {
+      this.updateSelectedImage(lastImage.gcsUri, true);
+    }
   }
 }
