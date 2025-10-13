@@ -46,7 +46,7 @@ class Video:
   signed_uri: str
   gcs_fuse_path: str
   mime_type: str
-  duration: float
+  duration: float | None = None
   frames_uris: list[str] | None = field(default_factory=list)
 
 

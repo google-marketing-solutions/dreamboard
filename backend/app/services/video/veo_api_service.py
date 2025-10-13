@@ -170,7 +170,7 @@ class VeoAPIService:
         gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
         videos.append(
             Video(
-                id=uuid.uuid4(),
+                id=str(uuid.uuid4()),
                 name=f"{scene_folder}/{file_name}",
                 gcs_uri=gen_video.video.uri,
                 # Get a signed URI for direct access

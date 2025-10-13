@@ -144,7 +144,7 @@ class VideoItem(BaseModel):
   gcs_fuse_path: str
   mime_type: str
   frames_uris: list[str] | None = None
-  duration: float
+  duration: float | None = None
 
 
 class ImageItem(BaseModel):
