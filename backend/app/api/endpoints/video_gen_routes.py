@@ -269,7 +269,6 @@ def extract_frames(request: video_request_models.FrameExtractionRequest):
     for i, gcs_uri in enumerate(extracted_frame_gcs_uris):
       signed_uri = utils.get_signed_uri_from_gcs_uri(gcs_uri)
       # Create a more descriptive name for the frontend dropdown
-      # name = f"Scene {request.scene_num} - {request.time_sec}s - Frame {i+1}"
       gcs_fuse = utils.get_images_gcs_fuse_path(request.story_id)
       scene_folder = utils.get_scene_folder_path_from_uri(uri=gcs_uri)
       image_name = utils.get_file_name_from_uri(gcs_uri)
