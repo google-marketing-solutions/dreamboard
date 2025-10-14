@@ -40,11 +40,11 @@ class Image:
       image_bytes: The raw bytes of the image, if available in memory.
   """
 
-  name: Optional[str] | None = None
-  gcs_uri: Optional[str] | None = None
-  mime_type: Optional[str] | None = None
-  signed_uri: Optional[str] | None = None
-  gcs_fuse_path: Optional[str] | None = None
+  name: str
+  gcs_uri: str
+  mime_type: str
+  signed_uri: str
+  gcs_fuse_path: str
   image_bytes: Optional[bytes] | None = None
 
 

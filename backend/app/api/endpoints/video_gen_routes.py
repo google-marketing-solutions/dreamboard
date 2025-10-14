@@ -253,9 +253,7 @@ def apply_text_overlay(
 
 
 @video_gen_router.post("/extract_frames")
-def extract_frames(
-    request: video_request_models.FrameExtractionRequest
-):
+def extract_frames(request: video_request_models.FrameExtractionRequest):
   try:
 
     frame_extractor = FrameExtractorService()
@@ -269,16 +267,21 @@ def extract_frames(
 
     images = []
     for i, gcs_uri in enumerate(extracted_frame_gcs_uris):
-        signed_uri = utils.get_signed_uri_from_gcs_uri(gcs_uri)
-        # Create a more descriptive name for the frontend dropdown
-        name = f"Scene {request.scene_num} - {request.time_sec}s - Frame {i+1}"
-        image = Image(
-            name=name,
-            gcs_uri=gcs_uri,
-            signed_uri=signed_uri,
-            mime_type='image/png'
-        )
-        images.append(image)
+      signed_uri = utils.get_signed_uri_from_gcs_uri(gcs_uri)
+      # Create a more descriptive name for the frontend dropdown
+      # name = f"Scene {request.scene_num} - {request.time_sec}s - Frame {i+1}"
+      gcs_fuse = utils.get_images_gcs_fuse_path(request.story_id)
+      scene_folder = utils.get_scene_folder_path_from_uri(uri=gcs_uri)
+      image_name = utils.get_file_name_from_uri(gcs_uri)
+      gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
+      image = Image(
+          name=image_name,
+          gcs_uri=gcs_uri,
+          signed_uri=signed_uri,
+          gcs_fuse_path=gcs_fuse_path,
+          mime_type="image/png",
+      )
+      images.append(image)
 
     return {
         "message": (

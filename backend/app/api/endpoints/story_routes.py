@@ -100,6 +100,8 @@ def list_all_stories(user_id: str):
         utils.update_signed_uris_in_story(story)
         for story in story_service.list_stories(user_id)
     ]
+    # Backfill fields for old stories before the cut settings functionality
+    utils.backfill_missing_fields(modified_stories)
 
     return modified_stories
   except Exception as ex:
