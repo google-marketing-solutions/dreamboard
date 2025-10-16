@@ -146,6 +146,10 @@ form {
         width: 25%;
       }
     }
+
+    .p-small {
+      font-size: 10px;
+    }
   }
 
   .selected-image-for-video {
@@ -160,6 +164,6 @@ a {
 
 a:hover {
   color: #ba005c;
-  text-decoration:none;
-  cursor:pointer;
+  text-decoration: none;
+  cursor: pointer;
 }
