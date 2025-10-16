@@ -23,7 +23,7 @@ direction, and transitions.
 
 from enum import Enum
 from typing import Optional, Tuple, Union
-
+from models.image.image_gen_models import Image
 from pydantic import BaseModel, Field
 
 
@@ -147,26 +147,6 @@ class VideoItem(BaseModel):
   duration: float
 
 
-class ImageItem(BaseModel):
-  """
-  Represents an image asset, typically used as a seed image for video
-  generation.
-
-  Attributes:
-      name: The name of the image file.
-      gcs_uri: The Google Cloud Storage (GCS) URI of the image.
-      signed_uri: A pre-signed URL for temporary public access to the image.
-      gcs_fuse_path: The FUSE path if the GCS bucket is mounted locally.
-      mime_type: The MIME type of the image (e.g., 'image/jpeg').
-  """
-
-  name: str
-  gcs_uri: str
-  signed_uri: str
-  gcs_fuse_path: str
-  mime_type: str
-
-
 class VideoSegmentRequest(BaseModel):
   """
   Represents a single segment within a larger video generation request.
@@ -179,7 +159,7 @@ class VideoSegmentRequest(BaseModel):
                 video segment.
       segment_number: The sequential number of this video segment.
       prompt: The text prompt for generating this video segment.
-      seed_image: An optional `ImageItem` to be used as a visual starting
+      seed_image: An optional `Image` to be used as a visual starting
                   point for this segment's generation.
       regenerate_video_segment: A boolean flag indicating if this segment
                                 should be regenerated. Defaults to `False`.
@@ -214,7 +194,7 @@ class VideoSegmentRequest(BaseModel):
   scene_id: str
   segment_number: int
   prompt: str | None = None
-  seed_image: ImageItem | None = None
+  seed_image: Image | None = None
   regenerate_video_segment: bool = False
   duration_in_secs: int | None = 8
   aspect_ratio: str | None = "16:9"
@@ -301,6 +281,7 @@ class LogoOverlayRequest(BaseModel):
   gcs_video_path: str
   logo_overlay: LogoOverlay = Field(default_factory=LogoOverlay)
 
+
 class FrameExtractionRequest(BaseModel):
   """
   Represents a request to extract frames from a video.
@@ -311,6 +292,7 @@ class FrameExtractionRequest(BaseModel):
       time_sec: The time in seconds to extract frames from.
       frame_count: The number of frames to extract.
   """
+
   gcs_uri: str
   story_id: str
   scene_num: str

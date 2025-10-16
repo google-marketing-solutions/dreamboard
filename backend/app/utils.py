@@ -556,28 +556,8 @@ def backfill_missing_fields(stories: dict) -> None:
       # Check for missing duration
       if type == "video":
         if not hasattr(media_item, "duration"):
-          # Create dummy Video obj just to download the video
-          vid = Video(
-              id=media_item["id"],
-              name=media_item["name"],
-              gcs_uri=media_item["gcsUri"],
-              signed_uri=media_item["signedUri"],
-              gcs_fuse_path=media_item["gcsFusePath"],
-              mime_type=media_item["mimeType"],
-              duration=0,
-              frames_uris=[],
-          )
-          # Downloads a video in media_item.gcs_fuse_path path to get duration backfill
-          download_videos(story_id, [vid])
-          try:
-            clip = VideoFileClip(vid.gcs_fuse_path)
-            media_item["duration"] = clip.duration
-          except Exception as ex:
-            logging.error(f"ERROR: Video duration calculation failed. File {vid.gcs_uri} not found in GCS.")
-            media_item["duration"] = None
-
-          # Delete videos after
-          delete_downloaded_video_folder_by_story_id(story_id)
+          # for videos saved before this change set duration to 0
+          media_item["duration"] = 0
 
   for story in stories:
     scenes = story.get("scenes", [])

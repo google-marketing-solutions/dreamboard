@@ -43,6 +43,7 @@ deploy_frontend_cloud_run_service() {
     --timeout 3600 \
     --memory 8Gi \
     --cpu=2 \
+    --no-allow-unauthenticated \
     --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,GCS_BUCKET=$BUCKET_NAME
     echo
 }
