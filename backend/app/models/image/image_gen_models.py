@@ -40,6 +40,7 @@ class Image:
       image_bytes: The raw bytes of the image, if available in memory.
   """
 
+  id: str
   name: str
   gcs_uri: str
   mime_type: str

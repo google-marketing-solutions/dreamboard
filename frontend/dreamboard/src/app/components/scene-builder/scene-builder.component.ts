@@ -489,6 +489,7 @@ export class SceneBuilderComponent {
       let seedImage: ImageItem | undefined = undefined;
       if (scene.imageGenerationSettings.selectedImageForVideo) {
         seedImage = {
+          id: scene.imageGenerationSettings.selectedImageForVideo.id,
           name: scene.imageGenerationSettings.selectedImageForVideo.name,
           gcs_uri: scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
           signed_uri:

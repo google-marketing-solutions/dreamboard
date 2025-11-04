@@ -50,27 +50,12 @@
   </div>
 </div>
 
+<app-generated-images-table
+  [generatedImages]="scene.imageGenerationSettings.generatedImages"
+  (generatedImageDeletedEvent)="onGeneratedImageDeleted($event)"
+></app-generated-images-table>
+
 <form [formGroup]="imageSettingsForm">
-  <h2>Scene {{ scene.number }}</h2>
-  <p>{{ scene.description }}</p>
-
-  <mat-form-field class="selected-image-for-video">
-    <mat-label>Selected Image for Video</mat-label>
-    <mat-select
-      name="selectedImageUri"
-      formControlName="selectedImageUri"
-      (selectionChange)="onImageSelected($event)"
-    >
-      <mat-option value="no-image">No image</mat-option>
-      @for (image of scene.imageGenerationSettings.generatedImages; track image;
-      let i = $index) {
-      <mat-option [value]="image.gcsUri" [id]="i.toString()">{{
-        image.name
-      }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-
   <!-- AI image generation collapsible -->
   <mat-accordion>
     <mat-expansion-panel expanded="false">

@@ -83,6 +83,7 @@ import { FileUploaderComponent } from '../file-uploader/file-uploader.component'
 import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
+import { GeneratedImagesTableComponent } from '../generated-images-table/generated-images-table.component';
 
 @Component({
   selector: 'app-image-scene-settings',
@@ -98,6 +99,7 @@ import { v4 as uuidv4 } from 'uuid';
     MatExpansionModule,
     FileUploaderComponent,
     FrameExtractionComponent,
+    GeneratedImagesTableComponent,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
@@ -107,8 +109,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   @Input() storyId!: string;
   @Input() scenes!: VideoScene[];
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
-  @ViewChild(FileUploaderComponent)
-  fileUploaderComponent!: FileUploaderComponent;
+  @ViewChild(GeneratedImagesTableComponent)
+  generatedImagesTableComponent!: GeneratedImagesTableComponent;
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();
@@ -126,7 +128,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
 
   imageSettingsForm = new FormGroup({
     prompt: new FormControl('', [Validators.required]),
-    numImages: new FormControl(4, [Validators.required]),
+    numImages: new FormControl(2, [Validators.required]),
     aspectRatio: new FormControl('', []),
     outputMimeType: new FormControl('', []),
     compressionQuality: new FormControl(75, []),
@@ -158,7 +160,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   }
 
   getAllVideos() {
-    return this.scenes.flatMap(scene => scene.videoGenerationSettings.generatedVideos);
+    return this.scenes.flatMap(
+      (scene) => scene.videoGenerationSettings.generatedVideos
+    );
   }
 
   /**
@@ -220,6 +224,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       const updateForm = true;
       this.updateSelectedImage(uploadedImage.gcsUri, updateForm);
     }
+    // Refresh child component table with newly uploaded image
+    // since @Input changes are not automatically triggered.
+    this.generatedImagesTableComponent.refreshTable(false);
   }
 
   disableAddReferenceButton() {
@@ -293,7 +300,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       );
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
-      this.currentGeneratedImageIndex = -1;
+      // this.currentGeneratedImageIndex = -1; TODO (ae) check this!
     }
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
@@ -631,6 +638,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
             ];
           const updateForm = true;
           this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
+          // Refresh child component table with newly uploaded image
+          // since @Input changes are not automatically triggered.
+          this.generatedImagesTableComponent.refreshTable(false);
         },
         (error: any) => {
           let errorMessage;
@@ -648,6 +658,49 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       );
   }
 
+  onGeneratedImageDeleted(deletedImage: Image) {
+    // 1. Need to store get current displayed image
+    // BEFORE splice modifies the indexes
+    const currentDisplayedImage =
+      this.scene.imageGenerationSettings.generatedImages[
+        this.currentGeneratedImageIndex
+      ];
+    // 1. Delete deletedImage from generatedImages array
+    // indexes will change now
+    const delGenImgIndex =
+      this.scene.imageGenerationSettings.generatedImages.findIndex(
+        (genImage: Image) => genImage.id === deletedImage.id
+      );
+    if (delGenImgIndex > -1) {
+      this.scene.imageGenerationSettings.generatedImages.splice(
+        delGenImgIndex,
+        1
+      );
+    }
+    // 2. Update the carousel in case the deleted image was the one displayed
+    this.updateImagesCarousel(deletedImage, currentDisplayedImage);
+  }
+
+  updateImagesCarousel(deletedImage: Image, currentDisplayedImage: Image) {
+    // Image displayed in Carousel was deleted, needs to update it,
+    // use latest generated image by default
+    if (deletedImage.id === currentDisplayedImage.id) {
+      if (this.scene.imageGenerationSettings.generatedImages.length > 0) {
+        // Since this is removing from array, check array length
+        const latestGenImage =
+          this.scene.imageGenerationSettings.generatedImages[
+            this.scene.imageGenerationSettings.generatedImages.length - 1
+          ];
+        this.setCurrentGeneratedImageIndex(latestGenImage.gcsUri);
+      }
+    } else {
+      // Since current was not deleted, update this.currentGeneratedImageIndex
+      // now that deletedImage has been deleted and indexes
+      // have updated in the array (length - 1)
+      this.setCurrentGeneratedImageIndex(currentDisplayedImage.gcsUri);
+    }
+  }
+
   /**
    * Updates the selected image in the component's state and optionally in the form.
    * This function sets the image URI, finds the full image object from the list of
@@ -659,9 +712,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   updateSelectedImage(gcsUri: string, updateForm: boolean) {
     if (updateForm) {
       // Update selected image in form
-      this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        gcsUri
-      );
+      this.imageSettingsForm.controls['selectedImageUri'].setValue(gcsUri);
     }
     // Find image index in array
     this.setCurrentGeneratedImageIndex(gcsUri);
@@ -889,5 +940,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     if (lastImage) {
       this.updateSelectedImage(lastImage.gcsUri, true);
     }
+    // Refresh child component table with newly uploaded image
++   // since @Input changes are not automatically triggered.
+    this.generatedImagesTableComponent.refreshTable(false);
   }
 }

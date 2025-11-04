@@ -26,7 +26,7 @@ import uuid
 import utils
 from core.config import settings
 from google import genai
-from google.genai.types import GenerateVideosConfig, Image, HttpOptions, GeneratedVideo
+from google.genai import types
 from models.video import video_request_models
 from models.video.video_gen_models import Video, VideoGenerationResponse
 
@@ -44,7 +44,7 @@ class VeoAPIService:
         vertexai=True,
         project=os.getenv("PROJECT_ID"),
         location=os.getenv("LOCATION"),
-        http_options=HttpOptions(headers={"User-Agent": settings.USER_AGENT}),
+        http_options=types.HttpOptions(headers={"User-Agent": settings.USER_AGENT}),
     )
 
   def generate_video(
@@ -82,11 +82,11 @@ class VeoAPIService:
       operation = self.client.models.generate_videos(
           model=DEFAULT_MODEL_NAME,
           prompt=video_segment.prompt,
-          image=Image(
+          image=types.Image(
               gcs_uri=image_uri,
               mime_type=video_segment.seed_image.mime_type,
           ),
-          config=GenerateVideosConfig(
+          config=types.GenerateVideosConfig(
               number_of_videos=video_segment.sample_count,
               output_gcs_uri=output_gcs_uri,
               fps=video_segment.frames_per_sec,
@@ -105,7 +105,7 @@ class VeoAPIService:
       operation = self.client.models.generate_videos(
           model=DEFAULT_MODEL_NAME,
           prompt=video_segment.prompt,
-          config=GenerateVideosConfig(
+          config=types.GenerateVideosConfig(
               number_of_videos=video_segment.sample_count,
               output_gcs_uri=output_gcs_uri,
               fps=video_segment.frames_per_sec,
@@ -212,7 +212,7 @@ class VeoAPIService:
       self,
       video_segment: video_request_models.VideoSegmentRequest,
       output_gcs_uri: str | None = None,
-  ) -> list[GeneratedVideo] | None:
+  ) -> list[types.GeneratedVideo] | None:
     """Generates a Veo video for an agent tool call
     Args:
         output_gcs_uri: The GCS URI where the output video will be stored.
@@ -227,7 +227,7 @@ class VeoAPIService:
     operation = self.client.models.generate_videos(
         model=DEFAULT_MODEL_NAME,
         prompt=video_segment.prompt,
-        config=GenerateVideosConfig(
+        config=types.GenerateVideosConfig(
             number_of_videos=video_segment.sample_count,
             output_gcs_uri=output_gcs_uri,
             fps=video_segment.frames_per_sec,

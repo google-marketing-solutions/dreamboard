@@ -438,9 +438,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * @returns {VideoSegmentRequest} The constructed video segment request object.
    */
   buildVideoSegment(): VideoSegmentRequest {
-    let seedImage;
+    let seedImage: ImageItem | undefined = undefined;
     if (this.scene.imageGenerationSettings.selectedImageForVideo) {
       seedImage = {
+        id: this.scene.imageGenerationSettings.selectedImageForVideo.id,
         name: this.scene.imageGenerationSettings.selectedImageForVideo.name,
         signed_uri:
           this.scene.imageGenerationSettings.selectedImageForVideo.signedUri,
@@ -449,7 +450,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         mime_type:
           this.scene.imageGenerationSettings.selectedImageForVideo.mimeType,
         gcs_fuse_path: '', // Empty here, this is generated in the backend
-      } as ImageItem;
+      };
     }
 
     const cutVideo = this.videoSettingsForm.get('cutVideo')?.value!;
@@ -457,7 +458,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
-      seed_image: seedImage, // Can be null for text to video generation
+      seed_image: seedImage, // Can be undefined for text to video generation
       duration_in_secs: this.videoSettingsForm.get('durationInSecs')?.value!,
       aspect_ratio: this.videoSettingsForm.get('aspectRatio')?.value!,
       frames_per_sec: parseInt(

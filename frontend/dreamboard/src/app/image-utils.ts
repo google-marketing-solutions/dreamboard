@@ -33,7 +33,7 @@ export const IMAGE_MODEL_NAME = 'imagen-3.0-generate-001';
 export function getNewImageSettings() {
   return {
     prompt: '',
-    numImages: 4,
+    numImages: 2,
     aspectRatio: '16:9',
     outputMimeType: 'image/png',
     compressionQuality: 75,
@@ -173,6 +173,20 @@ export function getImageReferenceTypes() {
   return imageReferenceTypes;
 }
 
+export function getImageSelectionTypeOptions() {
+  const imageSelectionTypeOtions: SelectItem[] = [
+    {
+      displayName: 'Reference Image',
+      value: 'reference-image',
+    },
+    {
+      displayName: 'First/Last Frame',
+      value: 'first-last-frame',
+    },
+  ];
+  return imageSelectionTypeOtions;
+}
+
 export function findSceneResponse(
   resps: ImageGenerationResponse[],
   scene: VideoScene
@@ -205,21 +219,17 @@ export function updateScenesWithGeneratedImages(
     if (respsFound.length) {
       const response = respsFound[0];
       if (response.done) {
-        console.log(
-          'Testing after findSceneResponse for images: ' +
-            JSON.stringify(resps) +
-            '\n\n Scene: ' +
-            JSON.stringify(scene)
-        );
         // Setup the images used.
         const genImages: Image[] = response.images.map((image: ImageItem) => {
-          return {
+          const genImage: Image = {
+            id: image.id,
             name: image.name,
             gcsUri: image.gcs_uri,
             signedUri: image.signed_uri,
             gcsFusePath: image.gcs_fuse_path,
             mimeType: image.mime_type,
-          } as Image;
+          };
+          return genImage;
         });
         // Append images to carrousel
         scene.imageGenerationSettings.generatedImages.push.apply(

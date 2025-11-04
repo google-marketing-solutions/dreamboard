@@ -1,0 +1,44 @@
+table {
+  width: 100%;
+
+  td {
+    img {
+      margin: 10px 0px;
+      max-width: 100px;
+    }
+  }
+}
+
+.image-selection-type-container {
+  display: flex;
+  justify-content: flex-start;
+
+  .selected-images-legend {
+    p {
+      font-size: 12px;
+    }
+    mat-icon {
+      vertical-align: top;
+    }
+  }
+}
+
+.selected-images-for-video-legend {
+    margin-bottom: 16px;
+}
+
+.mat-mdc-form-field {
+  font-size: 14px;
+  width: 50%;
+  margin-right: 10px;
+}
+
+.refresh-button {
+  margin-top: 16px;
+  float: right;
+}
+
+td,
+th {
+  width: 25%;
+}

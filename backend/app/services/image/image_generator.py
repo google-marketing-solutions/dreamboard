@@ -21,7 +21,7 @@ API calls, and the structuring of responses.
 """
 
 import logging
-
+import uuid
 import utils
 from models import request_models
 from models.image import image_request_models
@@ -135,6 +135,7 @@ class ImageGenerator:
 
                     # Create an `Image` object with all relevant details.
                     current_image = Image(
+                        id=uuid.uuid4(),
                         name=f"{scene_folder}/{image_name}",
                         gcs_uri=scene.image_uri[i],
                         signed_uri=utils.get_signed_uri_from_gcs_uri(

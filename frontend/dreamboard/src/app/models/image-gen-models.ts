@@ -83,7 +83,7 @@ export interface ReferenceImageCard {
 /* Models for backend interactions */
 
 export interface ImageItem {
-  id?: string;
+  id: string;
   name: string;
   gcs_uri: string;
   signed_uri: string;

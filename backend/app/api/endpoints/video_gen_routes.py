@@ -24,7 +24,7 @@ import logging
 from typing import Annotated
 import os
 import utils
-
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
@@ -274,6 +274,7 @@ def extract_frames(request: video_request_models.FrameExtractionRequest):
       image_name = utils.get_file_name_from_uri(gcs_uri)
       gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
       image = Image(
+          id=uuid.uuid4(),
           name=image_name,
           gcs_uri=gcs_uri,
           signed_uri=signed_uri,
