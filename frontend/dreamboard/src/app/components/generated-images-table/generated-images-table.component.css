@@ -4,33 +4,23 @@ table {
   td {
     img {
       margin: 10px 0px;
-      max-width: 100px;
+      max-width: 200px;
     }
-  }
-}
-
-.image-selection-type-container {
-  display: flex;
-  justify-content: flex-start;
-
-  .selected-images-legend {
-    p {
-      font-size: 12px;
-    }
-    mat-icon {
+    label {
+      font-size: 10px;
       vertical-align: top;
+      margin-left: 10px;
     }
   }
 }
 
 .selected-images-for-video-legend {
-    margin-bottom: 16px;
+  margin-bottom: 16px;
 }
 
 .mat-mdc-form-field {
-  font-size: 14px;
   width: 50%;
-  margin-right: 10px;
+  margin-right: 15px;
 }
 
 .refresh-button {

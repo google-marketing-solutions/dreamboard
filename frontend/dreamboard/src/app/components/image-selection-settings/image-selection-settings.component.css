@@ -1,0 +1,27 @@
+.image-selection-settings-container {
+  margin-top: 32px;
+}
+
+form {
+  width: 100%;
+  mat-form-field {
+    width: 40%;
+  }
+
+  .image-selection-type-container {
+    display: flex;
+    justify-content: flex-start;
+
+    mat-form-field {
+        margin-right: 10px;
+    }
+  }
+  .selected-images-legend {
+      p {
+        font-size: 12px;
+      }
+      mat-icon {
+        vertical-align: top;
+      }
+    }
+}

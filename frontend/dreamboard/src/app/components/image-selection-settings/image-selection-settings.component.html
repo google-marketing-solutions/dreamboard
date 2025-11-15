@@ -1,0 +1,52 @@
+<div class="image-selection-settings-container">
+  <form [formGroup]="imageSelectionSettingsForm">
+    <div class="image-selection-type-container">
+      <mat-form-field>
+        <mat-label>Model Name</mat-label>
+        <mat-select
+          (selectionChange)="onVideoModelNameChange($event)"
+          formControlName="videoModelName"
+        >
+          @for (videoModelNameOption of videoModelNameOptions; track
+          videoModelNameOption) {
+          <mat-option [value]="videoModelNameOption.value">{{
+            videoModelNameOption.displayName
+          }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Image Selection Type</mat-label>
+        <mat-select
+          (selectionChange)="onImageSelectionTypeChanged($event)"
+          formControlName="imageSelectionType"
+        >
+          @for (imageSelectionTypeOption of imageSelectionTypeOptions; track
+          imageSelectionTypeOption) {
+          <mat-option [value]="imageSelectionTypeOption.value">{{
+            imageSelectionTypeOption.displayName
+          }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="selected-images-legend">
+      <p>
+        <mat-icon>info</mat-icon>Allowed number images to select for model
+        <strong>{{ this.videoModelNameLabel }}</strong> and
+        <strong> {{ this.imageSelectionTypeLabel }}</strong> type is
+        <strong>{{ this.maxAllowedSelectedImages }}</strong>
+      </p>
+    </div>
+  </form>
+
+  <app-generated-images-table
+    [generatedImages]="scene.imageGenerationSettings.generatedImages"
+    [selectedImagesForVideo]="
+      scene.imageGenerationSettings.selectedImagesForVideo
+    "
+    [isSelectionMode]="true"
+    [maxAllowedSelectedImages]="this.maxAllowedSelectedImages"
+  ></app-generated-images-table>
+</div>

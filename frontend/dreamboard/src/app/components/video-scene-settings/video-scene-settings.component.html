@@ -37,13 +37,14 @@
     >
   </button>
   }
-  <div class="reference-image">
-    @if (scene.imageGenerationSettings.selectedImageForVideo) {
-    <img
-      [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-    />
-    <button mat-button (click)="removeSelectedImageForVideo()">
-      <mat-icon>delete_forever</mat-icon> Image
+  <div class="reference-images">
+    @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0) { @for
+    (image of scene.imageGenerationSettings.selectedImagesForVideo; track image;
+    let i = $index) {
+    <img [src]="image.signedUri" />
+    }
+    <button mat-button (click)="removeSelectedImagesForVideo()">
+      <mat-icon>delete_forever</mat-icon> Images
     </button>
     } @else {
     <p>
@@ -75,6 +76,15 @@
   </mat-form-field>
 
   <h2>Video Generation Settings</h2>
+
+  @if(this.scene.videoGenerationSettings.videoModelName) {
+  <p>
+    Selected Video Model:
+    {{ this.scene.videoGenerationSettings.videoModelName }}
+  </p>
+  } @else {
+  <p>No video model selected</p>
+  }
 
   <div class="item-container">
     <mat-form-field>

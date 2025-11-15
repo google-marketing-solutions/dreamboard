@@ -31,6 +31,7 @@ import {
   MatDialogTitle,
   MatDialogContent,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -38,9 +39,10 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { ImageSceneSettingsComponent } from '../image-scene-settings/image-scene-settings.component';
-import { VideoSceneSettingsComponent } from '../video-scene-settings/video-scene-settings.component';
 import { VideoScene } from '../../models/scene-models';
+import { ImageSceneSettingsComponent } from '../image-scene-settings/image-scene-settings.component';
+import { ImageSelectionSettingsComponent } from '../image-selection-settings/image-selection-settings.component';
+import { VideoSceneSettingsComponent } from '../video-scene-settings/video-scene-settings.component';
 
 @Component({
   selector: 'app-scene-settings-dialog',
@@ -54,6 +56,7 @@ import { VideoScene } from '../../models/scene-models';
     MatButtonModule,
     MatIconModule,
     ImageSceneSettingsComponent,
+    ImageSelectionSettingsComponent,
     VideoSceneSettingsComponent,
   ],
   templateUrl: './scene-settings-dialog.component.html',
@@ -63,18 +66,19 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   title = 'Scene Settings';
   dialogData: any = inject(MAT_DIALOG_DATA);
   storyId = this.dialogData.storyId;
-  sceneId: string = this.dialogData.sceneId;
   scene: VideoScene = this.dialogData.scene;
   scenes: VideoScene[] = this.dialogData.scenes;
   @ViewChild(ImageSceneSettingsComponent)
   imageSceneSettingsComponent!: ImageSceneSettingsComponent;
+  @ViewChild(ImageSelectionSettingsComponent)
+  imageSelectionSettingsComponent!: ImageSelectionSettingsComponent;
   @ViewChild(VideoSceneSettingsComponent)
   videoSceneSettingsComponent!: VideoSceneSettingsComponent;
   sceneSettingsForm = new FormGroup({
     sceneDescription: new FormControl('', []),
   });
 
-  constructor() {}
+  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {}
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -86,15 +90,25 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     this.sceneSettingsForm.controls['sceneDescription'].setValue(
       this.scene.description
     );
+    this.imageSceneSettingsComponent.setCurrentlyDisplayedImageIndex(
+      this.dialogData.currentlyDisplayedImageIndex
+    );
   }
 
   onStepChange(event: StepperSelectionEvent): void {
-    // If moving to image settings index === 0 save video settings
-    if(event.selectedIndex === 0) {
+    // If moving to image settings index === 0, save video settings
+    if (event.selectedIndex === 0) {
       this.updateSceneVideoSettings(true);
     }
-    if(event.selectedIndex === 1) {
+    // If moving to image selection settings index === 1, update generated images table
+    if (event.selectedIndex === 1) {
+      this.updateImageSelectionSettings();
+    }
+    // If moving to video settings index === 2, save image settings
+    // and update any selected reference image from Image Selection Settings tab
+    if (event.selectedIndex === 2) {
       this.updateSceneImageSettings(true);
+      this.updateImagesSelectionForVideoDetails();
     }
   }
 
@@ -131,6 +145,10 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   save(): void {
     this.updateSceneImageSettings(false);
     this.updateSceneVideoSettings(false);
+    this.dialogRef.close({
+      currentlyDisplayedImageIndex:
+        this.imageSceneSettingsComponent.getCurrentlyDisplayedImageIndex(),
+    });
   }
 
   /**
@@ -139,6 +157,16 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
    */
   close(): void {
     this.save();
+    this.dialogRef.close({
+      currentlyDisplayedImageIndex:
+        this.imageSceneSettingsComponent.getCurrentlyDisplayedImageIndex(),
+    });
+  }
+
+  cancel(): void {
+    this.dialogRef.close({
+      currentlyDisplayedImageIndex: -1,
+    });
   }
 
   /**
@@ -157,6 +185,24 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     if (initView) {
       this.videoSceneSettingsComponent.initVideoSettingsForm();
     }
+  }
+
+  updateImageSelectionSettings(): void {
+    this.imageSelectionSettingsComponent.refreshGeneratedImagesTableComponent();
+  }
+
+  updateImagesSelectionForVideoDetails(): void {
+    // Update the selected images for videos
+    // in ImageGenerationSettings
+    const selectedImagesForVideo =
+      this.imageSelectionSettingsComponent.getSelectedImagesForVideo();
+    this.imageSceneSettingsComponent.setSelectedImagesForVideo(
+      selectedImagesForVideo
+    );
+    // Update the selected video model name in VideoGenerationSettings
+    const videoModelName =
+      this.imageSelectionSettingsComponent.getVideoModelName();
+    this.videoSceneSettingsComponent.setVideoModelName(videoModelName);
   }
 
   /**

@@ -62,18 +62,32 @@
         <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
       </mat-card-header>
 
-      @if (scene.imageGenerationSettings.selectedImageForVideo &&
+      @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0 &&
       !scene.videoGenerationSettings.selectedVideo) {
       <div class="scene-image">
         <img
           mat-card-image
-          [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-          [alt]="scene.imageGenerationSettings.selectedImageForVideo.name"
+          [src]="
+            scene.imageGenerationSettings.selectedImagesForVideo[0].signedUri
+          "
+          [alt]="scene.imageGenerationSettings.selectedImagesForVideo[0].name"
           class="selected-image"
         />
       </div>
-      } @else if (!scene.imageGenerationSettings.selectedImageForVideo &&
-      !scene.videoGenerationSettings.selectedVideo) {
+      } @else if (scene.imageGenerationSettings.selectedImagesForVideo.length
+      === 0 && !scene.videoGenerationSettings.selectedVideo &&
+      scene.imageGenerationSettings.generatedImages.length > 0
+      && this.currentlyDisplayedImageIndex < scene.imageGenerationSettings.generatedImages.length) {
+      <div class="scene-image">
+        <img
+          mat-card-image
+          [src]="scene.imageGenerationSettings.generatedImages[this.currentlyDisplayedImageIndex].signedUri"
+          [alt]="scene.imageGenerationSettings.generatedImages[this.currentlyDisplayedImageIndex].name"
+          class="selected-image"
+        />
+      </div>
+      } @else if (scene.imageGenerationSettings.selectedImagesForVideo.length
+      === 0 && !scene.videoGenerationSettings.selectedVideo) {
       <div class="scene-image">
         <p>
           Edit the scene to upload images <br />

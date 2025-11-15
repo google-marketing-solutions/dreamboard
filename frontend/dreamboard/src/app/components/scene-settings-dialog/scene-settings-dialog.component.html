@@ -38,6 +38,22 @@
         </button>
       </div>
     </mat-step>
+    <mat-step label="Images Selection For Video">
+      <app-image-selection-settings
+        [storyId]="storyId"
+        [scene]="scene"
+      ></app-image-selection-settings>
+      <div class="back-actions">
+        <button mat-button matStepperPrevious>
+          <mat-icon>arrow_back_ios</mat-icon>
+        </button>
+      </div>
+      <div class="next-actions">
+        <button mat-button matStepperNext>
+          <mat-icon>arrow_forward_ios</mat-icon>
+        </button>
+      </div>
+    </mat-step>
     <mat-step label="Video Generation Settings">
       <app-video-scene-settings
         [scene]="scene"
@@ -56,6 +72,6 @@
   </mat-stepper>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close (click)="save()">Save</button>
-  <button mat-button [mat-dialog-close]="true" cdkFocusInitial>Cancel</button>
+  <button mat-button (click)="save()">Save</button>
+  <button mat-button (click)="cancel()" cdkFocusInitial>Cancel</button>
 </mat-dialog-actions>

@@ -51,13 +51,13 @@
     }
   }
 
-  .reference-image {
+  .reference-images {
     width: 300px;
     height: 300px;
-    margin: auto 8px;
+    margin: 0px 8px;
 
     img {
-      max-width: 100%;
+      max-width: 70%;
       max-height: 100%;
     }
 

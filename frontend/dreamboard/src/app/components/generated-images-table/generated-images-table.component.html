@@ -1,40 +1,16 @@
 <div class="generated-images-container">
-  <!-- Show this only in Video Generation Settings -->
-  @if(!isImageGenerationSettings) {
-  <div class="image-selection-type-container">
-    <mat-form-field>
-      <mat-label>Image Selection Type</mat-label>
-      <mat-select (selectionChange)="onImageSelectionTypeChanged($event)">
-        @for (imageSelectionTypeOption of imageSelectionTypeOptions; track
-        imageSelectionTypeOption) {
-        <mat-option [value]="imageSelectionTypeOption.value">{{
-          imageSelectionTypeOption.displayName
-        }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <div class="selected-images-legend">
-      <p>
-        <mat-icon>info</mat-icon>Allowed number images to select for
-        <strong>{{ imageSelectionType }}</strong> is
-        <strong>{{ this.MAX_ALLOWED_SELECTED_IMAGES }}</strong>
-      </p>
-    </div>
-  </div>
   <div class="selected-images-for-video-legend">
     @if(selection.selected.length > 0) {
     <p>Selected Images for Video:</p>
     @for (selectedImage of selection.selected; track selectedImage; let i =
-    $index) { @if(imageSelectionType === 'First/Last Frame' && i === 0) {
+    $index) { @if(imageSelectionTypeLabel === 'First/Last Frame' && i === 0) {
     <strong>First Frame: {{ i + 1 }}:</strong>
-    } @if(imageSelectionType === 'First/Last Frame' && i === 1) {
+    } @if(imageSelectionTypeLabel === 'First/Last Frame' && i === 1) {
     <strong>Last Frame: {{ i + 1 }}:</strong>
-    } Image: {{ selectedImage.id }} - {{ selectedImage.name }}<br />
-
-    } }
+    } @else { Image: {{ selectedImage.name }}<br />
+    } } }
   </div>
 
-  }
   <!-- Generated / Uploaded Images table -->
   <div class="mat-elevation-z8">
     <mat-form-field>
@@ -56,43 +32,32 @@
       <mat-icon>refresh</mat-icon> Refresh Table
     </button>
     <table mat-table [dataSource]="dataSource" matSort>
-      <!-- ID Column -->
-      <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
-        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
-      </ng-container>
-
-      <!-- Name Column -->
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-        <td mat-cell *matCellDef="let row">{{ row.name }}</td>
-      </ng-container>
-
       <!-- Image Preview Column -->
       <ng-container matColumnDef="imagePreview">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Image Preview</th>
         <td mat-cell *matCellDef="let row">
           <img [src]="row.signedUri" />
+          <label>{{ row.name }}</label>
         </td>
       </ng-container>
 
       <!-- Checkbox Column -->
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>
-          @if(isImageGenerationSettings) { Actions } @else {
+          @if(!isSelectionMode) { Actions } @else {
           <!-- Show this only in Video Generation Settings -->
           <button
             mat-flat-button
             color="warn"
             matTooltip="Clear All"
-            (click)="clearAll(); $event.stopPropagation()"
+            (click)="clearAllSelections(); $event.stopPropagation()"
           >
             Clear All
           </button>
           }
         </th>
         <td mat-cell *matCellDef="let row">
-          @if(isImageGenerationSettings) {
+          @if(!isSelectionMode) {
 
           <button
             mat-icon-button
@@ -131,7 +96,7 @@
     </table>
 
     <mat-paginator
-      [pageSizeOptions]="[3, 5, 10, 15]"
+      [pageSizeOptions]="getPageSizeOptions()"
       aria-label="Select page of users"
     ></mat-paginator>
   </div>

@@ -9,7 +9,7 @@
     } @else {
     <div class="carousel">
       @for (image of scene.imageGenerationSettings.generatedImages; track image;
-      let i = $index) { @if (i === currentGeneratedImageIndex) {
+      let i = $index) { @if (i === currentlyDisplayedImageIndex) {
       <img [src]="image.signedUri" class="generated-image" />
       } }
       <!-- Previous and Next buttons -->
@@ -27,11 +27,15 @@
     <mat-icon>download</mat-icon>
     <a
       [href]="
-        this.scene.imageGenerationSettings.selectedImageForVideo?.signedUri
+        this.scene.imageGenerationSettings.generatedImages[
+          this.currentlyDisplayedImageIndex
+        ].signedUri
       "
       download
       [download]="
-        this.scene.imageGenerationSettings.selectedImageForVideo?.name
+        this.scene.imageGenerationSettings.generatedImages[
+          this.currentlyDisplayedImageIndex
+        ].signedUri
       "
       target="_blank"
       >Image</a
@@ -53,6 +57,7 @@
 <app-generated-images-table
   [generatedImages]="scene.imageGenerationSettings.generatedImages"
   (generatedImageDeletedEvent)="onGeneratedImageDeleted($event)"
+  [isSelectionMode]="false"
 ></app-generated-images-table>
 
 <form [formGroup]="imageSettingsForm">

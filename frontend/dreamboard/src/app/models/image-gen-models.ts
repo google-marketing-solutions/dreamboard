@@ -51,7 +51,7 @@ export interface ImageGenerationSettings {
   personGeneration?: string;
   seed?: number;
   negativePrompt?: string;
-  selectedImageForVideo?: Image; // Image used to generate the video
+  selectedImagesForVideo: Image[]; // Images used to generate the video
   referenceImages?: ImageReference[]; // Image used to generate new images with AI, if selected, can also be used to generate the video
   generatedImages: Image[]; // Contains AI generated images and reference images
   useReferenceImageForImage?: boolean;

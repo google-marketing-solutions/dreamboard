@@ -64,6 +64,7 @@ import { SceneSettingsDialogComponent } from '../scene-settings-dialog/scene-set
 import { TransitionsSettingsDialogComponent } from '../transitions-settings-dialog/transitions-settings-dialog.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { StoriesStorageService } from '../../services/stories-storage.service';
+import { Image } from '../../models/image-gen-models';
 
 @Component({
   selector: 'app-scene-builder',
@@ -77,6 +78,7 @@ export class SceneBuilderComponent {
   creativeDirectionSettingsDialog = inject(MatDialog);
   //scenes: VideoScene[] = [];
   exportingScenes: boolean = false;
+  currentlyDisplayedImageIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
 
   constructor(
@@ -116,13 +118,22 @@ export class SceneBuilderComponent {
         minWidth: '1200px',
         data: {
           storyId: this.story.id,
-          sceneId: sceneId,
           scene: scene,
-            scenes: this.story.scenes,
+          scenes: this.story.scenes,
+          currentlyDisplayedImageIndex: this.currentlyDisplayedImageIndex
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
       }
     );
+
+    // Subscribe to afterClosed() to get data when the dialog closes
+    dialogRef.afterClosed().subscribe(data => {
+      if (data) {
+        if(data.currentlyDisplayedImageIndex !== -1) {
+          this.currentlyDisplayedImageIndex = data.currentlyDisplayedImageIndex
+        }
+      }
+    });
   }
 
   /**
@@ -486,20 +497,20 @@ export class SceneBuilderComponent {
         }
       }
       // Add selected image
-      let seedImage: ImageItem | undefined = undefined;
-      if (scene.imageGenerationSettings.selectedImageForVideo) {
-        seedImage = {
-          id: scene.imageGenerationSettings.selectedImageForVideo.id,
-          name: scene.imageGenerationSettings.selectedImageForVideo.name,
-          gcs_uri: scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
-          signed_uri:
-            scene.imageGenerationSettings.selectedImageForVideo.signedUri,
-          gcs_fuse_path:
-            scene.imageGenerationSettings.selectedImageForVideo.gcsFusePath,
-          mime_type:
-            scene.imageGenerationSettings.selectedImageForVideo.mimeType,
-        };
-      }
+      const imagesForVideo =
+        scene.imageGenerationSettings.selectedImagesForVideo.map(
+          (img: Image) => {
+            const seedImage: ImageItem = {
+              id: img.id,
+              name: img.name,
+              gcs_uri: img.gcsUri,
+              signed_uri: img.signedUri,
+              gcs_fuse_path: img.gcsFusePath,
+              mime_type: img.mimeType,
+            };
+            return seedImage;
+          }
+        );
       // Add selected video
       let selectedVideo: VideoItem | undefined = undefined;
       if (scene.videoGenerationSettings.selectedVideo) {
@@ -520,7 +531,7 @@ export class SceneBuilderComponent {
         scene_id: scene.id,
         segment_number: scene.number,
         prompt: scene.videoGenerationSettings.prompt,
-        seed_image: seedImage, // Can be null for text to video generation
+        seed_images: imagesForVideo,
         duration_in_secs: scene.videoGenerationSettings.durationInSecs,
         aspect_ratio: scene.videoGenerationSettings.aspectRatio,
         frames_per_sec: scene.videoGenerationSettings.framesPerSec!,

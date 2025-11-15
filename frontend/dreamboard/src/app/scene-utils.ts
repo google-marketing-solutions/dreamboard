@@ -66,7 +66,7 @@ export function validateScenes(story: VideoStory): SceneValidations {
     }
     // Check prompt required
     if (
-      !scene.imageGenerationSettings.selectedImageForVideo &&
+      scene.imageGenerationSettings.selectedImagesForVideo.length > 0 &&
       !scene.videoGenerationSettings.prompt
     ) {
       // Prompt is required for Text to Video

@@ -14,7 +14,6 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,7 +32,6 @@ import { SelectItem } from '../../models/settings-models';
     MatPaginatorModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule,
     MatTooltipModule,
   ],
   templateUrl: './generated-images-table.component.html',
@@ -41,14 +39,14 @@ import { SelectItem } from '../../models/settings-models';
 })
 export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
   @Input() generatedImages!: Image[];
-  @Input() isImageGenerationSettings: boolean = true;
+  @Input() selectedImagesForVideo!: Image[];
+  @Input() isSelectionMode!: boolean;
+  @Input() imageSelectionTypeLabel!: string;
+  @Input() maxAllowedSelectedImages!: number;
   @Output() generatedImageDeletedEvent = new EventEmitter<Image>();
-  displayedColumns: string[] = ['id', 'name', 'imagePreview', 'actions'];
+  displayedColumns: string[] = ['imagePreview', 'actions'];
   dataSource: MatTableDataSource<Image>;
   selection = new SelectionModel<Image>(true, []);
-  MAX_ALLOWED_SELECTED_IMAGES: number = 3;
-  imageSelectionTypeOptions: SelectItem[] = getImageSelectionTypeOptions();
-  imageSelectionType: string = 'Reference Image';
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private cdr: ChangeDetectorRef) {
@@ -56,15 +54,15 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
     this.dataSource = new MatTableDataSource(this.generatedImages);
   }
 
-  ngAfterViewInit() {
+  ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  ngOnChanges(changes: SimpleChanges): void {
     this.refreshTable(false);
   }
 
-  applyFilter(event: Event) {
+  applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
 
@@ -74,25 +72,28 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
   }
 
   /** Whether the number of selected elements matches the total number of rows. */
-  isAllSelected() {
+  isAllSelected(): boolean {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSource.data.length;
     return numSelected === numRows;
   }
 
-  clearAll() {
+  clearAllSelections(): void {
     this.selection.clear();
   }
 
-  toggleSingleRow(row: Image) {
+  toggleSingleRow(row: Image): void {
     this.selection.toggle(row);
   }
 
-  disableCheckBox(row: Image) {
-    const isSelected = this.selection.isSelected(row);
+  setMaxAllowedSelectedImages(max: number): void {
+    this.maxAllowedSelectedImages = max;
+  }
 
+  disableCheckBox(row: Image): boolean {
+    const isSelected = this.selection.isSelected(row);
     if (
-      this.selection.selected.length === this.MAX_ALLOWED_SELECTED_IMAGES &&
+      this.selection.selected.length === this.maxAllowedSelectedImages &&
       !isSelected
     ) {
       return true;
@@ -111,19 +112,7 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
     }`;
   }
 
-  onImageSelectionTypeChanged(event: MatSelectChange) {
-    // Clear selection every time type is changed
-    this.selection.clear();
-    if (event.value === 'reference-image') {
-      this.imageSelectionType = 'Reference Image';
-      this.MAX_ALLOWED_SELECTED_IMAGES = 3;
-    } else if (event.value === 'first-last-frame') {
-      this.imageSelectionType = 'First/Last Frame';
-      this.MAX_ALLOWED_SELECTED_IMAGES = 2;
-    }
-  }
-
-  refreshTable(triggerDetectChanges: boolean) {
+  refreshTable(triggerDetectChanges: boolean): void {
     // Create copy to show always the latest generated images
     const reversed = [...this.generatedImages].reverse();
     this.dataSource.data = reversed;
@@ -132,11 +121,19 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  onDeleteGeneratedImage(image: Image) {
+  onDeleteGeneratedImage(image: Image): void {
     // Send trigger to parent component to update the img carousel in case
     // a displayed image has been removed
     this.generatedImageDeletedEvent.emit(image);
     // Refresh table that relies on this.generatedImages array
     this.refreshTable(false);
+  }
+
+  getPageSizeOptions(): number[] {
+    if (!this.isSelectionMode) {
+      return [3, 5, 10, 15];
+    } else {
+      return [15, 25, 35];
+    }
   }
 }

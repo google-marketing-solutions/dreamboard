@@ -31,7 +31,7 @@ import { VideoScene } from './models/scene-models';
 export const IMAGE_MODEL_NAME = 'imagen-3.0-generate-001';
 
 export function getNewImageSettings() {
-  return {
+  const imageGenerationSettings: ImageGenerationSettings = {
     prompt: '',
     numImages: 2,
     aspectRatio: '16:9',
@@ -42,10 +42,12 @@ export function getNewImageSettings() {
     personGeneration: 'allow_all',
     seed: -1,
     negativePrompt: '',
-    selectedImageForVideo: undefined,
+    selectedImagesForVideo: [],
     referenceImages: [],
     generatedImages: [],
-  } as ImageGenerationSettings;
+  };
+
+  return imageGenerationSettings;
 }
 
 export function initRefImage() {
@@ -173,18 +175,65 @@ export function getImageReferenceTypes() {
   return imageReferenceTypes;
 }
 
-export function getImageSelectionTypeOptions() {
-  const imageSelectionTypeOtions: SelectItem[] = [
+export function getImageSelectionTypeOptions(modelName: string): SelectItem[] {
+  const imageSelectionTypeOtions: { [key: string]: SelectItem[] } = {
+    'veo-3.0-generate-001': [
+      {
+        displayName: 'Reference Image',
+        value: 'reference-image',
+      },
+    ],
+    'veo-3.0-fast-generate-001': [
+      {
+        displayName: 'Reference Image',
+        value: 'reference-image',
+      },
+    ],
+    'veo-3.1-generate-preview': [
+      {
+        displayName: 'Reference Image',
+        value: 'reference-image',
+      },
+      {
+        displayName: 'First/Last Frame',
+        value: 'first-last-frame',
+      },
+    ],
+    'veo-3.1-fast-generate-preview': [
+      {
+        displayName: 'Reference Image',
+        value: 'reference-image',
+      },
+      {
+        displayName: 'First/Last Frame',
+        value: 'first-last-frame',
+      },
+    ],
+  };
+  return imageSelectionTypeOtions[modelName];
+}
+
+export function getVideoModelNameOptions() {
+  // TODO (ae) make this an API call later
+  const modelNameOptions: SelectItem[] = [
     {
-      displayName: 'Reference Image',
-      value: 'reference-image',
+      displayName: 'Veo 3',
+      value: 'veo-3.0-generate-001',
     },
     {
-      displayName: 'First/Last Frame',
-      value: 'first-last-frame',
+      displayName: 'Veo 3 Flash',
+      value: 'veo-3.0-fast-generate-001',
+    },
+    {
+      displayName: 'Veo 3.1',
+      value: 'veo-3.1-generate-preview',
+    },
+    {
+      displayName: 'Veo 3.1 Flash',
+      value: 'veo-3.1-fast-generate-preview',
     },
   ];
-  return imageSelectionTypeOtions;
+  return modelNameOptions;
 }
 
 export function findSceneResponse(
@@ -237,9 +286,9 @@ export function updateScenesWithGeneratedImages(
           genImages
         );
         // Select first generated image as selected image for video
-        if (genImages.length > 0) {
+        /*if (genImages.length > 0) {
           scene.imageGenerationSettings.selectedImageForVideo = genImages[0];
-        }
+        }*/ // TODO (ae) Remove this!
         executionStatus['succeded'] = true;
         executionStatus[
           'execution_message'

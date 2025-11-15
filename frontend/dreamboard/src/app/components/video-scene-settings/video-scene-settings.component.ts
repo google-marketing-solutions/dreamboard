@@ -45,7 +45,7 @@ import {
   VideoGenerationResponse,
   Video,
 } from '../../models/video-gen-models';
-import { ImageItem } from '../../models/image-gen-models';
+import { Image, ImageItem } from '../../models/image-gen-models';
 import {
   getAspectRatios,
   getFramesPerSecondOptions,
@@ -261,6 +261,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
   }
 
+  setVideoModelName(videoModelName: string) {
+    this.scene.videoGenerationSettings.videoModelName = videoModelName;
+  }
+
   /**
    * Checks if a previous video segment has been generated and selected for the current scene.
    * @returns {boolean} `true` if a video segment is selected, `false` otherwise.
@@ -369,8 +373,8 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
   }
 
-  removeSelectedImageForVideo() {
-    this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
+  removeSelectedImagesForVideo() {
+    this.scene.imageGenerationSettings.selectedImagesForVideo = [];
   }
 
   /**
@@ -438,27 +442,27 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * @returns {VideoSegmentRequest} The constructed video segment request object.
    */
   buildVideoSegment(): VideoSegmentRequest {
-    let seedImage: ImageItem | undefined = undefined;
-    if (this.scene.imageGenerationSettings.selectedImageForVideo) {
-      seedImage = {
-        id: this.scene.imageGenerationSettings.selectedImageForVideo.id,
-        name: this.scene.imageGenerationSettings.selectedImageForVideo.name,
+    const imagesForVideo = this.scene.imageGenerationSettings.selectedImagesForVideo.map((img: Image) => {
+      const seedImage: ImageItem = {
+        id: img.id,
+        name: img.name,
         signed_uri:
-          this.scene.imageGenerationSettings.selectedImageForVideo.signedUri,
+          img.signedUri,
         gcs_uri:
-          this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
+          img.gcsUri,
         mime_type:
-          this.scene.imageGenerationSettings.selectedImageForVideo.mimeType,
+          img.mimeType,
         gcs_fuse_path: '', // Empty here, this is generated in the backend
       };
-    }
+      return seedImage
+    });
 
     const cutVideo = this.videoSettingsForm.get('cutVideo')?.value!;
     const videoSegment: VideoSegmentRequest = {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
-      seed_image: seedImage, // Can be undefined for text to video generation
+      seed_images: imagesForVideo,
       duration_in_secs: this.videoSettingsForm.get('durationInSecs')?.value!,
       aspect_ratio: this.videoSettingsForm.get('aspectRatio')?.value!,
       frames_per_sec: parseInt(
@@ -506,7 +510,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   disableGenerateVideoButton(): boolean {
     if (
-      this.scene.imageGenerationSettings.selectedImageForVideo ||
+      this.scene.imageGenerationSettings.selectedImagesForVideo.length === 0 ||
       this.videoSettingsForm.get('prompt')?.value
     ) {
       // For Image to Video, prompt is not required

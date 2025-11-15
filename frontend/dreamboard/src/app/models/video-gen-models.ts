@@ -23,6 +23,7 @@ import { Image, ImageItem } from './image-gen-models';
 
 export interface VideoGenerationSettings {
   selectedVideo?: Video;
+  videoModelName: string
   prompt: string;
   durationInSecs: number;
   aspectRatio?: string;
@@ -87,7 +88,7 @@ export interface VideoSegmentRequest {
   scene_id: string;
   segment_number: number;
   prompt: string;
-  seed_image?: ImageItem;
+  seed_images: ImageItem[];
   duration_in_secs?: number;
   aspect_ratio?: string;
   frames_per_sec?: number;

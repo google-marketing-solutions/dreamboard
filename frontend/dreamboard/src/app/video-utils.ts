@@ -46,6 +46,7 @@ export function getNewVideoScene(existingScenesLen: number) {
 
 export function getNewVideoSettings(): VideoGenerationSettings {
   const newVideoGenSettings: VideoGenerationSettings = {
+    videoModelName: '', // TODO (ae) empty here since user has to select it
     prompt: '',
     durationInSecs: 4,
     aspectRatio: '16:9',
