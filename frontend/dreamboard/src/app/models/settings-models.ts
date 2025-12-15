@@ -53,5 +53,10 @@ export const enum UploadStatus {
 }
 
 export interface APIError {
-  error: { [id: string] : { detail: string }; }
+  error: { [id: string]: { detail: string } };
 }
+
+export const IMAGE_GENERATION_SETTINGS_TAB_INDEX = 0;
+export const IMAGES_SELECTION_FOR_VIDEO_TAB_INDEX = 1;
+export const VIDEOS_SELECTION_FOR_VIDEO_TAB_INDEX = 2;
+export const VIDEO_GENERATION_SETTINGS_TAB_INDEX = 3;

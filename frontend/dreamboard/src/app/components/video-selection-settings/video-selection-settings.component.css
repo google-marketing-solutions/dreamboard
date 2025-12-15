@@ -19,42 +19,23 @@
  *
  ***************************************************************************/
 
-.item-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-
+form {
+  width: 100%;
   mat-form-field {
-    width: 82%;
+    width: 40%;
+  }
+
+  .video-selection-type-container {
+    display: flex;
+    justify-content: flex-start;
+
+    mat-form-field {
+      margin-right: 10px;
+    }
   }
 }
 
-.next-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 16px 0px;
-
-}
-
-.back-actions {
-  display: flex;
-  justify-content: flex-start;
-  margin: 16px 0px;
-
-}
-
-.both-actions {
-  display: flex;
-  justify-content: space-between;
-  margin: 16px 0px;
-}
-
-
-.close-button {
-  margin-top: 10px;
-  float: right;
-}
-
-mat-dialog-content {
-  max-height: 75vh !important;
+.features-legend {
+  margin: 30px 0px;
+  width: 75%;
 }

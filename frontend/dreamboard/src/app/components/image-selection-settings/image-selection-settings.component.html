@@ -1,14 +1,25 @@
 <div class="image-selection-settings-container">
-  <form [formGroup]="imageSelectionSettingsForm">
+  <div class="features-legend">
+    <p>
+      <strong>Note: </strong>The
+      <strong>(Optional) Images Selection For Video</strong> and
+      <strong>(Optional) Video Selection For Extension</strong> features are
+      <strong>mutually exclusive</strong>. You cannot select both video and
+      image assets at the same time to generate a video. Please choose either
+      videos or images to generate your video. Image selection has priority if
+      both images and videos are selected for generation.
+    </p>
+  </div>
+  <form [formGroup]="imagesSelectionSettingsForm">
     <div class="image-selection-type-container">
       <mat-form-field>
-        <mat-label>Model Name</mat-label>
+        <mat-label>Video Model Name</mat-label>
         <mat-select
           (selectionChange)="onVideoModelNameChange($event)"
           formControlName="videoModelName"
         >
           @for (videoModelNameOption of videoModelNameOptions; track
-          videoModelNameOption) {
+          videoModelNameOption.value) {
           <mat-option [value]="videoModelNameOption.value">{{
             videoModelNameOption.displayName
           }}</mat-option>
@@ -22,7 +33,7 @@
           formControlName="imageSelectionType"
         >
           @for (imageSelectionTypeOption of imageSelectionTypeOptions; track
-          imageSelectionTypeOption) {
+          imageSelectionTypeOption.value) {
           <mat-option [value]="imageSelectionTypeOption.value">{{
             imageSelectionTypeOption.displayName
           }}</mat-option>
@@ -44,9 +55,11 @@
   <app-generated-images-table
     [generatedImages]="scene.imageGenerationSettings.generatedImages"
     [selectedImagesForVideo]="
-      scene.imageGenerationSettings.selectedImagesForVideo
+      scene.imageGenerationSettings.imagesSelectionForVideoInfo
+        .selectedImagesForVideo
     "
     [isSelectionMode]="true"
     [maxAllowedSelectedImages]="this.maxAllowedSelectedImages"
+    [imageSelectionTypeLabel]="this.imageSelectionTypeLabel"
   ></app-generated-images-table>
 </div>

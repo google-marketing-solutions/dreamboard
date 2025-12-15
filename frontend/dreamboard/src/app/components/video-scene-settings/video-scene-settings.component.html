@@ -9,7 +9,7 @@
 
     <div class="carousel">
       @for (video of scene.videoGenerationSettings.generatedVideos; track video;
-      let i = $index) { @if (i === currentGeneratedVideoIndex) {
+      let i = $index) { @if (i === this.currentlyDisplayedVideoIndex) {
       <video controls class="generated-file">
         <source [src]="video.signedUri" type="video/mp4" />
       </video>
@@ -25,45 +25,109 @@
     </div>
     }
   </div>
-  @if(scene.videoGenerationSettings.generatedVideos.length > 0) {
+  @if(scene.videoGenerationSettings.generatedVideos.length > 0 &&
+  this.currentlyDisplayedVideoIndex >= 0 && this.currentlyDisplayedVideoIndex <
+  scene.videoGenerationSettings.generatedVideos.length) {
   <button mat-button>
     <mat-icon>download</mat-icon>
     <a
-      [href]="this.scene.videoGenerationSettings.selectedVideo?.signedUri"
+      [href]="
+        this.scene.videoGenerationSettings.generatedVideos[
+          this.currentlyDisplayedVideoIndex
+        ].signedUri
+      "
       download
-      [download]="this.scene.videoGenerationSettings.selectedVideo?.name"
+      [download]="
+        this.scene.videoGenerationSettings.generatedVideos[
+          this.currentlyDisplayedVideoIndex
+        ].name
+      "
       target="_blank"
       >Video</a
     >
   </button>
-  }
+  } @if
+  (scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.length
+  > 0) {
   <div class="reference-images">
-    @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0) { @for
-    (image of scene.imageGenerationSettings.selectedImagesForVideo; track image;
-    let i = $index) {
+    <h4>
+      Selection Type: Image to Video -
+      {{
+        this.scene.imageGenerationSettings.imagesSelectionForVideoInfo
+          .imagesSelectionType
+      }}
+    </h4>
+
+    @for (image of
+    scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo;
+    track image; let i = $index) {
     <img [src]="image.signedUri" />
-    }
-    <button mat-button (click)="removeSelectedImagesForVideo()">
-      <mat-icon>delete_forever</mat-icon> Images
-    </button>
-    } @else {
+
+    @if(this.scene.imageGenerationSettings.imagesSelectionForVideoInfo.imagesSelectionType
+    === 'first-last-frame') { @if(i === 0) {
+    <label>[First Frame]</label>
+    } @if(i === 1) {
+    <label>[Last Frame]</label>
+    } } @else {
+
+    <label>[{{ i + 1 }}]</label>
+    } }
+    <!-- For -->
+    <div>
+      <button mat-button (click)="removeSelectedImagesForVideo()">
+        <mat-icon>delete_forever</mat-icon> Delete Images
+      </button>
+    </div>
+  </div>
+
+  } @else if
+  (this.scene.videoGenerationSettings.videosSelectionForVideoInfo.selectedVideosForVideo.length
+  > 0) {
+  <!-- Prio 2 if users select videos to extend -->
+  @for (video of
+  this.scene.videoGenerationSettings.videosSelectionForVideoInfo.selectedVideosForVideo;
+  track video.id; let i = $index) {
+  <div class="reference-videos">
+    <h4>Selection Type: Video to Video Extension</h4>
+    <div>
+      <video controls>
+        <source [src]="video.signedUri" type="video/mp4" />
+      </video>
+    </div>
+    <div>
+      <button mat-button (click)="removeSelectedVideosForVideo()">
+        <mat-icon>delete_forever</mat-icon> Delete Videos
+      </button>
+    </div>
+  </div>
+  } } @else {
+  <div class="no-reference-images">
     <p>
-      <mat-icon>warning</mat-icon>You haven't selected a reference image for
+      <mat-icon>warning</mat-icon>You haven't selected reference images or videos for
       your video. Reference images improve video accuracy and quality.
     </p>
-    }
+    <div class="go-to-buttons">
+      <button mat-flat-button (click)="goToImagesSelectionForVideoTab()">
+        <mat-icon>image</mat-icon> Select Images
+      </button>
+      <button mat-flat-button (click)="goToVideosSelectionForVideoTab()">
+        <mat-icon>videocam</mat-icon> Select Videos
+      </button>
+    </div>
   </div>
+  }
 </div>
 
 <form [formGroup]="videoSettingsForm">
-  <h2>Scene {{ scene.number }}</h2>
-  <p>{{ scene.description }}</p>
-
+  <div>
+    Use the dropdown below to select the video segment to
+    <strong>merge in the final video</strong>.
+  </div>
   <mat-form-field class="selected-video">
-    <mat-label>Selected Video</mat-label>
+    <mat-label>Selected Video For Merge</mat-label>
     <mat-select
-      name="selectedVideoUri"
-      formControlName="selectedVideoUri"
+      name="selectedVideoForMergeUri"
+      formControlName="selectedVideoForMergeUri"
       (selectionChange)="onVideoSelected($event)"
     >
       @for (video of scene.videoGenerationSettings.generatedVideos; track video;
@@ -75,15 +139,44 @@
     </mat-select>
   </mat-form-field>
 
+  <!-- Generated videos table -->
+  <app-generated-videos-table
+    [generatedVideos]="scene.videoGenerationSettings.generatedVideos"
+    (generatedVideoDeletedEvent)="onGeneratedVideoDeleted($event)"
+    [isSelectionMode]="false"
+  ></app-generated-videos-table>
+
   <h2>Video Generation Settings</h2>
 
-  @if(this.scene.videoGenerationSettings.videoModelName) {
-  <p>
-    Selected Video Model:
-    {{ this.scene.videoGenerationSettings.videoModelName }}
-  </p>
+  <mat-form-field>
+    <mat-label>Video Model Name</mat-label>
+    <mat-select formControlName="videoModelName">
+      @for (videoModelNameOption of videoModelNameOptions; track
+      videoModelNameOption) {
+      <mat-option [value]="videoModelNameOption.value">{{
+        videoModelNameOption.displayName
+      }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if(this.scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.length
+  > 0) {
+  <!-- This has priority 0 -->
+  <span>
+    To update the Video Model Name when using reference images, please return to
+    the <strong>(Optional) Images Selection for Video</strong> tab.</span
+  >
+  } @else if
+  (this.scene.videoGenerationSettings.videosSelectionForVideoInfo.selectedVideosForVideo.length
+  > 0) {
+  <!-- This has priority 1 -->
+  <span>
+    To update the Video Model Name when using reference videos, please return to
+    the <strong>(Optional) Video Selection for Extension</strong> tab.</span
+  >
   } @else {
-  <p>No video model selected</p>
+  <!---->
   }
 
   <div class="item-container">

@@ -9,7 +9,7 @@
     } @else {
     <div class="carousel">
       @for (image of scene.imageGenerationSettings.generatedImages; track image;
-      let i = $index) { @if (i === currentlyDisplayedImageIndex) {
+      let i = $index) { @if (i === this.currentlyDisplayedImageIndex) {
       <img [src]="image.signedUri" class="generated-image" />
       } }
       <!-- Previous and Next buttons -->
@@ -22,7 +22,9 @@
     </div>
     }
   </div>
-  @if(scene.imageGenerationSettings.generatedImages.length > 0) {
+  @if(scene.imageGenerationSettings.generatedImages.length > 0 &&
+  this.currentlyDisplayedImageIndex >= 0 && this.currentlyDisplayedImageIndex <
+  scene.imageGenerationSettings.generatedImages.length) {
   <button mat-button>
     <mat-icon>download</mat-icon>
     <a

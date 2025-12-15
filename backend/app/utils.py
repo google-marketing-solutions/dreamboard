@@ -547,15 +547,15 @@ def backfill_missing_fields(stories: dict) -> None:
     None. The dictionary is modified in place.
   """
 
-  def _backfill_fields_list(story_id: str, type: str, media_list: list[any]):
+  def _backfill_fields_list(story_id: str, type: str, media_list: list[dict]):
     """Helper to add any missing field in a story."""
     for media_item in media_list:
       # Check for missing id
-      if not hasattr(media_item, "id"):
+      if "id" not in media_item:
         media_item["id"] = uuid.uuid4()
       # Check for missing duration
       if type == "video":
-        if not hasattr(media_item, "duration"):
+        if "duration" not in media_item:
           # for videos saved before this change set duration to 0
           media_item["duration"] = 0
 
@@ -569,10 +569,15 @@ def backfill_missing_fields(stories: dict) -> None:
           "video",
           video_generation_settings.get("generatedVideos", []),
       )
-      selected_video = video_generation_settings.get("selectedVideo", {})
-      if selected_video and not hasattr(selected_video, "id"):
-        selected_video["id"] = uuid.uuid4()
-
+      # Backfill selectedVideoForMerge obj
+      if "selectedVideoForMerge" not in video_generation_settings:
+        video_generation_settings["selectedVideoForMerge"] = None
+      # Backfill videosSelectionForVideoInfo obj
+      if "videosSelectionForVideoInfo" not in video_generation_settings:
+        video_generation_settings["videosSelectionForVideoInfo"] = {
+            "selectedVideoModelName": "veo-3.1-generate-001",
+            "selectedVideosForVideo": [],
+        }
       # Backfill missing fields for images
       image_generation_settings = scene.get("imageGenerationSettings", {})
       _backfill_fields_list(
@@ -580,11 +585,13 @@ def backfill_missing_fields(stories: dict) -> None:
           "image",
           image_generation_settings.get("generatedImages", []),
       )
-      selected_image = image_generation_settings.get(
-          "selectedImageForVideo", {}
-      )
-      if selected_image and not hasattr(selected_image, "id"):
-        selected_image["id"] = uuid.uuid4()
+      # Backfill imagesSelectionForVideoInfo obj
+      if "imagesSelectionForVideoInfo" not in image_generation_settings:
+        image_generation_settings["imagesSelectionForVideoInfo"] = {
+            "selectedVideoModelName": "veo-3.0-generate-001",
+            "imagesSelectionType": "reference-image",
+            "selectedImagesForVideo": [],
+        }
       _backfill_fields_list(
           story["id"],
           "image",

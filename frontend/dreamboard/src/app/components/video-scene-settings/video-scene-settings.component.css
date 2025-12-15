@@ -52,17 +52,50 @@
   }
 
   .reference-images {
-    width: 300px;
+    width: 30%;
     height: 300px;
     margin: 0px 8px;
 
     img {
-      max-width: 70%;
-      max-height: 100%;
+      margin: 10px 5px 3px 0px;
+      max-width: 200px;
+      max-height: 200px;
+    }
+
+    label {
+      margin-right: 14px;
+      font-size: 14px;
+    }
+  }
+
+  .reference-videos {
+    video {
+      margin-top: 10px;
+      max-width: 400px;
+      max-height: 400px;
+    }
+    label {
+      font-size: 14px;
+    }
+  }
+
+  .no-reference-images {
+    width: 350px;
+    height: 300px;
+    margin: 0px 8px;
+
+    .go-to-buttons {
+      display: flex;
+      justify-content: space-around;
+
+      button {
+        margin-right: 5px;
+      }
     }
 
     p {
       margin-top: 120px;
+      text-align: center;
     }
   }
 
@@ -100,15 +133,25 @@ p {
   margin-bottom: 32px;
 }
 
+.selected-video-label {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
 .large-textarea {
   width: 40%;
 }
 
 form {
-  margin-top: 32px;
+  margin-top: 70px;
 
   .selected-video {
+    margin: 10px 0px 20px 0px;
     width: 30%;
+  }
+
+  span {
+    font-size: 10px;
   }
 }
 

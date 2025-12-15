@@ -31,7 +31,7 @@ from fastapi.responses import Response
 from models import request_models
 from models.image.image_gen_models import Image
 from models.video import video_request_models
-from models.video.video_gen_models import VideoGenerationResponse
+from models.video.video_request_models import VideoGenerationResponse
 from services.video.frame_extractor_service import FrameExtractorService
 from services.video.video_generator import VideoGenerator
 

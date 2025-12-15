@@ -12,10 +12,8 @@ import { VideoScene } from '../../models/scene-models';
 import { GeneratedImagesTableComponent } from '../generated-images-table/generated-images-table.component';
 import { Image } from '../../models/image-gen-models';
 import { SelectItem } from '../../models/settings-models';
-import {
-  getImageSelectionTypeOptions,
-  getVideoModelNameOptions,
-} from '../../image-utils';
+import { getImageSelectionTypeOptions } from '../../image-utils';
+import { getVideoModelNameOptions } from '../../video-utils';
 
 @Component({
   selector: 'app-image-selection-settings',
@@ -35,16 +33,17 @@ export class ImageSelectionSettingsComponent implements AfterViewInit {
   @Input() isSelectionMode!: boolean;
   @ViewChild(GeneratedImagesTableComponent)
   generatedImagesTableComponent!: GeneratedImagesTableComponent;
-  videoModelNameOptions: SelectItem[] = getVideoModelNameOptions();
+  videoModelNameOptions: SelectItem[] =
+    getVideoModelNameOptions('images-selection');
   imageSelectionTypeOptions: SelectItem[] = getImageSelectionTypeOptions(
     'veo-3.0-generate-001'
   );
   videoModelNameLabel: string = this.videoModelNameOptions[0].displayName;
   imageSelectionTypeLabel: string =
     this.imageSelectionTypeOptions[0].displayName;
-  maxAllowedSelectedImages: number = 1; // For default Veo 3
+  maxAllowedSelectedImages: number = 1; // By default in Veo 3
 
-  imageSelectionSettingsForm = new FormGroup({
+  imagesSelectionSettingsForm = new FormGroup({
     videoModelName: new FormControl('veo-3.0-generate-001', [
       Validators.required,
     ]),
@@ -54,26 +53,47 @@ export class ImageSelectionSettingsComponent implements AfterViewInit {
   });
 
   ngAfterViewInit(): void {
-    const modelName =
-      this.imageSelectionSettingsForm.get('videoModelName')?.value!;
-    this.imageSelectionTypeOptions = getImageSelectionTypeOptions(modelName);
+    this.initImageSelectionSettingsForm();
   }
 
   /**
    * Refreshes the generated images table component.
    */
   refreshGeneratedImagesTableComponent(): void {
-    this.initImageSelectionSettingsForm();
     this.generatedImagesTableComponent.refreshTable(false);
+  }
+
+  setGeneratedImagesTableSelection() {
+    this.generatedImagesTableComponent.setSelection();
   }
 
   /**
    * Initializes the image selection settings form.
    */
   initImageSelectionSettingsForm() {
-    this.imageSelectionSettingsForm.controls['imageSelectionType'].setValue(
-      'reference-image'
+    const selectedVideoModelName =
+      this.scene.imageGenerationSettings.imagesSelectionForVideoInfo
+        .selectedVideoModelName;
+    // 1. Populate the options in the Image Selection type dropdown
+    // based on saved or default videoModelName in this UI
+    this.imageSelectionTypeOptions = getImageSelectionTypeOptions(
+      selectedVideoModelName
     );
+    // 2. Set all the form items after initial values setup
+    this.imagesSelectionSettingsForm.controls['imageSelectionType'].setValue(
+      this.scene.imageGenerationSettings.imagesSelectionForVideoInfo
+        .imagesSelectionType
+    );
+    this.imagesSelectionSettingsForm.controls['videoModelName'].setValue(
+      selectedVideoModelName
+    );
+    // This depends on 1.
+    this.setImageSelectionTypeLabel(
+      this.scene.imageGenerationSettings.imagesSelectionForVideoInfo
+        .imagesSelectionType
+    );
+    this.setVideoNameLabel(selectedVideoModelName);
+    this.updateMaxAllowedSelectedImagesAccordingToSelections();
   }
 
   /**
@@ -84,27 +104,37 @@ export class ImageSelectionSettingsComponent implements AfterViewInit {
   }
 
   getVideoModelName(): string {
-    return this.imageSelectionSettingsForm.get('videoModelName')?.value!;
+    return this.imagesSelectionSettingsForm.get('videoModelName')?.value!;
+  }
+
+  getImagesSelectionType(): string {
+    return this.imagesSelectionSettingsForm.get('imageSelectionType')?.value!;
   }
 
   /**
    * Handles the logic when the model name is changed.
    */
   onVideoModelNameChange(event: MatSelectChange) {
-    const modelName = this.videoModelNameOptions.find(
-      (option) => option.value === event.value
-    );
-    if (modelName) {
-      this.videoModelNameLabel = modelName.displayName;
-    }
+    this.setVideoNameLabel(event.value);
     this.imageSelectionTypeOptions = getImageSelectionTypeOptions(event.value);
     // Always select the first element on video model name change
     this.imageSelectionTypeLabel =
       this.imageSelectionTypeOptions[0].displayName;
-    this.imageSelectionSettingsForm.controls['imageSelectionType'].setValue(
+    this.imagesSelectionSettingsForm.controls['imageSelectionType'].setValue(
       this.imageSelectionTypeOptions[0].value
     );
-    this.updateLabelsAccordingToSelections();
+    // Clear selection every time image selection type is changed
+    this.generatedImagesTableComponent.clearAllSelections();
+    this.updateMaxAllowedSelectedImagesAccordingToSelections();
+  }
+
+  setVideoNameLabel(modelName: string): void {
+    const modelOption = this.videoModelNameOptions.find(
+      (option) => option.value === modelName
+    );
+    if (modelOption) {
+      this.videoModelNameLabel = modelOption!.displayName;
+    }
   }
 
   /**
@@ -114,19 +144,23 @@ export class ImageSelectionSettingsComponent implements AfterViewInit {
   onImageSelectionTypeChanged(event: MatSelectChange) {
     // Clear selection every time image selection type is changed
     this.generatedImagesTableComponent.clearAllSelections();
-    const imageSelectionType = this.imageSelectionTypeOptions.find(
-      (option) => option.value === event.value
-    );
-    if (imageSelectionType) {
-      this.imageSelectionTypeLabel = imageSelectionType.displayName;
-    }
-    this.updateLabelsAccordingToSelections();
-  }
-
-  updateLabelsAccordingToSelections() {
+    this.setImageSelectionTypeLabel(event.value);
     // Clear selection every time image selection type is changed
     this.generatedImagesTableComponent.clearAllSelections();
-    // Check if Video model is Veo 3 or Veo 3 Flash
+    this.updateMaxAllowedSelectedImagesAccordingToSelections();
+  }
+
+  setImageSelectionTypeLabel(imageSelectionType: string) {
+    const imageSelectionTypeOption = this.imageSelectionTypeOptions.find(
+      (option) => option.value === imageSelectionType
+    );
+    if (imageSelectionTypeOption) {
+      this.imageSelectionTypeLabel = imageSelectionTypeOption!.displayName;
+    }
+  }
+
+  updateMaxAllowedSelectedImagesAccordingToSelections() {
+    // Check if Video model is Veo 3 or Veo 3 Fast
     if (
       this.videoModelNameLabel === this.videoModelNameOptions[0].displayName ||
       this.videoModelNameLabel === this.videoModelNameOptions[1].displayName
@@ -139,7 +173,7 @@ export class ImageSelectionSettingsComponent implements AfterViewInit {
           this.maxAllowedSelectedImages
         );
       }
-      // Check if Video model is Veo 3.1 or Veo 3.1 Flash
+      // Check if Video model is Veo 3.1 or Veo 3.1 Fast
     } else if (
       this.videoModelNameLabel === this.videoModelNameOptions[2].displayName ||
       this.videoModelNameLabel === this.videoModelNameOptions[3].displayName

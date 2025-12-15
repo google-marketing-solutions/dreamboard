@@ -19,42 +19,40 @@
  *
  ***************************************************************************/
 
-.item-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
+table {
+  width: 100%;
 
-  mat-form-field {
-    width: 82%;
+  td {
+    video {
+      margin: 10px 0px;
+      max-width: 550px;
+      max-height: 200px;
+    }
+    label {
+      font-size: 10px;
+      vertical-align: top;
+      margin-left: 10px;
+    }
   }
 }
 
-.next-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 16px 0px;
-
+.mat-mdc-form-field {
+  width: 50%;
+  margin-right: 15px;
 }
 
-.back-actions {
-  display: flex;
-  justify-content: flex-start;
-  margin: 16px 0px;
-
-}
-
-.both-actions {
-  display: flex;
-  justify-content: space-between;
-  margin: 16px 0px;
-}
-
-
-.close-button {
-  margin-top: 10px;
+.refresh-button {
+  margin-top: 16px;
   float: right;
 }
 
-mat-dialog-content {
-  max-height: 75vh !important;
+td,
+th {
+  width: 25%;
+}
+
+
+.mat-column-video-preview {
+  flex: 0 0 40%;
+  width: 50%; /* Redundant but good for clarity */
 }

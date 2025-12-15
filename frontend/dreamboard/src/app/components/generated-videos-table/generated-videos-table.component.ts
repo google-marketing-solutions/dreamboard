@@ -18,10 +18,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { SelectionModel } from '@angular/cdk/collections';
-import { Image } from '../../models/image-gen-models';
+import { Video } from '../../models/video-gen-models';
 
 @Component({
-  selector: 'app-generated-images-table',
+  selector: 'app-generated-videos-table',
   imports: [
     MatFormFieldModule,
     MatInputModule,
@@ -32,24 +32,23 @@ import { Image } from '../../models/image-gen-models';
     MatIconModule,
     MatTooltipModule,
   ],
-  templateUrl: './generated-images-table.component.html',
-  styleUrl: './generated-images-table.component.css',
+  templateUrl: './generated-videos-table.component.html',
+  styleUrl: './generated-videos-table.component.css',
 })
-export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
-  @Input() generatedImages!: Image[];
-  @Input() selectedImagesForVideo!: Image[];
+export class GeneratedVideosTableComponent implements AfterViewInit, OnChanges {
+  @Input() generatedVideos!: Video[];
+  @Input() selectedVideosForVideo!: Video[];
   @Input() isSelectionMode!: boolean;
-  @Input() imageSelectionTypeLabel!: string;
-  @Input() maxAllowedSelectedImages!: number;
-  @Output() generatedImageDeletedEvent = new EventEmitter<Image>();
-  displayedColumns: string[] = ['imagePreview', 'actions'];
-  dataSource: MatTableDataSource<Image>;
-  selection = new SelectionModel<Image>(true, []);
+  @Output() generatedVideoDeletedEvent = new EventEmitter<Video>();
+  displayedColumns: string[] = ['videoPreview', 'actions'];
+  dataSource: MatTableDataSource<Video>;
+  selection = new SelectionModel<Video>(true, []);
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  maxAllowedSelectedVideos: number = 1;
 
   constructor(private cdr: ChangeDetectorRef) {
     // Assign the data to the data source for the table to render
-    this.dataSource = new MatTableDataSource(this.generatedImages);
+    this.dataSource = new MatTableDataSource(this.generatedVideos);
   }
 
   ngAfterViewInit(): void {
@@ -81,18 +80,18 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
     this.selection.clear();
   }
 
-  toggleSingleRow(row: Image): void {
+  toggleSingleRow(row: Video): void {
     this.selection.toggle(row);
   }
 
-  setMaxAllowedSelectedImages(max: number): void {
-    this.maxAllowedSelectedImages = max;
+  setMaxAllowedSelectedVideos(max: number): void {
+    this.maxAllowedSelectedVideos = max;
   }
 
-  disableCheckBox(row: Image): boolean {
+  disableCheckBox(row: Video): boolean {
     const isSelected = this.selection.isSelected(row);
     if (
-      this.selection.selected.length === this.maxAllowedSelectedImages &&
+      this.selection.selected.length === this.maxAllowedSelectedVideos &&
       !isSelected
     ) {
       return true;
@@ -102,7 +101,7 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
   }
 
   /** The label for the checkbox on the passed row */
-  checkboxLabel(row?: Image): string {
+  checkboxLabel(row?: Video): string {
     if (!row) {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
     }
@@ -113,7 +112,7 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
 
   refreshTable(triggerDetectChanges: boolean): void {
     // Create copy to show always the latest generated images
-    const reversed = [...this.generatedImages].reverse();
+    const reversed = [...this.generatedVideos].reverse();
     this.dataSource.data = reversed;
     if (triggerDetectChanges) {
       this.cdr.detectChanges();
@@ -122,34 +121,30 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
 
   setSelection(): void {
     this.selection.clear();
-    if (this.selectedImagesForVideo) {
-      this.selectedImagesForVideo.forEach((selectedImage: Image) => {
-        // We need to select the images from object references in the table
-        // Otherwise selectedImagesForVideo will have a different reference objs
+    if (this.selectedVideosForVideo) {
+      this.selectedVideosForVideo.forEach((selectedVideoForVideo: Video) => {
+        // We need to select the videos from object references in the table
+        // Otherwise selectedVideosForVideo will have a different reference objs
         // when loaded from DB and it will not be correctly selected.
-        const found = this.generatedImages.find((image) => {
-          return image.id === selectedImage.id
+        const found = this.generatedVideos.find((video: Video) => {
+          return video.id === selectedVideoForVideo.id;
         });
-        if  (found) {
-          this.selection.select(found )
+        if (found) {
+          this.selection.select(found);
         }
       });
     }
   }
 
-  onDeleteGeneratedImage(image: Image): void {
+  onDeleteGeneratedVideo(video: Video): void {
     // Send trigger to parent component to update the img carousel in case
-    // a displayed image has been removed
-    this.generatedImageDeletedEvent.emit(image);
-    // Refresh table that relies on this.generatedImages array
+    // a displayed video has been removed
+    this.generatedVideoDeletedEvent.emit(video);
+    // Refresh table that relies on this.generatedVideos array
     this.refreshTable(false);
   }
 
   getPageSizeOptions(): number[] {
-    if (!this.isSelectionMode) {
-      return [3, 5, 10, 15];
-    } else {
-      return [15, 25, 35];
-    }
+    return [3, 5, 10, 15];
   }
 }

@@ -19,11 +19,15 @@
  *
  ***************************************************************************/
 
-import { Image, ImageItem } from './image-gen-models';
+import { Image, ImageItem, SeedImagesInfo } from './image-gen-models';
+
+export interface VideosSelectionForVideoInfo {
+  selectedVideoModelName: string; // Video model name dropdown selection to keep params separate from Images Selection UI
+  selectedVideosForVideo: Video[]; // Video(s) used to extend another video
+}
 
 export interface VideoGenerationSettings {
-  selectedVideo?: Video;
-  videoModelName: string
+  videoModelName: string;
   prompt: string;
   durationInSecs: number;
   aspectRatio?: string;
@@ -44,6 +48,8 @@ export interface VideoGenerationSettings {
   endSeconds?: number;
   endFrame?: number;
   generatedVideos: Video[];
+  videosSelectionForVideoInfo: VideosSelectionForVideoInfo
+  selectedVideoForMerge?: Video; // Video used for merge operation only
 }
 
 export interface Video {
@@ -84,16 +90,21 @@ export enum Transition {
 
 export interface VideoCreativeDirection {}
 
+export interface SeedVideosInfo {
+  seed_videos: VideoItem[];
+}
+
 export interface VideoSegmentRequest {
   scene_id: string;
   segment_number: number;
+  video_model_name: string;
   prompt: string;
-  seed_images: ImageItem[];
+  seed_images_info?: SeedImagesInfo;
   duration_in_secs?: number;
   aspect_ratio?: string;
   frames_per_sec?: number;
   person_generation?: string;
-  outputResolution?: string;
+  output_resolution?: string;
   sample_count?: number;
   seed?: number;
   negative_prompt?: string;
@@ -109,7 +120,8 @@ export interface VideoSegmentRequest {
   start_frame?: number;
   end_seconds?: number;
   end_frame?: number;
-  selected_video?: VideoItem; // Video that will be used for the merge operation
+  selected_video_for_merge?: VideoItem; // Video that will be used for the merge operation
+  seed_videos_info?: SeedVideosInfo;
 }
 
 export interface VideoGenerationRequest {

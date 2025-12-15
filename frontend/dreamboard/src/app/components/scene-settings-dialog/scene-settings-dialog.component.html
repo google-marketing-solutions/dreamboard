@@ -1,5 +1,5 @@
 <h2 mat-dialog-title>
-  {{ title }}
+  Scene {{ scene.number }} {{ title }}
   <button
     mat-icon-button
     [mat-dialog-close]="true"
@@ -33,24 +33,39 @@
         [scenes]="scenes"
       ></app-image-scene-settings>
       <div class="next-actions">
-        <button mat-button (click)="onImageSettingsViewChange()" matStepperNext>
+        <button mat-button matStepperNext>
+          Go to Images Selection For Video
           <mat-icon>arrow_forward_ios</mat-icon>
         </button>
       </div>
     </mat-step>
-    <mat-step label="Images Selection For Video">
+    <mat-step label="(Optional) Images Selection For Video">
       <app-image-selection-settings
         [storyId]="storyId"
         [scene]="scene"
       ></app-image-selection-settings>
-      <div class="back-actions">
+      <div class="both-actions">
         <button mat-button matStepperPrevious>
-          <mat-icon>arrow_back_ios</mat-icon>
+          Go Back <mat-icon>arrow_back_ios</mat-icon>
+        </button>
+
+        <button mat-button (click)="goToVideoGenerationSettings()">
+          Go to Video Generation Settings <mat-icon>arrow_forward_ios</mat-icon>
         </button>
       </div>
-      <div class="next-actions">
+    </mat-step>
+    <mat-step label="(Optional) Video Selection For Extension">
+      <app-video-selection-settings
+        [storyId]="storyId"
+        [scene]="scene"
+      ></app-video-selection-settings>
+      <div class="both-actions">
+        <button mat-button matStepperPrevious>
+          Go Back <mat-icon>arrow_back_ios</mat-icon>
+        </button>
+
         <button mat-button matStepperNext>
-          <mat-icon>arrow_forward_ios</mat-icon>
+          Go to Video Generation Settings <mat-icon>arrow_forward_ios</mat-icon>
         </button>
       </div>
     </mat-step>
@@ -58,14 +73,11 @@
       <app-video-scene-settings
         [scene]="scene"
         [storyId]="storyId"
+        (goToTabEvent)="goToTab($event)"
       ></app-video-scene-settings>
       <div class="back-actions">
-        <button
-          mat-button
-          (click)="onVideoSettingsViewChange()"
-          matStepperPrevious
-        >
-          <mat-icon>arrow_back_ios</mat-icon>
+        <button mat-button matStepperPrevious>
+          Go Back <mat-icon>arrow_back_ios</mat-icon>
         </button>
       </div>
     </mat-step>

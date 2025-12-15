@@ -62,32 +62,50 @@
         <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
       </mat-card-header>
 
-      @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0 &&
-      !scene.videoGenerationSettings.selectedVideo) {
+      @if
+      (scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.length
+      > 0 && !scene.videoGenerationSettings.selectedVideoForMerge) {
+      <!-- Display first selected image from selectedImagesForVideo -->
       <div class="scene-image">
         <img
           mat-card-image
           [src]="
-            scene.imageGenerationSettings.selectedImagesForVideo[0].signedUri
+            scene.imageGenerationSettings.imagesSelectionForVideoInfo
+              .selectedImagesForVideo[0].signedUri
           "
-          [alt]="scene.imageGenerationSettings.selectedImagesForVideo[0].name"
+          [alt]="
+            scene.imageGenerationSettings.imagesSelectionForVideoInfo
+              .selectedImagesForVideo[0].name
+          "
           class="selected-image"
         />
       </div>
-      } @else if (scene.imageGenerationSettings.selectedImagesForVideo.length
-      === 0 && !scene.videoGenerationSettings.selectedVideo &&
-      scene.imageGenerationSettings.generatedImages.length > 0
-      && this.currentlyDisplayedImageIndex < scene.imageGenerationSettings.generatedImages.length) {
+      } @else if
+      (scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.length
+      === 0 && !scene.videoGenerationSettings.selectedVideoForMerge &&
+      scene.imageGenerationSettings.generatedImages.length > 0 &&
+      this.currentlyDisplayedImageIndex <
+      scene.imageGenerationSettings.generatedImages.length) {
+      <!-- Display currently selected image from generatedImages -->
       <div class="scene-image">
         <img
           mat-card-image
-          [src]="scene.imageGenerationSettings.generatedImages[this.currentlyDisplayedImageIndex].signedUri"
-          [alt]="scene.imageGenerationSettings.generatedImages[this.currentlyDisplayedImageIndex].name"
+          [src]="
+            scene.imageGenerationSettings.generatedImages[
+              this.currentlyDisplayedImageIndex
+            ].signedUri
+          "
+          [alt]="
+            scene.imageGenerationSettings.generatedImages[
+              this.currentlyDisplayedImageIndex
+            ].name
+          "
           class="selected-image"
         />
       </div>
-      } @else if (scene.imageGenerationSettings.selectedImagesForVideo.length
-      === 0 && !scene.videoGenerationSettings.selectedVideo) {
+      } @else if
+      (scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.length
+      === 0 && !scene.videoGenerationSettings.selectedVideoForMerge) {
       <div class="scene-image">
         <p>
           Edit the scene to upload images <br />
@@ -97,11 +115,13 @@
       }
 
       <mat-card-content>
-        @if (scene.videoGenerationSettings.selectedVideo) {
+        @if (scene.videoGenerationSettings.selectedVideoForMerge) {
         <div class="gen-video-container">
           <video controls [id]="'video@' + scene.id">
             <source
-              [src]="scene.videoGenerationSettings.selectedVideo.signedUri"
+              [src]="
+                scene.videoGenerationSettings.selectedVideoForMerge.signedUri
+              "
               type="video/mp4"
             />
           </video>

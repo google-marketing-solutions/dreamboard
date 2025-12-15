@@ -33,6 +33,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { MatStepper } from '@angular/material/stepper';
 import { MatInputModule } from '@angular/material/input';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatStepperModule } from '@angular/material/stepper';
@@ -42,7 +43,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { VideoScene } from '../../models/scene-models';
 import { ImageSceneSettingsComponent } from '../image-scene-settings/image-scene-settings.component';
 import { ImageSelectionSettingsComponent } from '../image-selection-settings/image-selection-settings.component';
+import { VideoSelectionSettingsComponent } from '../video-selection-settings/video-selection-settings.component';
 import { VideoSceneSettingsComponent } from '../video-scene-settings/video-scene-settings.component';
+import { IMAGE_GENERATION_SETTINGS_TAB_INDEX, IMAGES_SELECTION_FOR_VIDEO_TAB_INDEX, VIDEO_GENERATION_SETTINGS_TAB_INDEX, VIDEOS_SELECTION_FOR_VIDEO_TAB_INDEX } from '../../models/settings-models';
 
 @Component({
   selector: 'app-scene-settings-dialog',
@@ -57,23 +60,29 @@ import { VideoSceneSettingsComponent } from '../video-scene-settings/video-scene
     MatIconModule,
     ImageSceneSettingsComponent,
     ImageSelectionSettingsComponent,
+    VideoSelectionSettingsComponent,
     VideoSceneSettingsComponent,
   ],
   templateUrl: './scene-settings-dialog.component.html',
   styleUrl: './scene-settings-dialog.component.css',
 })
 export class SceneSettingsDialogComponent implements AfterViewInit {
-  title = 'Scene Settings';
+  title = 'Settings';
   dialogData: any = inject(MAT_DIALOG_DATA);
   storyId = this.dialogData.storyId;
   scene: VideoScene = this.dialogData.scene;
   scenes: VideoScene[] = this.dialogData.scenes;
+  @ViewChild('stepper') private myStepper!: MatStepper;
   @ViewChild(ImageSceneSettingsComponent)
   imageSceneSettingsComponent!: ImageSceneSettingsComponent;
   @ViewChild(ImageSelectionSettingsComponent)
   imageSelectionSettingsComponent!: ImageSelectionSettingsComponent;
+  @ViewChild(VideoSelectionSettingsComponent)
+  videoSelectionSettingsComponent!: VideoSelectionSettingsComponent;
   @ViewChild(VideoSceneSettingsComponent)
   videoSceneSettingsComponent!: VideoSceneSettingsComponent;
+  selectedTabIndex: number = 0;
+
   sceneSettingsForm = new FormGroup({
     sceneDescription: new FormControl('', []),
   });
@@ -96,20 +105,40 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   }
 
   onStepChange(event: StepperSelectionEvent): void {
-    // If moving to image settings index === 0, save video settings
-    if (event.selectedIndex === 0) {
-      this.updateSceneVideoSettings(true);
+    this.selectedTabIndex = event.selectedIndex;
+    // If moving to Image Generation Settings index === 0, save video settings
+    if (event.selectedIndex === IMAGE_GENERATION_SETTINGS_TAB_INDEX) {
+      /* COMMENT THIS OUT FOR NOW to not replace values on tab changes
+      this.updateSceneVideoSettings(true);*/
     }
-    // If moving to image selection settings index === 1, update generated images table
-    if (event.selectedIndex === 1) {
-      this.updateImageSelectionSettings();
+    // If moving to Images Selection For Video index === 1, update generated images table
+    /*if (event.selectedIndex === IMAGES_SELECTION_FOR_VIDEO_TAB_INDEX) {
+      this.updateImagesSelectionSettings();
     }
-    // If moving to video settings index === 2, save image settings
+    // If moving to Video Selection for Extension index === 2, update generated videos table
+    if (event.selectedIndex === VIDEOS_SELECTION_FOR_VIDEO_TAB_INDEX) {
+      this.updateVideoSelectionForExtensionSettings();
+    }*/
+   this.updateImagesSelectionSettings();
+   this.updateVideoSelectionForExtensionSettings();
+    // If moving to Video Generation Settings index === 3, save image settings
     // and update any selected reference image from Image Selection Settings tab
-    if (event.selectedIndex === 2) {
-      this.updateSceneImageSettings(true);
-      this.updateImagesSelectionForVideoDetails();
+    if (event.selectedIndex === VIDEO_GENERATION_SETTINGS_TAB_INDEX) {
+      /* COMMENT THIS OUT FOR NOW to not replace values on tab changes
+      this.updateSceneImageSettings(true);*/
+      this.updateImagesSelectionForVideoGenerationSettings();
+      this.updateVideoSelectionForVideoGenerationSettings();
     }
+  }
+
+  goToVideoGenerationSettings() {
+    if (this.myStepper) {
+      this.myStepper.selectedIndex = VIDEO_GENERATION_SETTINGS_TAB_INDEX;
+    }
+  }
+
+  goToTab(tab: number) {
+    this.myStepper.selectedIndex = tab;
   }
 
   /**
@@ -143,7 +172,13 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
    * @returns {void}
    */
   save(): void {
+    // Save changes in tab 0
     this.updateSceneImageSettings(false);
+    // Save changes in tab 1
+    this.updateImagesSelectionForVideoGenerationSettings();
+    // Save changes in tab 2
+    this.updateVideoSelectionForVideoGenerationSettings();
+    // Save changes in tab 3
     this.updateSceneVideoSettings(false);
     this.dialogRef.close({
       currentlyDisplayedImageIndex:
@@ -187,22 +222,53 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     }
   }
 
-  updateImageSelectionSettings(): void {
+  updateImagesSelectionSettings(): void {
+    // Update table manually since it's not populated automatically on tab change
+    // only initial view generation
     this.imageSelectionSettingsComponent.refreshGeneratedImagesTableComponent();
+    this.imageSelectionSettingsComponent.setGeneratedImagesTableSelection();
   }
 
-  updateImagesSelectionForVideoDetails(): void {
-    // Update the selected images for videos
-    // in ImageGenerationSettings
+  updateVideoSelectionForExtensionSettings(): void {
+    // Update table manually since it's not populated automatically on tab change
+    // only initial view generation
+    this.videoSelectionSettingsComponent.refreshGeneratedImagesTableComponent();
+    this.videoSelectionSettingsComponent.setGeneratedVideosTableSelection();
+  }
+
+  updateImagesSelectionForVideoGenerationSettings(): void {
+    // Update the selected images for videos in ImageGenerationSettings
     const selectedImagesForVideo =
       this.imageSelectionSettingsComponent.getSelectedImagesForVideo();
+    const imagesSelectionType =
+      this.imageSelectionSettingsComponent.getImagesSelectionType();
     this.imageSceneSettingsComponent.setSelectedImagesForVideo(
+      imagesSelectionType,
       selectedImagesForVideo
     );
-    // Update the selected video model name in VideoGenerationSettings
-    const videoModelName =
+    const selectedVideoModelName =
       this.imageSelectionSettingsComponent.getVideoModelName();
-    this.videoSceneSettingsComponent.setVideoModelName(videoModelName);
+    this.scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedVideoModelName =
+      selectedVideoModelName;
+    // Update the selected video model name in VideoGenerationSettings
+    this.videoSceneSettingsComponent.setVideoModelNameAccordingToSelectionType();
+    this.videoSceneSettingsComponent.disableVideoModelNameDropdown();
+  }
+
+  updateVideoSelectionForVideoGenerationSettings(): void {
+    // Update the selected videos for extension in VideoGenerationSettings
+    const selectedVideosForVideo =
+      this.videoSelectionSettingsComponent.getSelectedVideosForVideo();
+    this.videoSceneSettingsComponent.setSelectedVideosForVideo(
+      selectedVideosForVideo
+    );
+    const selectedVideoModelName =
+      this.videoSelectionSettingsComponent.getVideoModelName();
+    this.scene.videoGenerationSettings.videosSelectionForVideoInfo.selectedVideoModelName =
+      selectedVideoModelName;
+    // Update the selected video model name in VideoGenerationSettings
+    this.videoSceneSettingsComponent.setVideoModelNameAccordingToSelectionType();
+    this.videoSceneSettingsComponent.disableVideoModelNameDropdown();
   }
 
   /**
@@ -217,7 +283,11 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   updateSceneVideoSettings(initView: boolean): void {
     this.scene.description =
       this.sceneSettingsForm.get('sceneDescription')?.value!;
-    this.videoSceneSettingsComponent.setVideoSettings();
+    // To avoid overriding when saving the scene from the Images Selection For Videos tab
+    const updateVideoModelNameInVideoGenSettings = this.selectedTabIndex === 2;
+    this.videoSceneSettingsComponent.setVideoSettings(
+      updateVideoModelNameInVideoGenSettings
+    );
     if (initView) {
       this.imageSceneSettingsComponent.initImageSettingsForm();
     }

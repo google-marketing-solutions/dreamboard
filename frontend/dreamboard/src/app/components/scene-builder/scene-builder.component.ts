@@ -26,7 +26,7 @@
  * scene-specific settings and handle API responses.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, AfterViewInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -40,6 +40,7 @@ import {
   VideoGenerationResponse,
   VideoItem,
   Video,
+  SeedVideosInfo,
 } from '../../models/video-gen-models';
 import { ExportStory } from '../../models/story-models';
 import {
@@ -48,6 +49,7 @@ import {
   ImageGenerationRequest,
   ImageCreativeDirection,
   ImageGenerationResponse,
+  SeedImagesInfo,
 } from '../../models/image-gen-models';
 import { openSnackBar } from '../../utils';
 import { validateScenes } from '../../scene-utils';
@@ -57,9 +59,13 @@ import { ImageGenerationService } from '../../services/image-generation.service'
 import {
   updateScenesWithGeneratedVideos,
   getNewVideoScene,
+  getSeedVideosInfo,
 } from '../../video-utils';
 import { getNewVideoStory } from '../../story-utils';
-import { updateScenesWithGeneratedImages } from '../../image-utils';
+import {
+  getSeedImagesInfo,
+  updateScenesWithGeneratedImages,
+} from '../../image-utils';
 import { SceneSettingsDialogComponent } from '../scene-settings-dialog/scene-settings-dialog.component';
 import { TransitionsSettingsDialogComponent } from '../transitions-settings-dialog/transitions-settings-dialog.component';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
@@ -72,7 +78,7 @@ import { Image } from '../../models/image-gen-models';
   templateUrl: './scene-builder.component.html',
   styleUrl: './scene-builder.component.css',
 })
-export class SceneBuilderComponent {
+export class SceneBuilderComponent implements AfterViewInit {
   story: VideoStory = getNewVideoStory();
   sceneSettingsDialog = inject(MatDialog);
   creativeDirectionSettingsDialog = inject(MatDialog);
@@ -105,32 +111,47 @@ export class SceneBuilderComponent {
     );
   }
 
+  ngAfterViewInit() {
+    this.currentlyDisplayedImageIndex = 0;
+  }
+
   /**
    * Opens a dialog for editing the settings of a specific video scene.
    * This dialog allows users to configure image and video generation parameters for the scene.
    * @param {VideoScene} scene - The video scene object to be edited.
    * @returns {void}
    */
-  openSceneSettingsDialog(scene: VideoScene, sceneId: string) {
+  openSceneSettingsDialog(scene: VideoScene) {
+    // Always display the last generated image in the Image Generation Settings
+    // when videos have been generated, since scene view is video now
+    if (
+      scene.imageGenerationSettings.generatedImages.length > 0 &&
+      scene.videoGenerationSettings.generatedVideos.length > 0
+    ) {
+      this.currentlyDisplayedImageIndex =
+        scene.imageGenerationSettings.generatedImages.length - 1;
+    }
+
     const dialogRef = this.sceneSettingsDialog.open(
       SceneSettingsDialogComponent,
       {
-        minWidth: '1200px',
+        minWidth: '1400px',
+        minHeight: '750px',
         data: {
           storyId: this.story.id,
           scene: scene,
           scenes: this.story.scenes,
-          currentlyDisplayedImageIndex: this.currentlyDisplayedImageIndex
+          currentlyDisplayedImageIndex: this.currentlyDisplayedImageIndex,
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
       }
     );
 
     // Subscribe to afterClosed() to get data when the dialog closes
-    dialogRef.afterClosed().subscribe(data => {
+    dialogRef.afterClosed().subscribe((data) => {
       if (data) {
-        if(data.currentlyDisplayedImageIndex !== -1) {
-          this.currentlyDisplayedImageIndex = data.currentlyDisplayedImageIndex
+        if (data.currentlyDisplayedImageIndex !== -1) {
+          this.currentlyDisplayedImageIndex = data.currentlyDisplayedImageIndex;
         }
       }
     });
@@ -187,7 +208,7 @@ export class SceneBuilderComponent {
     const sceneId = event.target.parentElement.parentElement.parentElement.id;
     const scene = this.getSceneById(sceneId);
     if (scene) {
-      this.openSceneSettingsDialog(scene, sceneId);
+      this.openSceneSettingsDialog(scene);
     } else {
       console.log('Video Scene not found. No scene to edit.');
     }
@@ -496,33 +517,29 @@ export class SceneBuilderComponent {
           return false;
         }
       }
-      // Add selected image
-      const imagesForVideo =
-        scene.imageGenerationSettings.selectedImagesForVideo.map(
-          (img: Image) => {
-            const seedImage: ImageItem = {
-              id: img.id,
-              name: img.name,
-              gcs_uri: img.gcsUri,
-              signed_uri: img.signedUri,
-              gcs_fuse_path: img.gcsFusePath,
-              mime_type: img.mimeType,
-            };
-            return seedImage;
-          }
-        );
-      // Add selected video
-      let selectedVideo: VideoItem | undefined = undefined;
-      if (scene.videoGenerationSettings.selectedVideo) {
-        selectedVideo = {
-          id: scene.videoGenerationSettings.selectedVideo.id,
-          name: scene.videoGenerationSettings.selectedVideo.name,
-          gcs_uri: scene.videoGenerationSettings.selectedVideo.gcsUri,
-          signed_uri: scene.videoGenerationSettings.selectedVideo.signedUri,
+
+      // Add selected images for video as reference
+      const seedImagesInfo: SeedImagesInfo | undefined =
+        getSeedImagesInfo(scene);
+
+      // Add selected videos for video for extend functionality
+      const seedVideosInfo: SeedVideosInfo | undefined =
+        getSeedVideosInfo(scene);
+
+      let selectedVideoForMerge: VideoItem | undefined;
+      if (scene.videoGenerationSettings.selectedVideoForMerge) {
+        selectedVideoForMerge = {
+          id: scene.videoGenerationSettings.selectedVideoForMerge.id,
+          name: scene.videoGenerationSettings.selectedVideoForMerge.name,
+          gcs_uri: scene.videoGenerationSettings.selectedVideoForMerge.gcsUri,
+          signed_uri:
+            scene.videoGenerationSettings.selectedVideoForMerge.signedUri,
           gcs_fuse_path:
-            scene.videoGenerationSettings.selectedVideo?.gcsFusePath,
-          mime_type: scene.videoGenerationSettings.selectedVideo.mimeType,
-          duration: scene.videoGenerationSettings.selectedVideo.duration,
+            scene.videoGenerationSettings.selectedVideoForMerge.gcsFusePath,
+          mime_type:
+            scene.videoGenerationSettings.selectedVideoForMerge.mimeType,
+          duration:
+            scene.videoGenerationSettings.selectedVideoForMerge.duration,
           frames_uris: [],
         };
       }
@@ -530,8 +547,9 @@ export class SceneBuilderComponent {
       const videoSegment: VideoSegmentRequest = {
         scene_id: scene.id,
         segment_number: scene.number,
+        video_model_name: scene.videoGenerationSettings.videoModelName,
         prompt: scene.videoGenerationSettings.prompt,
-        seed_images: imagesForVideo,
+        seed_images_info: seedImagesInfo,
         duration_in_secs: scene.videoGenerationSettings.durationInSecs,
         aspect_ratio: scene.videoGenerationSettings.aspectRatio,
         frames_per_sec: scene.videoGenerationSettings.framesPerSec!,
@@ -555,7 +573,8 @@ export class SceneBuilderComponent {
           end_seconds: scene.videoGenerationSettings.endSeconds,
           end_frame: scene.videoGenerationSettings.endFrame,
         }),
-        selected_video: selectedVideo,
+        selected_video_for_merge: selectedVideoForMerge, // Required for MERGE operation
+        seed_videos_info: seedVideosInfo, // Optional for GENERATE operation
       };
       videoSegments.push(videoSegment);
 

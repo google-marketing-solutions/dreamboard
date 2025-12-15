@@ -1,25 +1,33 @@
 /***************************************************************************
- * 
+ *
  *  Copyright 2025 Google Inc.
- * 
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 
+ *
  *      https://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- * 
+ *
  *  Note that these code samples being shared are not official Google
  *  products and are not formally supported.
- * 
+ *
  ***************************************************************************/
 
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ViewChild,
+  ElementRef,
+  inject,
+} from '@angular/core';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -45,10 +53,10 @@ import { Image } from '../../models/image-gen-models';
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
-    MatExpansionModule
+    MatExpansionModule,
   ],
   templateUrl: './frame-extraction.component.html',
-  styleUrls: ['./frame-extraction.component.css']
+  styleUrls: ['./frame-extraction.component.css'],
 })
 export class FrameExtractionComponent {
   @Input() scenes!: VideoScene[];
@@ -92,16 +100,27 @@ export class FrameExtractionComponent {
   }
 
   extractFrames(): void {
-    const scene = this.scenes.find(s => s.videoGenerationSettings.selectedVideo?.signedUri === this.selectedVideoUrl);
-    if (!scene || !scene.videoGenerationSettings.selectedVideo) {
+    const scene = this.scenes.find(
+      (s) =>
+        s.videoGenerationSettings.selectedVideoForMerge?.signedUri ===
+        this.selectedVideoUrl
+    );
+    if (!scene || !scene.videoGenerationSettings.selectedVideoForMerge) {
       return;
     }
 
-    const gcsUri = scene.videoGenerationSettings.selectedVideo.gcsUri;
+    const gcsUri = scene.videoGenerationSettings.selectedVideoForMerge.gcsUri;
     const sceneNum = scene.number.toString();
 
     openSnackBar(this._snackBar, 'Extracting frames...');
-    this.frameExtractionService.extractFrames(gcsUri, this.storyId, sceneNum, this.extractionTime, this.numFrames)
+    this.frameExtractionService
+      .extractFrames(
+        gcsUri,
+        this.storyId,
+        sceneNum,
+        this.extractionTime,
+        this.numFrames
+      )
       .subscribe({
         next: (response: any) => {
           closeSnackBar(this._snackBar);
@@ -116,13 +135,20 @@ export class FrameExtractionComponent {
             if (typeof error.error === 'string') {
               errorMessage = error.error;
             } else {
-              errorMessage = error.error.detail || error.error.error_message || JSON.stringify(error.error);
+              errorMessage =
+                error.error.detail ||
+                error.error.error_message ||
+                JSON.stringify(error.error);
             }
           } else if (error.message) {
             errorMessage = error.message;
           }
-          openSnackBar(this._snackBar, `Error extracting frames: ${errorMessage}`, 5);
-        }
+          openSnackBar(
+            this._snackBar,
+            `Error extracting frames: ${errorMessage}`,
+            5
+          );
+        },
       });
   }
 }

@@ -25,3 +25,8 @@ form {
       }
     }
 }
+
+.features-legend {
+  margin: 30px 0px;
+  width: 75%;
+}

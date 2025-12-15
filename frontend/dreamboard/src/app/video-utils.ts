@@ -20,9 +20,11 @@
  ***************************************************************************/
 
 import {
+  SeedVideosInfo,
   VideoGenerationResponse,
   VideoGenerationSettings,
   VideoItem,
+  VideosSelectionForVideoInfo,
 } from './models/video-gen-models';
 import { SelectItem } from './models/settings-models';
 import { Video } from './models/video-gen-models';
@@ -46,7 +48,7 @@ export function getNewVideoScene(existingScenesLen: number) {
 
 export function getNewVideoSettings(): VideoGenerationSettings {
   const newVideoGenSettings: VideoGenerationSettings = {
-    videoModelName: '', // TODO (ae) empty here since user has to select it
+    videoModelName: 'veo-3.0-generate-001',
     prompt: '',
     durationInSecs: 4,
     aspectRatio: '16:9',
@@ -67,10 +69,52 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     endSeconds: 7,
     endFrame: 23,
     generatedVideos: [], // empty for new scene
-    selectedVideo: undefined,
+    videosSelectionForVideoInfo: {
+      selectedVideoModelName: 'veo-3.1-generate-001', // by default
+      selectedVideosForVideo: [], // empty for new scene
+    } as VideosSelectionForVideoInfo,
   };
 
   return newVideoGenSettings;
+}
+
+export function getVideoModelNameOptions(viewName: string) {
+  // TODO (ae) make this an API call later
+  let modelNameOptions: SelectItem[] = [];
+  if (viewName === 'all' || viewName === 'images-selection') {
+    modelNameOptions = [
+      {
+        displayName: 'Veo 3',
+        value: 'veo-3.0-generate-001',
+      },
+      {
+        displayName: 'Veo 3 Fast',
+        value: 'veo-3.0-fast-generate-001',
+      },
+      {
+        displayName: 'Veo 3.1',
+        value: 'veo-3.1-generate-001',
+      },
+      {
+        displayName: 'Veo 3.1 Fast',
+        value: 'veo-3.1-fast-generate-001',
+      },
+    ];
+  }
+
+  if (viewName === 'video-selection') {
+    modelNameOptions = [
+      {
+        displayName: 'Veo 3.1',
+        value: 'veo-3.1-generate-001',
+      },
+      {
+        displayName: 'Veo 3.1 Fast',
+        value: 'veo-3.1-fast-generate-001',
+      },
+    ];
+  }
+  return modelNameOptions;
 }
 
 export function getAspectRatios() {
@@ -162,7 +206,7 @@ export function updateScenesWithGeneratedVideos(
             signedUri: video.signed_uri,
             gcsFusePath: video.gcs_fuse_path,
             mimeType: video.mime_type,
-            duration: video.duration
+            duration: video.duration,
           };
           return vid;
         });
@@ -171,9 +215,9 @@ export function updateScenesWithGeneratedVideos(
           scene.videoGenerationSettings.generatedVideos,
           genVideos
         );
-        // Select first generated video as selected image for video
+        // Select first generated video
         if (genVideos.length > 0) {
-          scene.videoGenerationSettings.selectedVideo = genVideos[0];
+          scene.videoGenerationSettings.selectedVideoForMerge = genVideos[0];
         }
         executionStatus['succeded'] = true;
         executionStatus[
@@ -276,4 +320,38 @@ export function getVideoFormats() {
       field1: 6, // length of the format
     },
   ];
+}
+
+export function getSeedVideosInfo(
+  scene: VideoScene
+): SeedVideosInfo | undefined {
+  const selectedVideosForVideo: VideoItem[] =
+    scene.videoGenerationSettings.videosSelectionForVideoInfo.selectedVideosForVideo.map(
+      (selectedVideoForVideo: Video) => {
+        const selectedVideoItem: VideoItem = {
+          id: selectedVideoForVideo.id,
+          name: selectedVideoForVideo.name,
+          gcs_uri: selectedVideoForVideo.gcsUri,
+          signed_uri: selectedVideoForVideo.signedUri,
+          gcs_fuse_path: selectedVideoForVideo?.gcsFusePath,
+          mime_type: selectedVideoForVideo.mimeType,
+          duration: selectedVideoForVideo.duration,
+          frames_uris: [],
+        };
+
+        return selectedVideoItem;
+      }
+    );
+
+  let seedVideosInfo: SeedVideosInfo | undefined;
+  if (
+    scene.videoGenerationSettings.videosSelectionForVideoInfo
+      .selectedVideosForVideo.length > 0
+  ) {
+    seedVideosInfo = {
+      seed_videos: selectedVideosForVideo,
+    };
+  }
+
+  return seedVideosInfo;
 }

@@ -1,0 +1,40 @@
+<div class="image-selection-settings-container">
+  <div class="features-legend">
+    <p>
+      <strong>Note: </strong>The
+      <strong>(Optional) Video Selection For Extension</strong> and
+      <strong>(Optional) Images Selection For Video</strong> features are
+      <strong>mutually exclusive</strong>. You cannot select both video and
+      image assets at the same time to generate a video. Please choose either
+      videos or images to generate your video. Image selection has priority if
+      both images and videos are selected for generation.
+    </p>
+  </div>
+  <form [formGroup]="videoSelectionSettingsForm">
+    <div class="video-selection-type-container">
+      <mat-form-field>
+        <mat-label>Video Model Name</mat-label>
+        <mat-select
+          (selectionChange)="onVideoModelNameChange($event)"
+          formControlName="videoModelName"
+        >
+          @for (videoModelNameOption of videoModelNameOptions; track
+          videoModelNameOption.value) {
+          <mat-option [value]="videoModelNameOption.value">{{
+            videoModelNameOption.displayName
+          }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </form>
+  <!-- Generated videos table -->
+  <app-generated-videos-table
+    [generatedVideos]="scene.videoGenerationSettings.generatedVideos"
+    [selectedVideosForVideo]="
+      scene.videoGenerationSettings.videosSelectionForVideoInfo
+        .selectedVideosForVideo
+    "
+    [isSelectionMode]="true"
+  ></app-generated-videos-table>
+</div>

@@ -22,8 +22,6 @@ video assets and structured responses from video generation APIs.
 
 from dataclasses import dataclass, field
 
-from models.video import video_request_models
-
 
 @dataclass
 class Video:
@@ -48,31 +46,3 @@ class Video:
   mime_type: str
   duration: float
   frames_uris: list[str] | None = field(default_factory=list)
-
-
-@dataclass
-class VideoGenerationResponse:
-  """
-  Represents the structured response from a video generation API call.
-
-  This model provides status, operational details, and references to
-  the generated video assets.
-
-  Attributes:
-      done: A boolean flag indicating if the video generation operation is
-            complete.
-      operation_name: The name of the asynchronous operation, useful for
-                      tracking its status.
-      execution_message: Any message or status detail about the execution
-                         of the video generation.
-      videos: A list of `Video` objects, representing the generated video(s).
-      video_segment: An optional `VideoSegmentRequest` if this response
-                     pertains to a specific segment of a larger video.
-                     This will be `None` for a final, merged video.
-  """
-
-  done: bool
-  operation_name: str
-  execution_message: str
-  videos: list[Video]
-  video_segment: video_request_models.VideoSegmentRequest | None = None

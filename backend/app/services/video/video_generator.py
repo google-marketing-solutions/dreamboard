@@ -27,7 +27,8 @@ import os
 import uuid
 import utils
 from models.video import video_request_models
-from models.video.video_gen_models import Video, VideoGenerationResponse
+from models.video.video_gen_models import Video
+from models.video.video_request_models import VideoGenerationResponse
 from moviepy import editor
 from services import storage_service
 from services.video.veo_api_service import VeoAPIService
@@ -246,8 +247,8 @@ class VideoGenerator:
     video_cut_specs = []
     video_cut = 0
     for vsg in video_generation.video_segments:
-      if vsg.selected_video:
-        videos.append(vsg.selected_video)
+      if vsg.selected_video_for_merge:
+        videos.append(vsg.selected_video_for_merge)
 
         video_cut_specs.append({
             "start_seconds": vsg.start_seconds if vsg.start_seconds else 0,

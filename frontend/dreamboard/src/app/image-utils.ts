@@ -24,6 +24,8 @@ import {
   ImageItem,
   ImageGenerationResponse,
   ImageGenerationSettings,
+  SeedImagesInfo,
+  ImagesSelectionForVideoInfo,
 } from './models/image-gen-models';
 import { SelectItem } from './models/settings-models';
 import { VideoScene } from './models/scene-models';
@@ -42,7 +44,11 @@ export function getNewImageSettings() {
     personGeneration: 'allow_all',
     seed: -1,
     negativePrompt: '',
-    selectedImagesForVideo: [],
+    imagesSelectionForVideoInfo: {
+      selectedVideoModelName: 'veo-3.0-generate-001', // by default
+      imagesSelectionType: 'reference-image',
+      selectedImagesForVideo: [],
+    } as ImagesSelectionForVideoInfo,
     referenceImages: [],
     generatedImages: [],
   };
@@ -189,7 +195,7 @@ export function getImageSelectionTypeOptions(modelName: string): SelectItem[] {
         value: 'reference-image',
       },
     ],
-    'veo-3.1-generate-preview': [
+    'veo-3.1-generate-001': [
       {
         displayName: 'Reference Image',
         value: 'reference-image',
@@ -199,7 +205,7 @@ export function getImageSelectionTypeOptions(modelName: string): SelectItem[] {
         value: 'first-last-frame',
       },
     ],
-    'veo-3.1-fast-generate-preview': [
+    'veo-3.1-fast-generate-001': [
       {
         displayName: 'Reference Image',
         value: 'reference-image',
@@ -211,29 +217,6 @@ export function getImageSelectionTypeOptions(modelName: string): SelectItem[] {
     ],
   };
   return imageSelectionTypeOtions[modelName];
-}
-
-export function getVideoModelNameOptions() {
-  // TODO (ae) make this an API call later
-  const modelNameOptions: SelectItem[] = [
-    {
-      displayName: 'Veo 3',
-      value: 'veo-3.0-generate-001',
-    },
-    {
-      displayName: 'Veo 3 Flash',
-      value: 'veo-3.0-fast-generate-001',
-    },
-    {
-      displayName: 'Veo 3.1',
-      value: 'veo-3.1-generate-preview',
-    },
-    {
-      displayName: 'Veo 3.1 Flash',
-      value: 'veo-3.1-fast-generate-preview',
-    },
-  ];
-  return modelNameOptions;
 }
 
 export function findSceneResponse(
@@ -306,4 +289,44 @@ export function updateScenesWithGeneratedImages(
   });
 
   return executionStatus;
+}
+
+export function getSeedImagesInfo(
+  scene: VideoScene
+): SeedImagesInfo | undefined {
+  const imagesForVideo =
+    scene.imageGenerationSettings.imagesSelectionForVideoInfo.selectedImagesForVideo.map(
+      (img: Image) => {
+        const seedImage: ImageItem = {
+          id: img.id,
+          name: img.name,
+          signed_uri: img.signedUri,
+          gcs_uri: img.gcsUri,
+          mime_type: img.mimeType,
+          gcs_fuse_path: '', // Empty here, this is generated in the backend
+        };
+        return seedImage;
+      }
+    );
+  // Copy first frame as last name in case user only selected 1 image
+  // for First/Last Frame image selection type
+  if (
+    scene.imageGenerationSettings.imagesSelectionForVideoInfo
+      .imagesSelectionType === 'first-last-frame' &&
+    imagesForVideo.length === 1
+  ) {
+    imagesForVideo.push(imagesForVideo[0]);
+  }
+
+  let seed_images_info: SeedImagesInfo | undefined;
+  if (imagesForVideo.length > 0) {
+    seed_images_info = {
+      images_selection_type:
+        scene.imageGenerationSettings.imagesSelectionForVideoInfo
+          .imagesSelectionType,
+      seed_images: imagesForVideo,
+    };
+  }
+
+  return seed_images_info;
 }

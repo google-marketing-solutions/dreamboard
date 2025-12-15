@@ -5,6 +5,7 @@ table {
     img {
       margin: 10px 0px;
       max-width: 200px;
+      max-height: 200px;
     }
     label {
       font-size: 10px;
@@ -15,7 +16,9 @@ table {
 }
 
 .selected-images-for-video-legend {
+  background-color: beige;
   margin-bottom: 16px;
+  padding: 1px 5px;
 }
 
 .mat-mdc-form-field {

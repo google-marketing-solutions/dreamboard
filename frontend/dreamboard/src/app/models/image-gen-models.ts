@@ -40,6 +40,12 @@ export interface ImageReference extends Image {
   enableControlImageComputation?: boolean;
 }
 
+export interface ImagesSelectionForVideoInfo {
+  selectedVideoModelName: string; // Video model name dropdown selection to keep params separate from Videos Selection UI
+  imagesSelectionType: string; // Reference, First/Last frame
+  selectedImagesForVideo: Image[]; // Images used to generate the video
+}
+
 export interface ImageGenerationSettings {
   prompt: string;
   numImages: number;
@@ -51,7 +57,7 @@ export interface ImageGenerationSettings {
   personGeneration?: string;
   seed?: number;
   negativePrompt?: string;
-  selectedImagesForVideo: Image[]; // Images used to generate the video
+  imagesSelectionForVideoInfo: ImagesSelectionForVideoInfo;
   referenceImages?: ImageReference[]; // Image used to generate new images with AI, if selected, can also be used to generate the video
   generatedImages: Image[]; // Contains AI generated images and reference images
   useReferenceImageForImage?: boolean;
@@ -143,4 +149,9 @@ export interface ImageGenerationResponse {
   operation_name: string;
   execution_message: string;
   images: ImageItem[];
+}
+
+export interface SeedImagesInfo {
+  images_selection_type: string
+  seed_images: ImageItem[]
 }
