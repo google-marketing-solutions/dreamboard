@@ -9,6 +9,7 @@ backend/database.db
 
 # Frontend
 frontend/dreamboard/dist
+frontend/dreamboard/node_modules
 frontend/server/.env
 frontend/server/node_modules
 
@@ -30,6 +31,7 @@ frontend/server/node_modules
 .history/*
 
 # Miscellaneous
+**/.angular/cache
 /connect.lock
 /coverage
 /libpeerconnection.log
@@ -38,7 +40,7 @@ testem.log
 
 # System files
 **/.DS_Store
-Thumbs.db
+**/Thumbs.db
 
 # Git
 .git
