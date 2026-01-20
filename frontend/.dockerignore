@@ -14,7 +14,7 @@
 Dockerfile
 dreamboard/Docker
 .dockerignore
-deploy.sh
+deploy_frontend.sh
 README.md
 
 dreamboard/dist

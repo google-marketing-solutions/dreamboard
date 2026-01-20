@@ -1,5 +1,5 @@
 # Stage 0, "build-stage", based on Node.js, to build and compile the frontend with multi-stage builds
-FROM node:22.20 as angular-build-stage
+FROM node:24.12 as angular-build-stage
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN npm run build --configuration=production
 
 
 # Use a lightweight Node.js base image
-FROM node:22.12-alpine
+FROM node:24.12-alpine
 
 # Set the working directory in the container
 WORKDIR /app
