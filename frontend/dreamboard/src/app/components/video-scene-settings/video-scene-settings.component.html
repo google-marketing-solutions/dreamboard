@@ -1,57 +1,67 @@
 <div class="videos-container">
   <div class="videos">
     @if (scene.videoGenerationSettings.generatedVideos.length === 0) {
-    <p>
-      Your video will show here. <br />
-      <mat-icon>videocam</mat-icon>
-    </p>
+      <p>
+        Your video will show here. <br />
+        <mat-icon>videocam</mat-icon>
+      </p>
     } @else {
-
-    <div class="carousel">
-      @for (video of scene.videoGenerationSettings.generatedVideos; track video;
-      let i = $index) { @if (i === currentGeneratedVideoIndex) {
-      <video controls class="generated-file">
-        <source [src]="video.signedUri" type="video/mp4" />
-      </video>
-      } }
-    </div>
-    <div class="c-buttons">
-      <button mat-mini-fab (click)="onPrev()">
-        <mat-icon>arrow_back_ios</mat-icon>
-      </button>
-      <button mat-mini-fab (click)="onNext()">
-        <mat-icon>arrow_forward_ios</mat-icon>
-      </button>
-    </div>
+      <div class="carousel">
+        @for (
+          video of scene.videoGenerationSettings.generatedVideos;
+          track video;
+          let i = $index
+        ) {
+          @if (i === currentGeneratedVideoIndex) {
+            <video controls class="generated-file">
+              <source [src]="video.signedUri" type="video/mp4" />
+            </video>
+          }
+        }
+      </div>
+      <div class="c-buttons">
+        <button mat-mini-fab (click)="onPrev()">
+          <mat-icon>arrow_back_ios</mat-icon>
+        </button>
+        <button mat-mini-fab (click)="onNext()">
+          <mat-icon>arrow_forward_ios</mat-icon>
+        </button>
+      </div>
     }
   </div>
-  @if(scene.videoGenerationSettings.generatedVideos.length > 0) {
-  <button mat-button>
-    <mat-icon>download</mat-icon>
-    <a
-      [href]="this.scene.videoGenerationSettings.selectedVideo?.signedUri"
-      download
-      [download]="this.scene.videoGenerationSettings.selectedVideo?.name"
-      target="_blank"
-      >Video</a
-    >
-  </button>
-  }
-  <div class="reference-image">
-    @if (scene.imageGenerationSettings.selectedImageForVideo) {
-    <img
-      [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-    />
-    <button mat-button (click)="removeSelectedImageForVideo()">
-      <mat-icon>delete_forever</mat-icon> Image
+  @if (scene.videoGenerationSettings.generatedVideos.length > 0) {
+    <button mat-button>
+      <mat-icon>download</mat-icon>
+      <a
+        [href]="
+          this.scene.videoGenerationSettings.selectedVideoForMerge?.signedUri
+        "
+        download
+        [download]="
+          this.scene.videoGenerationSettings.selectedVideoForMerge?.name
+        "
+        target="_blank"
+        >Video</a
+      >
     </button>
+  }
+  <!--div class="reference-image">
+  TODO (ae) We don't need this anymore since users can select images
+  from the Video Generation Settings UI
+    @if (scene.imageGenerationSettings.selectedImageForVideo) {
+      <img
+        [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
+      />
+      <button mat-button (click)="removeSelectedImageForVideo()">
+        <mat-icon>delete_forever</mat-icon> Image
+      </button>
     } @else {
-    <p>
-      <mat-icon>warning</mat-icon>You haven't selected a reference image for
-      your video. Reference images improve video accuracy and quality.
-    </p>
+      <p>
+        <mat-icon>warning</mat-icon>You haven't selected a reference image for
+        your video. Reference images improve video accuracy and quality.
+      </p>
     }
-  </div>
+  </div-->
 </div>
 
 <form [formGroup]="videoSettingsForm">
@@ -59,22 +69,162 @@
   <p>{{ scene.description }}</p>
 
   <mat-form-field class="selected-video">
-    <mat-label>Selected Video</mat-label>
+    <mat-label>Selected Video For Merge</mat-label>
     <mat-select
       name="selectedVideoUri"
       formControlName="selectedVideoUri"
       (selectionChange)="onVideoSelected($event)"
     >
-      @for (video of scene.videoGenerationSettings.generatedVideos; track video;
-      let i = $index) {
-      <mat-option [value]="video.gcsUri" [id]="i.toString()">{{
-        video.name
-      }}</mat-option>
+      @for (
+        video of scene.videoGenerationSettings.generatedVideos;
+        track video;
+        let i = $index
+      ) {
+        <mat-option [value]="video.gcsUri" [id]="i.toString()">{{
+          video.name
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
 
   <h2>Video Generation Settings</h2>
+
+  <div class="item-container-small">
+    <mat-form-field>
+      <mat-label>Veo Model</mat-label>
+      <mat-select
+        formControlName="veoModel"
+        (selectionChange)="onVeoModelSelected($event)"
+      >
+        @for (veoModel of veoModels; track veoModel) {
+          <mat-option [value]="veoModel.value">{{
+            veoModel.displayName
+          }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Task</mat-label>
+      <mat-select formControlName="videoGenTask">
+        @for (videoGenTask of videoGenTasks; track videoGenTask.value) {
+          <mat-option [value]="videoGenTask.value">{{
+            videoGenTask.displayName
+          }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (
+    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
+    (this.videoSettingsForm.get("veoModel")?.value ===
+      "veo-3.1-fast-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
+  ) {
+    <label>Input Images</label>
+    <div class="image-to-video">
+      <div class="uploader-item">
+        <app-file-uploader-new
+          (fileUploadedEventNew)="addUploadedFile($event)"
+          [storyId]="this.storyId"
+          [sceneId]="scene.id"
+          [fileType]="getFileType('referenceImage')"
+          [enableMultipleFiles]="false"
+        ></app-file-uploader-new>
+        <span>Start</span>
+      </div>
+      <div class="uploader-item">
+        <app-file-uploader-new
+          (fileUploadedEventNew)="addUploadedFile($event)"
+          [storyId]="this.storyId"
+          [sceneId]="scene.id"
+          [fileType]="getFileType('referenceImage')"
+          [enableMultipleFiles]="false"
+        ></app-file-uploader-new>
+        <span>End (Optional)</span>
+      </div>
+      <span>OR</span>
+      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+        <mat-icon>upload</mat-icon>
+        Image from Library
+      </button>
+    </div>
+  }
+
+  @if (
+    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value ===
+        "reference-to-video") ||
+    (this.videoSettingsForm.get("veoModel")?.value ===
+      "veo-3.1-fast-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value ===
+        "reference-to-video")
+  ) {
+    <div class="image-to-video">
+      <div class="uploader-item">
+        <app-file-uploader-new
+          (fileUploadedEventNew)="addUploadedFile($event)"
+          [storyId]="this.storyId"
+          [sceneId]="scene.id"
+          [fileType]="getFileType('referenceImage')"
+          [enableMultipleFiles]="true"
+        ></app-file-uploader-new>
+        <span>Up to 3 images</span>
+      </div>
+      <span>OR</span>
+      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+        <mat-icon>upload</mat-icon>
+        Image from Library
+      </button>
+    </div>
+  }
+
+  @if (
+    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value ===
+        "video-extension") ||
+    (this.videoSettingsForm.get("veoModel")?.value ===
+      "veo-3.1-fast-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value === "video-extension")
+  ) {
+    <button
+      class="library-button"
+      mat-flat-button
+      (click)="openAssetsSelectionDialog('videos')"
+    >
+      <mat-icon>upload</mat-icon>
+      Videos from Library
+    </button>
+  }
+
+  @if (
+    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.0-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
+    (this.videoSettingsForm.get("veoModel")?.value ===
+      "veo-3.0-fast-generate-001" &&
+      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
+  ) {
+    <label>Input Images</label>
+    <div class="image-to-video">
+      <div class="uploader-item">
+        <app-file-uploader-new
+          (fileUploadedEventNew)="addUploadedFile($event)"
+          [storyId]="this.storyId"
+          [sceneId]="scene.id"
+          [fileType]="getFileType('userProvidedImage')"
+          [enableMultipleFiles]="false"
+        ></app-file-uploader-new>
+        <span>Start</span>
+      </div>
+      <span>OR</span>
+      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+        <mat-icon>upload</mat-icon>
+        Image from Library
+      </button>
+    </div>
+  }
 
   <div class="item-container">
     <mat-form-field>
@@ -111,19 +261,27 @@
   <mat-form-field>
     <mat-label>Duration in Seconds</mat-label>
     <mat-select formControlName="durationInSecs">
-      <mat-option [value]="4">4</mat-option>
-      <mat-option [value]="6">6</mat-option>
-      <mat-option [value]="8">8</mat-option>
+      @for (
+        durationInSecsOption of durationInSecsOptions;
+        track durationInSecsOption.value
+      ) {
+        <mat-option [value]="durationInSecsOption.value">{{
+          durationInSecsOption.displayName
+        }}</mat-option>
+      }
     </mat-select>
   </mat-form-field>
 
   <mat-form-field>
     <mat-label>Aspect Ratio</mat-label>
     <mat-select formControlName="aspectRatio">
-      @for (aspectRatios of aspectRatios; track aspectRatios) {
-      <mat-option [value]="aspectRatios.value">{{
-        aspectRatios.displayName
-      }}</mat-option>
+      @for (
+        aspectRatioOption of aspectRatioOptions;
+        track aspectRatioOption.value
+      ) {
+        <mat-option [value]="aspectRatioOption.value">{{
+          aspectRatioOption.displayName
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -131,11 +289,13 @@
   <mat-form-field>
     <mat-label>Frames per Second</mat-label>
     <mat-select formControlName="framesPerSec">
-      @for (framesPerSecOption of framesPerSecOptions; track framesPerSecOption)
-      {
-      <mat-option [value]="framesPerSecOption.value">{{
-        framesPerSecOption.displayName
-      }}</mat-option>
+      @for (
+        framesPerSecOption of framesPerSecOptions;
+        track framesPerSecOption.value
+      ) {
+        <mat-option [value]="framesPerSecOption.value">{{
+          framesPerSecOption.displayName
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -143,11 +303,13 @@
   <mat-form-field>
     <mat-label>Person Generation</mat-label>
     <mat-select formControlName="personGeneration">
-      @for (personGenerationOption of personGenerationOptions; track
-      personGenerationOption) {
-      <mat-option [value]="personGenerationOption.value">{{
-        personGenerationOption.displayName
-      }}</mat-option>
+      @for (
+        personGenerationOption of personGenerationOptions;
+        track personGenerationOption.value
+      ) {
+        <mat-option [value]="personGenerationOption.value">{{
+          personGenerationOption.displayName
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -155,11 +317,13 @@
   <mat-form-field>
     <mat-label>Output Resolution</mat-label>
     <mat-select formControlName="outputResolution">
-      @for (outputResolutionOption of outputResolutionOptions; track
-      outputResolutionOption) {
-      <mat-option [value]="outputResolutionOption.value">{{
-        outputResolutionOption.displayName
-      }}</mat-option>
+      @for (
+        outputResolutionOption of outputResolutionOptions;
+        track outputResolutionOption.value
+      ) {
+        <mat-option [value]="outputResolutionOption.value">{{
+          outputResolutionOption.displayName
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -189,61 +353,61 @@
     <mat-checkbox formControlName="regenerateVideo"
       >Regenerate video in bulk generation</mat-checkbox
     >
-    <mat-checkbox formControlName="cutVideo"
+    <!--mat-checkbox formControlName="cutVideo"
       >Cut video in final video</mat-checkbox
-    >
+    -->
   </div>
 
-  @if (videoSettingsForm.get('cutVideo')?.value) {
-  <form [formGroup]="videoCutSettingsForm">
-    <div class="video-cut-settings">
-      <h3>Video Cut Settings</h3>
-      <p>
-        <strong>Note:</strong> The videos will be cut on merge action when you
-        click on the 'Merge Videos' button.
-      </p>
-      <mat-form-field>
-        <mat-label>Start Seconds</mat-label>
-        <input
-          matInput
-          type="number"
-          min="0"
-          max="7"
-          formControlName="startSeconds"
-        />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Start Frame</mat-label>
-        <input
-          matInput
-          type="number"
-          min="0"
-          max="23"
-          formControlName="startFrame"
-        />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>End Seconds</mat-label>
-        <input
-          matInput
-          type="number"
-          min="0"
-          max="7"
-          formControlName="endSeconds"
-        />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>End Frame</mat-label>
-        <input
-          matInput
-          type="number"
-          min="0"
-          max="23"
-          formControlName="endFrame"
-        />
-      </mat-form-field>
-    </div>
-  </form>
+  @if (videoSettingsForm.get("cutVideo")?.value) {
+    <form [formGroup]="videoCutSettingsForm">
+      <div class="video-cut-settings">
+        <h3>Video Cut Settings</h3>
+        <p>
+          <strong>Note:</strong> The videos will be cut on merge action when you
+          click on the 'Merge Videos' button.
+        </p>
+        <mat-form-field>
+          <mat-label>Start Seconds</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            max="7"
+            formControlName="startSeconds"
+          />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Start Frame</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            max="23"
+            formControlName="startFrame"
+          />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>End Seconds</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            max="7"
+            formControlName="endSeconds"
+          />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>End Frame</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            max="23"
+            formControlName="endFrame"
+          />
+        </mat-form-field>
+      </div>
+    </form>
   }
 
   <div class="generate-button">

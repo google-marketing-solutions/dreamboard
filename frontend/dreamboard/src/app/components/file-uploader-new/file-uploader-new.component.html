@@ -1,0 +1,62 @@
+<div class="file-uploader-container">
+  <div
+    class="file-uploader-container-input"
+    drap-and-drop-directive
+    (fileDropped)="onFileDropped($event)"
+  >
+    <input
+      type="file"
+      #fileUpload
+      [id]="id"
+      [accept]="getAcceptOptions()"
+      [multiple]="enableMultipleFiles"
+      (change)="onFileSelected($event)"
+    />
+    @if (!uploadInProgress) {
+      <div>
+        <button
+          mat-button
+          value="tertiary"
+          priority="tertiary"
+          (click)="clickFileUpload($event)"
+        >
+          {{ getButtonTypeLabel() }}
+          <mat-icon>upload</mat-icon>
+        </button>
+      </div>
+    }
+    @if (uploadInProgress) {
+      <div class="status-uploading-file">
+        <div>
+          <div><mat-icon>upload_file</mat-icon></div>
+          <label>Uploading your file...</label>
+          <div><label>Please wait.</label></div>
+        </div>
+        <div></div>
+      </div>
+    }
+  </div>
+  <div class="files-container">
+    @for (fileItem of fileItems; track fileItem.id; let i = $index) {
+      <div class="file">
+        <div>
+            <img [src]="fileItem.signedUri" />
+          </div>
+        <div class="file-info">
+          <div class="file-info-details">
+            <mat-icon class="scale-icon">{{ statusIcon }}</mat-icon>
+            <label>{{ fileItem.name }}</label>
+          </div>
+        </div>
+        @if (uploadError) {
+          <div class="upload-error-message">
+            <span
+              >There was an error uploading the file. Please remove it and try
+              again.</span
+            >
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

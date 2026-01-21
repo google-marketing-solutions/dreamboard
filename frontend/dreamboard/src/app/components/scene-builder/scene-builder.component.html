@@ -62,18 +62,18 @@
         <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
       </mat-card-header>
 
-      @if (scene.imageGenerationSettings.selectedImageForVideo &&
-      !scene.videoGenerationSettings.selectedVideo) {
+      @if (scene.imageGenerationSettings.generatedImages.length > 0 &&
+      !scene.videoGenerationSettings.selectedVideoForMerge) {
       <div class="scene-image">
         <img
           mat-card-image
-          [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-          [alt]="scene.imageGenerationSettings.selectedImageForVideo.name"
+          [src]="scene.imageGenerationSettings.generatedImages[0].signedUri"
+          [alt]="scene.imageGenerationSettings.generatedImages[0].name"
           class="selected-image"
         />
       </div>
-      } @else if (!scene.imageGenerationSettings.selectedImageForVideo &&
-      !scene.videoGenerationSettings.selectedVideo) {
+      } @else if (scene.imageGenerationSettings.generatedImages.length === 0 &&
+      !scene.videoGenerationSettings.selectedVideoForMerge) {
       <div class="scene-image">
         <p>
           Edit the scene to upload images <br />
@@ -83,11 +83,11 @@
       }
 
       <mat-card-content>
-        @if (scene.videoGenerationSettings.selectedVideo) {
+        @if (scene.videoGenerationSettings.selectedVideoForMerge) {
         <div class="gen-video-container">
           <video controls [id]="'video@' + scene.id">
             <source
-              [src]="scene.videoGenerationSettings.selectedVideo.signedUri"
+              [src]="scene.videoGenerationSettings.selectedVideoForMerge.signedUri"
               type="video/mp4"
             />
           </video>

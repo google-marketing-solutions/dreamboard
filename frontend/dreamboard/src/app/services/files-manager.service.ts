@@ -34,7 +34,8 @@ export class FilesManagerService {
   constructor(private http: HttpClient) {}
 
   uploadFile(
-    story_id: string,
+    storyId: string,
+    sceneId: string,
     fileType: UploadedFileType,
     fileData: FormData
   ): any {
@@ -47,12 +48,12 @@ export class FilesManagerService {
     switch (fileType) {
       case UploadedFileType.ReferenceImage:
       case UploadedFileType.UserProvidedImage:
-        bucketPath = `${story_id}@images`;
+        bucketPath = `${storyId}/${sceneId}@images`;
         break;
       case UploadedFileType.CreativeBrief:
       case UploadedFileType.BrandGuidelines:
       case UploadedFileType.Video:
-        bucketPath = `${story_id}`;
+        bucketPath = `${storyId}`;
         break;
       default:
         console.log(`No file type supported ${fileType}.`);

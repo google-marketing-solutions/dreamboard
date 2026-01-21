@@ -144,7 +144,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   constructor(
     private imageGenerationService: ImageGenerationService,
     private textGenerationService: TextGenerationService,
-    private componentsCommunicationService: ComponentsCommunicationService
+    private componentsCommunicationService: ComponentsCommunicationService,
   ) {}
 
   /**
@@ -158,7 +158,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   }
 
   getAllVideos() {
-    return this.scenes.flatMap(scene => scene.videoGenerationSettings.generatedVideos);
+    return this.scenes.flatMap(
+      (scene) => scene.videoGenerationSettings.generatedVideos,
+    );
   }
 
   /**
@@ -182,10 +184,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       const uploadedReferenceImage: ImageReference = {
         id: file.id, // File ID is the same as Reference ID for ReferenceImage type
         referenceType: this.getReferenceType(
-          this.imageSettingsForm.get('referenceType')?.value!
+          this.imageSettingsForm.get('referenceType')?.value!,
         ),
         referenceSubType: this.getReferenceSubType(
-          this.imageSettingsForm.get('referenceType')?.value!
+          this.imageSettingsForm.get('referenceType')?.value!,
         ),
         name: file.name,
         gcsUri: file.gcsUri,
@@ -198,19 +200,19 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       // 3. Add the new reference image in the same index for that card
       const refImgCardFoundIndex = this.getReferenceImageIndexById(
         uploadedReferenceImage.id!,
-        this.referenceImageCards
+        this.referenceImageCards,
       );
       if (refImgCardFoundIndex !== undefined) {
         // Remove existing reference image from index
         this.scene.imageGenerationSettings.referenceImages?.splice(
           refImgCardFoundIndex,
-          1
+          1,
         );
         // Add new reference image at same index
         this.scene.imageGenerationSettings.referenceImages?.splice(
           refImgCardFoundIndex,
           0,
-          uploadedReferenceImage
+          uploadedReferenceImage,
         );
       }
     }
@@ -218,7 +220,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       // Add all user provided images to generated images to show in the carrousel
       this.scene.imageGenerationSettings.generatedImages.push(uploadedImage);
       const updateForm = true;
-      this.updateSelectedImage(uploadedImage.gcsUri, updateForm);
+      /*this.updateSelectedImage(uploadedImage.gcsUri, updateForm);*/
+      this.setCurrentGeneratedImageIndex(uploadedImage.gcsUri);
     }
   }
 
@@ -230,7 +233,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.referenceImageCards[this.referenceImageCards.length - 1];
     const lastAddedRefImgIndex = this.getReferenceImageIndexById(
       lastAddedCard.id,
-      this.scene.imageGenerationSettings.referenceImages!
+      this.scene.imageGenerationSettings.referenceImages!,
     );
     // Disable if there is no reference image uploaded for this card
     // until user adds an image
@@ -253,37 +256,39 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   initImageSettingsForm(): void {
     this.imageSettingsForm.controls['prompt'].setValue(
-      this.scene.imageGenerationSettings.prompt
+      this.scene.imageGenerationSettings.prompt,
     );
     this.imageSettingsForm.controls['numImages'].setValue(
-      this.scene.imageGenerationSettings.numImages
+      this.scene.imageGenerationSettings.numImages,
     );
     this.imageSettingsForm.controls['aspectRatio'].setValue(
-      this.scene.imageGenerationSettings.aspectRatio!
+      this.scene.imageGenerationSettings.aspectRatio!,
     );
     this.imageSettingsForm.controls['outputMimeType'].setValue(
-      this.scene.imageGenerationSettings.outputMimeType!
+      this.scene.imageGenerationSettings.outputMimeType!,
     );
     this.imageSettingsForm.controls['aspectRatio'].setValue(
-      this.scene.imageGenerationSettings.aspectRatio!
+      this.scene.imageGenerationSettings.aspectRatio!,
     );
     this.imageSettingsForm.controls['compressionQuality'].setValue(
-      this.scene.imageGenerationSettings.compressionQuality!
+      this.scene.imageGenerationSettings.compressionQuality!,
     );
     this.imageSettingsForm.controls['language'].setValue(
-      this.scene.imageGenerationSettings.language!
+      this.scene.imageGenerationSettings.language!,
     );
     this.imageSettingsForm.controls['safetyFilterLevel'].setValue(
-      this.scene.imageGenerationSettings.safetyFilterLevel!
+      this.scene.imageGenerationSettings.safetyFilterLevel!,
     );
     this.imageSettingsForm.controls['personGeneration'].setValue(
-      this.scene.imageGenerationSettings.personGeneration!
+      this.scene.imageGenerationSettings.personGeneration!,
     );
     this.imageSettingsForm.controls['negativePrompt'].setValue(
-      this.scene.imageGenerationSettings.negativePrompt!
+      this.scene.imageGenerationSettings.negativePrompt!,
     );
 
     // On edit
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     if (this.scene.imageGenerationSettings.selectedImageForVideo) {
       this.setCurrentGeneratedImageIndex(
         this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri
@@ -294,7 +299,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     } else {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
       this.currentGeneratedImageIndex = -1;
-    }
+    }*/
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
   }
@@ -325,12 +330,15 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.scene.imageGenerationSettings.negativePrompt =
       this.imageSettingsForm.get('negativePrompt')?.value!;
     // Set up selected image. generatedImages array is populated after API call
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
+
     const selectedImageForVideo: Image =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
       ];
     this.scene.imageGenerationSettings.selectedImageForVideo =
-      selectedImageForVideo;
+      selectedImageForVideo;*/
   }
 
   /**
@@ -359,7 +367,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     const cardId = event.target.parentElement.parentElement.id;
     const cardsFoundIndex = this.getReferenceImageIndexById(
       cardId,
-      this.referenceImageCards
+      this.referenceImageCards,
     );
     if (cardsFoundIndex !== undefined) {
       // Remove reference image from visual cards
@@ -369,13 +377,13 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     }
     const referenceImagesFoundIndex = this.getReferenceImageIndexById(
       cardId,
-      this.scene.imageGenerationSettings.referenceImages ?? []
+      this.scene.imageGenerationSettings.referenceImages ?? [],
     );
     if (referenceImagesFoundIndex !== undefined) {
       // Remove reference image from scene image generation settings
       this.scene.imageGenerationSettings.referenceImages!.splice(
         referenceImagesFoundIndex,
-        1
+        1,
       );
     } else {
       console.log('Reference image not found. No image to remove.');
@@ -391,7 +399,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   getReferenceImageIndexById(
     id: string,
-    referenceImages: ReferenceImageCard[] | ImageReference[]
+    referenceImages: ReferenceImageCard[] | ImageReference[],
   ): number | undefined {
     let foundIndex;
     referenceImages.forEach(
@@ -401,7 +409,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           return false;
         }
         return true;
-      }
+      },
     );
     return foundIndex;
   }
@@ -420,6 +428,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         ? this.scene.imageGenerationSettings.generatedImages.length - 1
         : previousImageIndex;
 
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     const generatedImage =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
@@ -429,7 +439,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       generatedImage.gcsUri
     );
     // Set selected generated image in scene
-    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;
+    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;*/
   }
 
   /**
@@ -446,6 +456,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.scene.imageGenerationSettings.generatedImages.length
         ? 0
         : nextImageIndex;
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     const generatedImage =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
@@ -455,7 +467,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       generatedImage.gcsUri
     );
     // Set selected generated image in scene
-    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;
+    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;*/
   }
 
   /**
@@ -468,12 +480,14 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   onImageSelected(event: MatSelectChange): void {
     // Clear selected video
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     if (event.value === 'no-image') {
       this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
     }
     const imageUri = event.value;
     const updateForm = false;
-    this.updateSelectedImage(imageUri, updateForm);
+    this.updateSelectedImage(imageUri, updateForm);*/
   }
 
   /**
@@ -490,7 +504,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       (refImage: ImageReference) => {
         refImage.referenceType = this.getReferenceType(referenceType);
         refImage.referenceSubType = this.getReferenceSubType(referenceType);
-      }
+      },
     );
   }
 
@@ -544,7 +558,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   setCurrentGeneratedImageIndex(gcsUri: string): void {
     const index = this.scene.imageGenerationSettings.generatedImages.findIndex(
-      (image) => image.gcsUri === gcsUri
+      (image) => image.gcsUri === gcsUri,
     );
     this.currentGeneratedImageIndex = index;
   }
@@ -560,12 +574,12 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     const currentPrompt = this.imageSettingsForm.get('prompt')?.value!;
     const sceneDescription = this.scene.description;
     const withSceneDescription = this.imageSettingsForm.get(
-      'withSceneDescription'
+      'withSceneDescription',
     )?.value!;
 
     openSnackBar(
       this._snackBar,
-      `Generating enhanced image prompt for scene ${this.scene.number}...`
+      `Generating enhanced image prompt for scene ${this.scene.number}...`,
     );
 
     this.textGenerationService
@@ -589,9 +603,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -605,7 +619,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   generateImage(): void {
     openSnackBar(
       this._snackBar,
-      `Generating image for scene ${this.scene.number}. This might take some time...`
+      `Generating image for scene ${this.scene.number}. This might take some time...`,
     );
 
     const imageGeneration: ImageGenerationRequest = {
@@ -623,14 +637,16 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           openSnackBar(
             this._snackBar,
             executionStatus['execution_message'],
-            10
+            10,
           );
           const lastGenImage =
             this.scene.imageGenerationSettings.generatedImages[
               this.scene.imageGenerationSettings.generatedImages.length - 1
             ];
+          /* TODO (ae)
           const updateForm = true;
-          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
+          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);*/
+          this.setCurrentGeneratedImageIndex(lastGenImage.gcsUri);
         },
         (error: any) => {
           let errorMessage;
@@ -642,9 +658,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -659,19 +675,19 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   updateSelectedImage(gcsUri: string, updateForm: boolean) {
     if (updateForm) {
       // Update selected image in form
-      this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        gcsUri
-      );
+      this.imageSettingsForm.controls['selectedImageUri'].setValue(gcsUri);
     }
     // Find image index in array
     this.setCurrentGeneratedImageIndex(gcsUri);
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     const selectedImageForVideo =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
       ];
     // Set selected image in scene to be used as selectedImageForVideo
     this.scene.imageGenerationSettings.selectedImageForVideo =
-      selectedImageForVideo;
+      selectedImageForVideo;*/
   }
 
   /**
@@ -686,7 +702,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.scene.imageGenerationSettings.referenceImages?.filter(
         (referenceImage: ImageReference) => {
           return referenceImage.id === id;
-        }
+        },
       );
 
     return refImgFound;
@@ -725,6 +741,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     }
 
     // Build uploaded user provided images for file uploader component
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
     if (fileType === UploadedFileType.UserProvidedImage) {
       const selectedImageForVideo =
         this.scene.imageGenerationSettings.selectedImageForVideo;
@@ -741,7 +759,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         };
         fileItems.push(uploadedFile);
       }
-    }
+    }*/
 
     return fileItems;
   }
@@ -758,7 +776,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         // since all reference images use the same ref type as the Vertex UI
         if (index === 0) {
           this.imageSettingsForm.controls['referenceType'].setValue(
-            refImage.referenceType
+            refImage.referenceType,
           );
         }
 
@@ -767,21 +785,21 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         };
         const foundIndex = this.getReferenceImageIndexById(
           refImage.id,
-          this.referenceImageCards
+          this.referenceImageCards,
         );
         // TODO (ae) fix this. For now only add if not added previously
         if (foundIndex === undefined) {
           this.referenceImageCards.push(card);
           // Workaround for now
           const refImgDescElement = document.getElementById(
-            `desc@${refImage.id}`
+            `desc@${refImage.id}`,
           ) as any;
           if (refImgDescElement) {
             // TODO (ae) fix this later
             //refImgDescElement!.value = refImage.description;
           }
         }
-      }
+      },
     );
   }
 
@@ -800,7 +818,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           this.scene.imageGenerationSettings.referenceImages!.filter(
             (img: ImageReference) => {
               return img.id === card.id;
-            }
+            },
           );
 
         // Filter out cards that don't have an uploaded image
@@ -811,22 +829,22 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           this.scene.imageGenerationSettings.referenceImages!.filter(
             (img: ImageReference) => {
               return img.id === card.id;
-            }
+            },
           );
         // Get latest values from form
         // Work around since dynamically adding controls didn't work using FromGrop
         // FormRecord should be used but was introducing other issues
         const descriptionElement = document.getElementById(
-          `desc@${card.id}`
+          `desc@${card.id}`,
         ) as any;
         //const referenceType = descFormControlValue.value.split('@')[0];
         return {
           reference_id: index + 1,
           reference_type: this.getReferenceType(
-            this.imageSettingsForm.get('referenceType')?.value!
+            this.imageSettingsForm.get('referenceType')?.value!,
           ),
           reference_subtype: this.getReferenceSubType(
-            this.imageSettingsForm.get('referenceType')?.value!
+            this.imageSettingsForm.get('referenceType')?.value!,
           ),
           description: descriptionElement.value,
           id: refImageFound[0].id,
@@ -887,7 +905,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         this.scene.imageGenerationSettings.generatedImages.length - 1
       ];
     if (lastImage) {
-      this.updateSelectedImage(lastImage.gcsUri, true);
+      /*this.updateSelectedImage(lastImage.gcsUri, true);*/
+      this.setCurrentGeneratedImageIndex(lastImage.gcsUri);
     }
   }
 }

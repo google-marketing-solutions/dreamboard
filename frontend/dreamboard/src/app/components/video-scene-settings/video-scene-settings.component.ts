@@ -37,27 +37,38 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { VideoScene } from '../../models/scene-models';
-import { Transition, VideoSegmentRequest } from '../../models/video-gen-models';
 import {
   VideoGenerationRequest,
+  VideoSegmentGenerationOperation,
   VideoGenerationResponse,
   Video,
 } from '../../models/video-gen-models';
-import { ImageItem } from '../../models/image-gen-models';
+import { Image, ImageItem } from '../../models/image-gen-models';
 import {
   getAspectRatios,
   getFramesPerSecondOptions,
   getPersonGenerationOptions,
   getOutputResolutionOptions,
+  getDurationInSecsOptions,
   updateScenesWithGeneratedVideos,
+  getVeoModels,
+  getVideoGenTasksByModelName,
+  DEFAULT_VIDEO_MODEL_NAME,
 } from '../../video-utils';
 import { getOutputMimeTypes } from '../../image-utils';
-import { SelectItem } from '../../models/settings-models';
+import {
+  SelectItem,
+  UploadedFile,
+  UploadedFileType,
+} from '../../models/settings-models';
 import { VideoGenerationService } from '../../services/video-generation.service';
 import { openSnackBar, closeSnackBar } from '../../utils';
 import { TextGenerationService } from '../../services/text-generation.service';
+import { FileUploaderNewComponent } from '../file-uploader-new/file-uploader-new.component';
+import { AssetsSelectionDialogComponent } from '../assets-selection-dialog/assets-selection-dialog.component';
 
 @Component({
   selector: 'app-video-scene-settings',
@@ -68,6 +79,7 @@ import { TextGenerationService } from '../../services/text-generation.service';
     MatIconModule,
     MatCheckboxModule,
     ReactiveFormsModule,
+    FileUploaderNewComponent,
   ],
   templateUrl: './video-scene-settings.component.html',
   styleUrl: './video-scene-settings.component.css',
@@ -75,18 +87,24 @@ import { TextGenerationService } from '../../services/text-generation.service';
 export class VideoSceneSettingsComponent implements AfterViewInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
-  aspectRatios: SelectItem[] = getAspectRatios();
+  aspectRatioOptions: SelectItem[] = getAspectRatios();
   framesPerSecOptions: SelectItem[] = getFramesPerSecondOptions();
   imageMimeTypes: SelectItem[] = getOutputMimeTypes();
   personGenerationOptions: SelectItem[] = getPersonGenerationOptions();
   outputResolutionOptions: SelectItem[] = getOutputResolutionOptions();
+  durationInSecsOptions: SelectItem[] = getDurationInSecsOptions();
+  veoModels = getVeoModels();
+  videoGenTasks = getVideoGenTasksByModelName(DEFAULT_VIDEO_MODEL_NAME);
   currentGeneratedVideoIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
+  assetsSelectionDialog = inject(MatDialog);
 
   videoSettingsForm = new FormGroup({
+    veoModel: new FormControl(DEFAULT_VIDEO_MODEL_NAME, [Validators.required]),
+    videoGenTask: new FormControl('text-to-video', [Validators.required]),
     prompt: new FormControl('', []),
     sampleCount: new FormControl(2, []),
-    durationInSecs: new FormControl(4, [Validators.required]),
+    durationInSecs: new FormControl('4', [Validators.required]),
     aspectRatio: new FormControl('16:9', []),
     framesPerSec: new FormControl('24', []),
     personGeneration: new FormControl('allow_adult', []),
@@ -127,7 +145,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
 
   constructor(
     private videoGenerationService: VideoGenerationService,
-    private textGenerationService: TextGenerationService
+    private textGenerationService: TextGenerationService,
   ) {}
 
   /**
@@ -146,63 +164,63 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   initVideoSettingsForm(): void {
     this.videoSettingsForm.controls['prompt'].setValue(
-      this.scene.videoGenerationSettings.prompt
+      this.scene.videoGenerationSettings.prompt,
     );
     this.videoSettingsForm.controls['aspectRatio'].setValue(
-      this.scene.videoGenerationSettings.aspectRatio!
+      this.scene.videoGenerationSettings.aspectRatio!,
     );
     this.videoSettingsForm.controls['durationInSecs'].setValue(
-      this.scene.videoGenerationSettings.durationInSecs
+      this.scene.videoGenerationSettings.durationInSecs.toString(),
     );
     this.videoSettingsForm.controls['framesPerSec'].setValue(
-      this.scene.videoGenerationSettings.framesPerSec?.toString()!
+      this.scene.videoGenerationSettings.framesPerSec?.toString()!,
     );
     this.videoSettingsForm.controls['personGeneration'].setValue(
-      this.scene.videoGenerationSettings.personGeneration!
+      this.scene.videoGenerationSettings.personGeneration!,
     );
     this.videoSettingsForm.controls['outputResolution'].setValue(
-      this.scene.videoGenerationSettings.outputResolution!
+      this.scene.videoGenerationSettings.outputResolution!,
     );
     this.videoSettingsForm.controls['sampleCount'].setValue(
-      this.scene.videoGenerationSettings.sampleCount!
+      this.scene.videoGenerationSettings.sampleCount!,
     );
     this.videoSettingsForm.controls['negativePrompt'].setValue(
-      this.scene.videoGenerationSettings.negativePrompt!
+      this.scene.videoGenerationSettings.negativePrompt!,
     );
     this.videoSettingsForm.controls['enhancePrompt'].setValue(
-      this.scene.videoGenerationSettings.enhancePrompt!
+      this.scene.videoGenerationSettings.enhancePrompt!,
     );
     this.videoSettingsForm.controls['generateAudio'].setValue(
-      this.scene.videoGenerationSettings.generateAudio!
+      this.scene.videoGenerationSettings.generateAudio!,
     );
     this.videoSettingsForm.controls['includeVideoSegment'].setValue(
-      this.scene.videoGenerationSettings.includeVideoSegment!
+      this.scene.videoGenerationSettings.includeVideoSegment!,
     );
     this.videoSettingsForm.controls['regenerateVideo'].setValue(
-      this.scene.videoGenerationSettings.regenerateVideo!
+      this.scene.videoGenerationSettings.regenerateVideo!,
     );
     this.videoSettingsForm.controls['cutVideo'].setValue(
-      this.scene.videoGenerationSettings.cutVideo!
+      this.scene.videoGenerationSettings.cutVideo!,
     );
     this.videoCutSettingsForm.controls['startSeconds'].setValue(
-      this.scene.videoGenerationSettings.startSeconds!
+      this.scene.videoGenerationSettings.startSeconds!,
     );
     this.videoCutSettingsForm.controls['startFrame'].setValue(
-      this.scene.videoGenerationSettings.startFrame!
+      this.scene.videoGenerationSettings.startFrame!,
     );
     this.videoCutSettingsForm.controls['endSeconds'].setValue(
-      this.scene.videoGenerationSettings.endSeconds!
+      this.scene.videoGenerationSettings.endSeconds!,
     );
     this.videoCutSettingsForm.controls['endFrame'].setValue(
-      this.scene.videoGenerationSettings.endFrame!
+      this.scene.videoGenerationSettings.endFrame!,
     );
     // Update selected video if any
-    if (this.scene.videoGenerationSettings.selectedVideo) {
+    if (this.scene.videoGenerationSettings.selectedVideoForMerge) {
       // Update selected video index in carrousel
       const updateForm = true;
       this.updateSelectedVideo(
-        this.scene.videoGenerationSettings.selectedVideo.gcsUri,
-        updateForm
+        this.scene.videoGenerationSettings.selectedVideoForMerge.gcsUri,
+        updateForm,
       );
     }
 
@@ -218,14 +236,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   /**
    * Updates the `scene.videoGenerationSettings` object with the current values from the `videoSettingsForm`.
    * This method ensures that changes made in the UI form are reflected in the underlying scene data model.
-   * It also sets the `selectedVideo` based on the `currentGeneratedVideoIndex`.
+   * It also sets the `selectedVideoForMerge` based on the `currentGeneratedVideoIndex`.
    * @returns {void}
    */
   setVideoSettings(): void {
     this.scene.videoGenerationSettings.prompt =
       this.videoSettingsForm.get('prompt')?.value!;
     this.scene.videoGenerationSettings.durationInSecs =
-      this.videoSettingsForm.get('durationInSecs')?.value!;
+      parseInt(this.videoSettingsForm.get('durationInSecs')?.value!);
     this.scene.videoGenerationSettings.aspectRatio =
       this.videoSettingsForm.get('aspectRatio')?.value!;
     this.scene.videoGenerationSettings.personGeneration =
@@ -254,25 +272,77 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.scene.videoGenerationSettings.endFrame =
       this.videoCutSettingsForm.get('endFrame')?.value!;
     // Set up selected image. generatedImages array is populated after API call
-    const selectedVideo: Video =
+    const selectedVideoForMerge: Video =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
       ];
-    this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
+    this.scene.videoGenerationSettings.selectedVideoForMerge =
+      selectedVideoForMerge;
   }
 
+  onVeoModelSelected(event: MatSelectChange) {
+    const veoModel = event.value;
+    this.videoGenTasks = getVideoGenTasksByModelName(veoModel);
+  }
+
+  onVideoGenTaskSelected(event: MatSelectChange) {
+    const videoGenTask = event.value;
+    if (videoGenTask === 'text-to-video') {
+      // Clear selected images for video
+      this.scene.imageGenerationSettings.selectedImagesForVideo = [];
+    }
+  }
+
+  addUploadedFile(file: UploadedFile) {
+    if (file.type === UploadedFileType.ReferenceImage) {
+      const referenceImage: Image = {
+        id: file.id,
+        name: file.name,
+        gcsUri: file.gcsUri,
+        signedUri: file.signedUri,
+        gcsFusePath: file.gcsFusePath,
+        mimeType: file.mimeType,
+      };
+      this.scene.imageGenerationSettings.selectedImagesForVideo.push(
+        referenceImage,
+      );
+    }
+  }
+
+  openAssetsSelectionDialog(assetType: string) {
+      const dialogRef = this.assetsSelectionDialog.open(AssetsSelectionDialogComponent, {
+        minWidth: '800px',
+        data: {
+          "assetType": assetType
+        },
+        disableClose: true // Prevents closing on Escape key and backdrop click
+      });
+      // Subscribe to the afterClosed() observable to receive data upon closure
+      dialogRef.afterClosed().subscribe((resp: any) => {
+        console.log(resp);
+      });
+    }
+
   /**
-   * Checks if a previous video segment has been generated and selected for the current scene.
-   * @returns {boolean} `true` if a video segment is selected, `false` otherwise.
+   * Determines the `UploadedFileType` based on a given string identifier.
+   * @param {string} type - A string representing the file type ('referenceImage' or 'userProvidedImage').
+   * @returns {UploadedFileType} The corresponding `UploadedFileType` enum value, or `UploadedFileType.None` if no match.
    */
-  isPrevVideoSegmentGenerated(): boolean {
-    return this.scene.videoGenerationSettings.selectedVideo !== undefined;
+  getFileType(type: string): UploadedFileType {
+    if (type == 'referenceImage') {
+      return UploadedFileType.ReferenceImage;
+    }
+    if (type == 'userProvidedImage') {
+      return UploadedFileType.UserProvidedImage;
+    }
+
+    return UploadedFileType.None;
   }
 
   /**
    * Navigates to the previous generated video in the `generatedVideos` array.
    * It updates `currentGeneratedVideoIndex` and sets the `selectedVideoUri` in the form
-   * and `selectedVideo` in the scene to the previous video.
+   * and `selectedVideoForMerge` in the scene to the previous video.
    * It loops back to the last video if currently at the first video.
    * @returns {void}
    */
@@ -289,16 +359,16 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       ];
     // Set selected generated image in form
     this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-      generatedVideo.gcsUri
+      generatedVideo.gcsUri,
     );
     // Set selected generated image in scene
-    this.scene.videoGenerationSettings.selectedVideo = generatedVideo;
+    this.scene.videoGenerationSettings.selectedVideoForMerge = generatedVideo;
   }
 
   /**
    * Navigates to the next generated video in the `generatedVideos` array.
    * It updates `currentGeneratedVideoIndex` and sets the `selectedVideoUri` in the form
-   * and `selectedVideo` in the scene to the next video.
+   * and `selectedVideoForMerge` in the scene to the next video.
    * It loops back to the first video if currently at the last video.
    * @returns {void}
    */
@@ -315,16 +385,16 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       ];
     // Set selected generated image in form
     this.videoSettingsForm.controls['selectedVideoUri'].setValue(
-      generatedVideo.gcsUri
+      generatedVideo.gcsUri,
     );
     // Set selected generated image in scene
-    this.scene.videoGenerationSettings.selectedVideo = generatedVideo;
+    this.scene.videoGenerationSettings.selectedVideoForMerge = generatedVideo;
   }
 
   /**
    * Handles the selection of a video from the dropdown.
    * It updates `currentGeneratedVideoIndex` based on the selected video's URI
-   * and sets the `selectedVideo` in the scene.
+   * and sets the `selectedVideoForMerge` in the scene.
    * @param {MatSelectChange} event - The change event from the MatSelect component,
    * containing the URI of the selected video in `event.value`.
    * @returns {void}
@@ -343,7 +413,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   setCurrentGeneratedVideoIndex(gcsUri: string): void {
     const index = this.scene.videoGenerationSettings.generatedVideos.findIndex(
-      (video) => video.gcsUri === gcsUri
+      (video) => video.gcsUri === gcsUri,
     );
     this.currentGeneratedVideoIndex = index;
   }
@@ -361,16 +431,19 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     }
     // Find video index in array
     this.setCurrentGeneratedVideoIndex(gcsUri);
-    const selectedVideo =
+    const selectedVideoForMerge =
       this.scene.videoGenerationSettings.generatedVideos[
         this.currentGeneratedVideoIndex
       ];
-    // Set selected video in scene to be used as selectedVideo segment in final video
-    this.scene.videoGenerationSettings.selectedVideo = selectedVideo;
+    // Set selected video in scene to be used as selectedVideoForMerge segment in final video
+    this.scene.videoGenerationSettings.selectedVideoForMerge =
+      selectedVideoForMerge;
   }
 
   removeSelectedImageForVideo() {
-    this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
+    /* TODO (ae) We don't need this anymore since users can select images
+    from the Video Generation Settings UI
+    this.scene.imageGenerationSettings.selectedImageForVideo = undefined;*/
   }
 
   /**
@@ -384,15 +457,12 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   generateVideosFromScene(): void {
     openSnackBar(
       this._snackBar,
-      `Generating video for scene ${this.scene.number}. This might take some time...`
+      `Generating video for scene ${this.scene.number}. This might take some time...`,
     );
 
-    const videoGeneration: VideoGenerationRequest = {
-      video_segments: [this.buildVideoSegment()],
-      creative_direction: undefined, // for now
-    };
+    const videoGenerationRequest = this.buildVideoGenerationRequest();
     this.videoGenerationService
-      .generateVideosFromScenes(this.storyId, videoGeneration)
+      .generateVideosFromScenes(this.storyId, videoGenerationRequest)
       .subscribe(
         (resps: VideoGenerationResponse[]) => {
           // Find scene in responses to update generated videos
@@ -412,7 +482,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           openSnackBar(
             this._snackBar,
             executionStatus['execution_message'],
-            20
+            20,
           );
         },
         (error: any) => {
@@ -425,56 +495,52 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
   /**
-   * Constructs a `VideoSegmentRequest` object based on the current values in the `videoSettingsForm`
+   * Constructs a `VideoSegmentGenerationRequest` object based on the current values in the `videoSettingsForm`
    * and the associated `scene` data. This request object is used to send to the video generation API.
    * It includes details like prompt, duration, aspect ratio, and an optional seed image.
-   * @returns {VideoSegmentRequest} The constructed video segment request object.
+   * @returns {VideoSegmentGenerationRequest} The constructed video segment request object.
    */
-  buildVideoSegment(): VideoSegmentRequest {
-    let seedImage;
-    if (this.scene.imageGenerationSettings.selectedImageForVideo) {
-      seedImage = {
-        name: this.scene.imageGenerationSettings.selectedImageForVideo.name,
-        signed_uri:
-          this.scene.imageGenerationSettings.selectedImageForVideo.signedUri,
-        gcs_uri:
-          this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
-        mime_type:
-          this.scene.imageGenerationSettings.selectedImageForVideo.mimeType,
-        gcs_fuse_path: '', // Empty here, this is generated in the backend
-      } as ImageItem;
-    }
+  buildVideoGenerationRequest(): VideoGenerationRequest {
+    const seedImages =
+      this.scene.imageGenerationSettings.selectedImagesForVideo.map(
+        (img: Image) => {
+          const seedImage: ImageItem = {
+            id: img.id,
+            name: img.name,
+            signed_uri: img.signedUri,
+            gcs_uri: img.gcsUri,
+            mime_type: img.mimeType,
+            gcs_fuse_path: '', // Empty here, this is generated in the backend
+          };
+          return seedImage;
+        },
+      );
 
     const cutVideo = this.videoSettingsForm.get('cutVideo')?.value!;
-    const videoSegment: VideoSegmentRequest = {
+    const videoSegment: VideoSegmentGenerationOperation = {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
-      seed_image: seedImage, // Can be null for text to video generation
-      duration_in_secs: this.videoSettingsForm.get('durationInSecs')?.value!,
+      seed_images: seedImages, // Can be null for text to video generation
+      duration_in_secs: parseInt(this.videoSettingsForm.get('durationInSecs')?.value!),
       aspect_ratio: this.videoSettingsForm.get('aspectRatio')?.value!,
       frames_per_sec: parseInt(
-        this.videoSettingsForm.get('framesPerSec')?.value!
+        this.videoSettingsForm.get('framesPerSec')?.value!,
       ),
       person_generation: this.videoSettingsForm.get('personGeneration')?.value!,
       outputResolution: this.videoSettingsForm.get('outputResolution')?.value!,
       sample_count: this.videoSettingsForm.get('sampleCount')?.value!,
       /*seed?: this.videoSettingsForm.get('prompt')?.value;*/
       negative_prompt: this.videoSettingsForm.get('negativePrompt')?.value!,
-      transition: Transition.CONCATENATE, // default since it's not used for single video
       generate_audio: this.videoSettingsForm.get('generateAudio')?.value!,
       enhance_prompt: true, // Always true for Veo3
-      use_last_frame: false, // False for now
-      include_video_segment: this.videoSettingsForm.get('includeVideoSegment')
-        ?.value!,
-      generate_video_frames: false, // TODO (ae): include this later
       regenerate_video_segment: true, // true for single video generation
       cut_video: cutVideo,
       // Add cut video options if cutVideo checkbox is true
@@ -490,11 +556,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       end_frame: cutVideo
         ? this.videoCutSettingsForm.get('endFrame')?.value!
         : parseInt(this.videoSettingsForm.get('framesPerSec')?.value!) - 1,
-      selected_video: undefined, // Since not required for the GENERATION operation
+      selected_videos_for_extension: [], // TODO (ae) NEED TO ADD THIS LATER
     };
 
-    console.log('Video Segment: ' + videoSegment);
-    return videoSegment;
+    const videoGenerationRequest: VideoGenerationRequest = {
+      video_segments: [videoSegment],
+    };
+
+    return videoGenerationRequest;
   }
 
   /**
@@ -505,7 +574,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   disableGenerateVideoButton(): boolean {
     if (
-      this.scene.imageGenerationSettings.selectedImageForVideo ||
+      this.scene.imageGenerationSettings.selectedImagesForVideo.length > 0 ||
       this.videoSettingsForm.get('prompt')?.value
     ) {
       // For Image to Video, prompt is not required
@@ -526,12 +595,12 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     let currentPrompt = this.videoSettingsForm.get('prompt')?.value!;
     let sceneDescription = this.scene.description;
     const withSceneDescription = this.videoSettingsForm.get(
-      'withSceneDescription'
+      'withSceneDescription',
     )?.value!;
 
     openSnackBar(
       this._snackBar,
-      `Generating enhanced video prompt for scene ${this.scene.number}...`
+      `Generating enhanced video prompt for scene ${this.scene.number}...`,
     );
 
     this.textGenerationService
@@ -555,9 +624,9 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 }

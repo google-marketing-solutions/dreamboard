@@ -19,10 +19,9 @@
  *
  ***************************************************************************/
 
-import { Image, ImageItem } from './image-gen-models';
+import { ImageItem } from './image-gen-models';
 
 export interface VideoGenerationSettings {
-  selectedVideo?: Video;
   prompt: string;
   durationInSecs: number;
   aspectRatio?: string;
@@ -43,6 +42,7 @@ export interface VideoGenerationSettings {
   endSeconds?: number;
   endFrame?: number;
   generatedVideos: Video[];
+  selectedVideoForMerge?: Video;
 }
 
 export interface Video {
@@ -53,7 +53,6 @@ export interface Video {
   gcsFusePath: string;
   mimeType: string;
   duration: number;
-  frameUris?: Image[];
 }
 
 /* Models for backend interactions */
@@ -66,7 +65,6 @@ export interface VideoItem {
   gcs_fuse_path: string;
   mime_type: string;
   duration: number;
-  frames_uris: ImageItem[];
 }
 
 export enum Transition {
@@ -81,13 +79,11 @@ export enum Transition {
   SLIDE_WARP = 'SLIDE_WARP',
 }
 
-export interface VideoCreativeDirection {}
-
-export interface VideoSegmentRequest {
+export interface VideoSegmentGenerationOperation {
   scene_id: string;
   segment_number: number;
   prompt: string;
-  seed_image?: ImageItem;
+  seed_images: ImageItem[];
   duration_in_secs?: number;
   aspect_ratio?: string;
   frames_per_sec?: number;
@@ -96,24 +92,31 @@ export interface VideoSegmentRequest {
   sample_count?: number;
   seed?: number;
   negative_prompt?: string;
-  transition?: Transition;
   generate_audio: boolean;
   enhance_prompt: boolean;
-  use_last_frame: boolean;
-  include_video_segment: boolean;
-  generate_video_frames: boolean;
   regenerate_video_segment: boolean;
   cut_video: boolean;
   start_seconds?: number;
   start_frame?: number;
   end_seconds?: number;
   end_frame?: number;
-  selected_video?: VideoItem; // Video that will be used for the merge operation
+  selected_videos_for_extension: VideoItem[]; // Videos that will be used for the extension operation
+}
+
+export interface VideoSegmentMergeOperation {
+  scene_id: string;
+  segment_number: number;
+  transition?: Transition;
+  include_video_segment: boolean;
+  selected_video_for_merge?: VideoItem; // Video that will be used for the merge operation
 }
 
 export interface VideoGenerationRequest {
-  video_segments: VideoSegmentRequest[];
-  creative_direction?: VideoCreativeDirection;
+  video_segments: VideoSegmentGenerationOperation[];
+}
+
+export interface VideoMergeRequest {
+  video_segments: VideoSegmentMergeOperation[];
 }
 
 export interface VideoGenerationResponse {
@@ -121,5 +124,10 @@ export interface VideoGenerationResponse {
   operation_name: string;
   execution_message: string;
   videos: VideoItem[];
-  video_segment: VideoSegmentRequest;
+  video_segment: VideoSegmentGenerationOperation;
+}
+
+export interface VideoMergeResponse {
+  execution_message: string;
+  videos: VideoItem[];
 }

@@ -27,11 +27,11 @@
     <mat-icon>download</mat-icon>
     <a
       [href]="
-        this.scene.imageGenerationSettings.selectedImageForVideo?.signedUri
+        this.scene.imageGenerationSettings.generatedImages[this.currentGeneratedImageIndex].signedUri
       "
       download
       [download]="
-        this.scene.imageGenerationSettings.selectedImageForVideo?.name
+        this.scene.imageGenerationSettings.generatedImages[this.currentGeneratedImageIndex].signedUri
       "
       target="_blank"
       >Image</a
@@ -54,7 +54,7 @@
   <h2>Scene {{ scene.number }}</h2>
   <p>{{ scene.description }}</p>
 
-  <mat-form-field class="selected-image-for-video">
+  <!--mat-form-field class="selected-image-for-video">
     <mat-label>Selected Image for Video</mat-label>
     <mat-select
       name="selectedImageUri"
@@ -69,7 +69,7 @@
       }}</mat-option>
       }
     </mat-select>
-  </mat-form-field>
+  </mat-form-field-->
 
   <!-- AI image generation collapsible -->
   <mat-accordion>

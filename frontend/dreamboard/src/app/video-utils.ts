@@ -30,7 +30,7 @@ import { VideoScene } from './models/scene-models';
 import { getNewImageSettings } from './image-utils';
 import { v4 as uuidv4 } from 'uuid';
 
-export const VIDEO_MODEL_NAME = 'veo-2.0-generate-001';
+export const DEFAULT_VIDEO_MODEL_NAME = 'veo-3.1-generate-001';
 export const VIDEO_MODEL_MAX_LENGTH = 8;
 
 export function getNewVideoScene(existingScenesLen: number) {
@@ -66,7 +66,7 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     endSeconds: 7,
     endFrame: 23,
     generatedVideos: [], // empty for new scene
-    selectedVideo: undefined,
+    selectedVideoForMerge: undefined,
   };
 
   return newVideoGenSettings;
@@ -120,9 +120,112 @@ export function getOutputResolutionOptions() {
   ] as SelectItem[];
 }
 
+export function getDurationInSecsOptions() {
+  return [
+    {
+      displayName: '4',
+      value: '4',
+    },
+    {
+      displayName: '6',
+      value: '6',
+    },
+    {
+      displayName: '8',
+      value: '8',
+    },
+  ] as SelectItem[];
+}
+
+export function getVeoModels() {
+  const veoModels: SelectItem[] = [
+    {
+      displayName: 'Veo 3.1',
+      value: 'veo-3.1-generate-001',
+    },
+    {
+      displayName: 'Veo 3.1 Fast',
+      value: 'veo-3.1-fast-generate-001',
+    },
+    {
+      displayName: 'Veo 3',
+      value: 'veo-3.0-generate-001',
+    },
+    {
+      displayName: 'Veo 3 Fast',
+      value: 'veo-3.0-fast-generate-001',
+    },
+  ];
+
+  return veoModels;
+}
+
+export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
+  const videoGenTasks: { [key: string]: SelectItem[] } = {
+    'veo-3.1-generate-001': [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+      {
+        displayName: 'Reference to Video',
+        value: 'reference-to-video',
+      },
+      {
+        displayName: 'Video Extension',
+        value: 'video-extension',
+      },
+    ],
+    'veo-3.1-fast-generate-001': [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+      {
+        displayName: 'Reference to Video',
+        value: 'reference-to-video',
+      },
+      {
+        displayName: 'Video Extension',
+        value: 'video-extension',
+      },
+    ],
+    'veo-3.0-generate-001': [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+    ],
+    'veo-3.0-fast-generate-001': [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+    ],
+  };
+
+  return videoGenTasks[modelName];
+}
+
 export function findSceneResponse(
   resps: VideoGenerationResponse[],
-  scene: VideoScene
+  scene: VideoScene,
 ) {
   return resps.filter((resp: VideoGenerationResponse) => {
     return (
@@ -134,7 +237,7 @@ export function findSceneResponse(
 
 export function updateScenesWithGeneratedVideos(
   resps: VideoGenerationResponse[],
-  scenes: VideoScene[]
+  scenes: VideoScene[],
 ) {
   let executionStatus = {
     succeded: false,
@@ -161,32 +264,29 @@ export function updateScenesWithGeneratedVideos(
             signedUri: video.signed_uri,
             gcsFusePath: video.gcs_fuse_path,
             mimeType: video.mime_type,
-            duration: video.duration
+            duration: video.duration,
           };
           return vid;
         });
         // Add new videos
         scene.videoGenerationSettings.generatedVideos.push.apply(
           scene.videoGenerationSettings.generatedVideos,
-          genVideos
+          genVideos,
         );
-        // Select first generated video as selected image for video
+        // Select first generated video as selected video for merge
         if (genVideos.length > 0) {
-          scene.videoGenerationSettings.selectedVideo = genVideos[0];
+          scene.videoGenerationSettings.selectedVideoForMerge = genVideos[0];
         }
         executionStatus['succeded'] = true;
-        executionStatus[
-          'execution_message'
-        ] += `Videos for scene ${scene.number} generated successfully! \n`;
+        executionStatus['execution_message'] +=
+          `Videos for scene ${scene.number} generated successfully! \n`;
       } else {
-        executionStatus[
-          'execution_message'
-        ] += `Video for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
+        executionStatus['execution_message'] +=
+          `Video for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
       }
     } else {
-      executionStatus[
-        'execution_message'
-      ] += `Video for scene ${scene.number} not processed. 'The 'Regenerate video in bulk generation' option might be disabled. \n`;
+      executionStatus['execution_message'] +=
+        `Video for scene ${scene.number} not processed. 'The 'Regenerate video in bulk generation' option might be disabled. \n`;
     }
   });
 

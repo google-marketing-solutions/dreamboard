@@ -44,7 +44,7 @@ import { VideoScene } from './models/scene-models';
 export function isVideoGenerated(scene: VideoScene): boolean {
   return (
     scene.videoGenerationSettings.generatedVideos.length > 0 &&
-    scene.videoGenerationSettings.selectedVideo !== undefined
+    scene.videoGenerationSettings.selectedVideoForMerge !== undefined
   );
 }
 
@@ -66,7 +66,7 @@ export function validateScenes(story: VideoStory): SceneValidations {
     }
     // Check prompt required
     if (
-      !scene.imageGenerationSettings.selectedImageForVideo &&
+      scene.imageGenerationSettings.selectedImagesForVideo?.length === 0 &&
       !scene.videoGenerationSettings.prompt
     ) {
       // Prompt is required for Text to Video
@@ -74,12 +74,12 @@ export function validateScenes(story: VideoStory): SceneValidations {
     }
     // Check valid cut params for merge operation (invalidScenesCutVideoParams)
     if (
-      scene.videoGenerationSettings.selectedVideo &&
+      scene.videoGenerationSettings.selectedVideoForMerge &&
       scene.videoGenerationSettings.cutVideo
     ) {
-      if (scene.videoGenerationSettings.selectedVideo) {
+      if (scene.videoGenerationSettings.selectedVideoForMerge) {
         const videoDuration =
-          scene.videoGenerationSettings.selectedVideo.duration;
+          scene.videoGenerationSettings.selectedVideoForMerge.duration;
         const cutStartSeconds = scene.videoGenerationSettings.startSeconds;
         const cutEndSeconds = scene.videoGenerationSettings.endSeconds;
         const cutStartFrame = scene.videoGenerationSettings.startFrame;

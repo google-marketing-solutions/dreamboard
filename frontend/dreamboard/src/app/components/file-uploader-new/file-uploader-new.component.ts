@@ -51,29 +51,29 @@ import { ComponentsCommunicationService } from '../../services/components-commun
 import { v4 as uuidv4 } from 'uuid';
 
 @Component({
-  selector: 'app-file-uploader',
+  selector: 'app-file-uploader-new',
   imports: [MatButtonModule, MatIconModule, MatProgressBarModule],
-  templateUrl: './file-uploader.component.html',
-  styleUrls: ['./file-uploader.component.scss'],
+  templateUrl: './file-uploader-new.component.html',
+  styleUrl: './file-uploader-new.component.css',
 })
-export class FileUploaderComponent {
+export class FileUploaderNewComponent {
   @ViewChild('fileUpload', { static: false }) fileUploadElementRef!: ElementRef;
   id = uuidv4();
   @Input() storyId!: string;
   @Input() sceneId!: string;
   @Input() fileType!: UploadedFileType;
-  @Input() referenceImageId: string | undefined;
-  @Input() fileItems: UploadedFile[] = [];
+  @Input() enableMultipleFiles: boolean = false;
+  fileItems: UploadedFile[] = [];
   statusIcon: string = '';
   uploadInProgress: boolean = false;
   uploadError: boolean = false;
   uploadSub!: Subscription;
-  @Output() fileUploadedEvent = new EventEmitter<UploadedFile>();
+  @Output() fileUploadedEventNew = new EventEmitter<UploadedFile>();
   private _snackBar = inject(MatSnackBar);
 
   constructor(
     private filesManagerService: FilesManagerService,
-    private componentsCommunicationService: ComponentsCommunicationService
+    private componentsCommunicationService: ComponentsCommunicationService,
   ) {}
 
   /**
@@ -170,10 +170,10 @@ export class FileUploaderComponent {
       // File uploader needs a FormData
       const formData = new FormData();
       formData.append('file', file);
-      const fileId = this.referenceImageId ? this.referenceImageId : uuidv4();
+
       const fileItem: UploadedFile = {
         sceneId: this.sceneId,
-        id: fileId,
+        id: '', // Updated on upload to the server
         name: file.name,
         gcsUri: '', // Updated on upload to the server
         signedUri: '', // Updated on upload to the server
@@ -182,7 +182,7 @@ export class FileUploaderComponent {
         type: this.fileType,
       };
       openSnackBar(this._snackBar, `Uploading file ${fileItem.name}...`);
-      this.fileItems = [fileItem]; // Just 1 file for now
+
       // Upload to server
       this.filesManagerService
         .uploadFile(this.storyId, this.sceneId, this.fileType, formData)
@@ -195,14 +195,16 @@ export class FileUploaderComponent {
               openSnackBar(
                 this._snackBar,
                 `File ${uploadedFile.name} uploaded successfully!`,
-                10
+                10,
               );
+              fileItem.id = uploadedFile.id;
               fileItem.gcsUri = uploadedFile.gcs_uri;
               fileItem.signedUri = uploadedFile.signed_uri;
               fileItem.gcsFusePath = uploadedFile.gcs_fuse_path;
-              this.fileUploadedEvent.emit(fileItem);
+              this.fileItems.push(fileItem);
+              this.fileUploadedEventNew.emit(fileItem);
             } else {
-              console.log('Uploading image...');
+              console.log('Uploading file...');
             }
           },
           (error: any) => {
@@ -216,9 +218,9 @@ export class FileUploaderComponent {
             console.error(errorMessage);
             openSnackBar(
               this._snackBar,
-              `ERROR: ${errorMessage}. Please try again.`
+              `ERROR: ${errorMessage}. Please try again.`,
             );
-          }
+          },
         );
     }
     this.fileUploadElementRef.nativeElement.value = '';
@@ -240,9 +242,7 @@ export class FileUploaderComponent {
   }
 
   disableUploadButton() {
-    // TODO (ae) workaround for now
-    this.fileType === UploadedFileType.ReferenceImage &&
-      this.fileItems.length > 0;
+    return false
   }
 
   /**

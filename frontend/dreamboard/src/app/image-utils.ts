@@ -30,8 +30,8 @@ import { VideoScene } from './models/scene-models';
 
 export const IMAGE_MODEL_NAME = 'imagen-3.0-generate-001';
 
-export function getNewImageSettings() {
-  return {
+export function getNewImageSettings(): ImageGenerationSettings {
+  const imageGenSettings = {
     prompt: '',
     numImages: 4,
     aspectRatio: '16:9',
@@ -42,13 +42,14 @@ export function getNewImageSettings() {
     personGeneration: 'allow_all',
     seed: -1,
     negativePrompt: '',
-    selectedImageForVideo: undefined,
+    selectedImagesForVideo: [],
     referenceImages: [],
     generatedImages: [],
-  } as ImageGenerationSettings;
+  };
+  return imageGenSettings;
 }
 
-export function initRefImage() {
+export function initRefImage(): Image {
   const img: Image = {
     id: '',
     name: '',
@@ -60,7 +61,7 @@ export function initRefImage() {
   return img;
 }
 
-export function getAspectRatiosByModelName(modelName: string) {
+export function getAspectRatiosByModelName(modelName: string): SelectItem[] {
   const imageAspectRatios: { [key: string]: SelectItem[] } = {
     'imagen-3.0-generate-001': [
       {
@@ -85,14 +86,14 @@ export function getAspectRatiosByModelName(modelName: string) {
   return imageAspectRatios[modelName];
 }
 
-export function getOutputMimeTypes() {
+export function getOutputMimeTypes(): SelectItem[] {
   return [
     { displayName: 'PNG', value: 'image/png' },
     { displayName: 'JPG', value: 'image/jpeg' },
   ] as SelectItem[];
 }
 
-export function imageLanguages() {
+export function imageLanguages(): SelectItem[] {
   return [
     { displayName: 'English', value: 'en' },
     { displayName: 'Hindi', value: 'hi' },
@@ -102,7 +103,7 @@ export function imageLanguages() {
   ] as SelectItem[];
 }
 
-export function getSafetyFilterLevels() {
+export function getSafetyFilterLevels(): SelectItem[] {
   const safetyFilters: SelectItem[] = [
     {
       displayName: 'Block Low and Above',
@@ -125,7 +126,9 @@ export function getSafetyFilterLevels() {
   return safetyFilters;
 }
 
-export function getPersonGenerationOptionsByModelName(modelName: string) {
+export function getPersonGenerationOptionsByModelName(
+  modelName: string,
+): SelectItem[] {
   const personGenerationOptions: { [key: string]: SelectItem[] } = {
     'imagen-3.0-generate-001': [
       {
@@ -146,7 +149,7 @@ export function getPersonGenerationOptionsByModelName(modelName: string) {
   return personGenerationOptions[modelName];
 }
 
-export function getImageReferenceTypes() {
+export function getImageReferenceTypes(): SelectItem[] {
   const imageReferenceTypes: SelectItem[] = [
     {
       displayName: 'Subject - Default',
@@ -175,7 +178,7 @@ export function getImageReferenceTypes() {
 
 export function findSceneResponse(
   resps: ImageGenerationResponse[],
-  scene: VideoScene
+  scene: VideoScene,
 ) {
   return resps.filter((resp: ImageGenerationResponse) => {
     console.log(
@@ -184,7 +187,7 @@ export function findSceneResponse(
         ', segment Num: ' +
         resp.segment_number +
         ', scene num: ' +
-        scene.number
+        scene.number,
     );
     // return resp.scene_ids === scene.id && resp.segment_number === scene.number;
     return resp.segment_number === scene.number;
@@ -193,7 +196,7 @@ export function findSceneResponse(
 
 export function updateScenesWithGeneratedImages(
   resps: ImageGenerationResponse[],
-  scenes: VideoScene[]
+  scenes: VideoScene[],
 ) {
   let executionStatus = {
     succeded: false,
@@ -205,12 +208,6 @@ export function updateScenesWithGeneratedImages(
     if (respsFound.length) {
       const response = respsFound[0];
       if (response.done) {
-        console.log(
-          'Testing after findSceneResponse for images: ' +
-            JSON.stringify(resps) +
-            '\n\n Scene: ' +
-            JSON.stringify(scene)
-        );
         // Setup the images used.
         const genImages: Image[] = response.images.map((image: ImageItem) => {
           return {
@@ -224,27 +221,30 @@ export function updateScenesWithGeneratedImages(
         // Append images to carrousel
         scene.imageGenerationSettings.generatedImages.push.apply(
           scene.imageGenerationSettings.generatedImages,
-          genImages
+          genImages,
         );
         // Select first generated image as selected image for video
+        /* TODO (ae) We don't need this anymore since users can select images
+        from the Video Generation Settings UI
         if (genImages.length > 0) {
-          scene.imageGenerationSettings.selectedImageForVideo = genImages[0];
-        }
+          scene.imageGenerationSettings.selectedImagesForVideo?.push(
+            genImages[0],
+          );
+        }*/
         executionStatus['succeded'] = true;
-        executionStatus[
-          'execution_message'
-        ] += `Images generated successfully! \n`;
+        executionStatus['execution_message'] +=
+          `Images generated successfully! \n`;
       } else {
-        executionStatus[
-          'execution_message'
-        ] += `ERROR: Image for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
+        executionStatus['execution_message'] +=
+          `ERROR: Image for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
       }
     } else {
-      executionStatus[
-        'execution_message'
-      ] += `ERROR: Scene ID ${scene.number} not found in backend responses. \n`;
+      executionStatus['execution_message'] +=
+        `ERROR: Scene ID ${scene.number} not found in backend responses. \n`;
     }
   });
 
   return executionStatus;
 }
+
+
