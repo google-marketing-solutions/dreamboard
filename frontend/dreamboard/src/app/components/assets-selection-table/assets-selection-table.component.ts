@@ -19,9 +19,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { SelectionModel } from '@angular/cdk/collections';
 import { Image } from '../../models/image-gen-models';
+import { Video } from '../../models/video-gen-models';
 
 @Component({
-  selector: 'app-generated-images-table',
+  selector: 'app-assets-selection-table',
   imports: [
     MatFormFieldModule,
     MatInputModule,
@@ -32,29 +33,27 @@ import { Image } from '../../models/image-gen-models';
     MatIconModule,
     MatTooltipModule,
   ],
-  templateUrl: './generated-images-table.component.html',
-  styleUrl: './generated-images-table.component.css',
+  templateUrl: './assets-selection-table.component.html',
+  styleUrl: './assets-selection-table.component.css',
 })
-export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
-  @Input() generatedImages!: Image[];
-  @Input() selectedImagesForVideo!: Image[];
-  @Input() isSelectionMode!: boolean;
-  @Input() imageSelectionTypeLabel!: string;
-  @Input() maxAllowedSelectedImages!: number;
-  @Output() generatedImageDeletedEvent = new EventEmitter<Image>();
-  displayedColumns: string[] = ['imagePreview', 'actions'];
-  dataSource: MatTableDataSource<Image>;
-  selection = new SelectionModel<Image>(true, []);
+export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
+  @Input() assets: Image[] | Video[] = [];
+  @Input() assetType: string = '';
+  @Input() maxAllowedSelectedAssets: number = 1;
+  @Input() isSelectionMode = true;
+  @Output() onAssetDeletedEvent = new EventEmitter<Image | Video>();
+  displayedColumns: string[] = ['assetPreview', 'actions'];
+  dataSource: MatTableDataSource<Image | Video>;
+  selection = new SelectionModel<Image | Video>(true, []);
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private cdr: ChangeDetectorRef) {
     // Assign the data to the data source for the table to render
-    this.dataSource = new MatTableDataSource(this.generatedImages);
+    this.dataSource = new MatTableDataSource(this.assets);
   }
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
-    this.setSelection();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -85,14 +84,10 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
     this.selection.toggle(row);
   }
 
-  setMaxAllowedSelectedImages(max: number): void {
-    this.maxAllowedSelectedImages = max;
-  }
-
   disableCheckBox(row: Image): boolean {
     const isSelected = this.selection.isSelected(row);
     if (
-      this.selection.selected.length === this.maxAllowedSelectedImages &&
+      this.selection.selected.length === this.maxAllowedSelectedAssets &&
       !isSelected
     ) {
       return true;
@@ -113,43 +108,26 @@ export class GeneratedImagesTableComponent implements AfterViewInit, OnChanges {
 
   refreshTable(triggerDetectChanges: boolean): void {
     // Create copy to show always the latest generated images
-    const reversed = [...this.generatedImages].reverse();
+    const reversed = [...this.assets].reverse();
     this.dataSource.data = reversed;
     if (triggerDetectChanges) {
       this.cdr.detectChanges();
     }
   }
 
-  setSelection(): void {
-    this.selection.clear();
-    if (this.selectedImagesForVideo) {
-      this.selectedImagesForVideo.forEach((selectedImage: Image) => {
-        // We need to select the images from object references in the table
-        // Otherwise selectedImagesForVideo will have a different reference objs
-        // when loaded from DB and it will not be correctly selected.
-        const found = this.generatedImages.find((image) => {
-          return image.id === selectedImage.id
-        });
-        if  (found) {
-          this.selection.select(found )
-        }
-      });
-    }
+  getSelectedAssets() {
+    return this.selection.selected;
   }
 
-  onDeleteGeneratedImage(image: Image): void {
+  onDeleteAsset(asset: Image | Video): void {
     // Send trigger to parent component to update the img carousel in case
-    // a displayed image has been removed
-    this.generatedImageDeletedEvent.emit(image);
-    // Refresh table that relies on this.generatedImages array
+    // a displayed asset has been removed
+    this.onAssetDeletedEvent.emit(asset);
+    // Refresh table that relies on this.assets array
     this.refreshTable(false);
   }
 
   getPageSizeOptions(): number[] {
-    if (!this.isSelectionMode) {
-      return [3, 5, 10, 15];
-    } else {
-      return [15, 25, 35];
-    }
+    return [3, 5, 10, 15];
   }
 }

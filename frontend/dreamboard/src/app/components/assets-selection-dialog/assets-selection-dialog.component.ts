@@ -19,7 +19,13 @@
  *
  ***************************************************************************/
 
-import { Component, inject, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  inject,
+  Output,
+  ViewChild,
+  EventEmitter,
+} from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogTitle,
@@ -38,6 +44,10 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { AssetsSelectionTableComponent } from '../assets-selection-table/assets-selection-table.component';
+import { VideoScene } from '../../models/scene-models';
+import { Image } from '../../models/image-gen-models';
+import { Video } from '../../models/video-gen-models';
 
 @Component({
   selector: 'app-assets-selection-dialog',
@@ -49,15 +59,23 @@ import { MatIconModule } from '@angular/material/icon';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
+    AssetsSelectionTableComponent,
   ],
   templateUrl: './assets-selection-dialog.component.html',
   styleUrl: './assets-selection-dialog.component.css',
 })
 export class AssetsSelectionDialogComponent {
   data: any = inject(MAT_DIALOG_DATA);
+  storyId: string = this.data.storyId;
+  scene: VideoScene = this.data.scene;
   assetType: string = this.data.assetType;
+  maxAllowedSelectedAssets: number = this.data.maxAllowedSelectedAssets;
+  selectedAssets: Image[] | Video[] = [];
 
   title = this.assetType === 'images' ? 'Images Selection' : 'Videos Selection';
+
+  @ViewChild(AssetsSelectionTableComponent)
+  assetsSelectionTableComponent!: AssetsSelectionTableComponent;
 
   @Output() assetsSelectedEvent = new EventEmitter<string>();
   private _snackBar = inject(MatSnackBar);
@@ -73,9 +91,32 @@ export class AssetsSelectionDialogComponent {
    */
   ngAfterViewInit(): void {}
 
-  save() {}
+  getAssetsByType(): Image[] | Video[] {
+    if (this.assetType === 'images') {
+      return this.scene.imageGenerationSettings.generatedImages;
+    }
+    if (this.assetType === 'videos') {
+      return this.scene.videoGenerationSettings.generatedVideos;
+    }
 
-  disableSaveButton() {
+    return [];
+  }
+
+  selectAssets(): void {
+    this.selectedAssets =
+      this.assetsSelectionTableComponent.getSelectedAssets();
+    this.dialogRef.close(this.selectedAssets);
+  }
+
+  disableSelectAssetsButton(): boolean {
+    if (this.assetsSelectionTableComponent) {
+      this.selectedAssets =
+        this.assetsSelectionTableComponent.getSelectedAssets();
+      if (this.selectedAssets.length === 0) {
+        return true;
+      }
+    }
+
     return false;
   }
 }

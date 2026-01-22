@@ -493,6 +493,8 @@ export class SceneBuilderComponent {
       const videoSegment: VideoSegmentGenerationOperation = {
         scene_id: scene.id,
         segment_number: scene.number,
+        video_model: scene.videoGenerationSettings.videoModel,
+        video_gen_task: scene.videoGenerationSettings.videoGenTask,
         prompt: scene.videoGenerationSettings.prompt,
         seed_images: seedImages, // Empty array for text to video generation
         duration_in_secs: scene.videoGenerationSettings.durationInSecs,

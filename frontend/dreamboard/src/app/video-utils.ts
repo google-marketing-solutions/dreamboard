@@ -30,7 +30,10 @@ import { VideoScene } from './models/scene-models';
 import { getNewImageSettings } from './image-utils';
 import { v4 as uuidv4 } from 'uuid';
 
-export const DEFAULT_VIDEO_MODEL_NAME = 'veo-3.1-generate-001';
+export const VEO_3_1_MODEL_NAME = 'veo-3.1-generate-001';
+export const VEO_3_1_FAST_MODEL_NAME = 'veo-3.1-fast-generate-001';
+export const VEO_3_MODEL_NAME = 'veo-3.0-generate-001';
+export const VEO_3_FAST_MODEL_NAME = 'veo-3.0-fast-generate-001';
 export const VIDEO_MODEL_MAX_LENGTH = 8;
 
 export function getNewVideoScene(existingScenesLen: number) {
@@ -46,11 +49,13 @@ export function getNewVideoScene(existingScenesLen: number) {
 
 export function getNewVideoSettings(): VideoGenerationSettings {
   const newVideoGenSettings: VideoGenerationSettings = {
+    videoModel: VEO_3_1_MODEL_NAME,
+    videoGenTask: 'text-to-video',
     prompt: '',
     durationInSecs: 4,
     aspectRatio: '16:9',
     framesPerSec: 24,
-    personGeneration: 'allow_adult',
+    personGeneration: 'allow_all',
     outputResolution: '1080p',
     sampleCount: 2,
     seed: 0,
@@ -67,6 +72,7 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     endFrame: 23,
     generatedVideos: [], // empty for new scene
     selectedVideoForMerge: undefined,
+    selectedVideosForExtension: [], // empty for new scene
   };
 
   return newVideoGenSettings;
@@ -88,12 +94,16 @@ export function getAspectRatios() {
 export function getPersonGenerationOptions() {
   return [
     {
-      displayName: 'Disallow',
-      value: 'disallow',
+      displayName: 'Allow All',
+      value: 'allow_all',
     },
     {
       displayName: 'Allow Adult',
       value: 'allow_adult',
+    },
+    {
+      displayName: 'Disallow',
+      value: 'disallow',
     },
   ] as SelectItem[];
 }
@@ -137,23 +147,23 @@ export function getDurationInSecsOptions() {
   ] as SelectItem[];
 }
 
-export function getVeoModels() {
+export function getVideoModels() {
   const veoModels: SelectItem[] = [
     {
       displayName: 'Veo 3.1',
-      value: 'veo-3.1-generate-001',
+      value: VEO_3_1_MODEL_NAME,
     },
     {
       displayName: 'Veo 3.1 Fast',
-      value: 'veo-3.1-fast-generate-001',
+      value: VEO_3_1_FAST_MODEL_NAME,
     },
     {
       displayName: 'Veo 3',
-      value: 'veo-3.0-generate-001',
+      value: VEO_3_MODEL_NAME,
     },
     {
       displayName: 'Veo 3 Fast',
-      value: 'veo-3.0-fast-generate-001',
+      value: VEO_3_FAST_MODEL_NAME,
     },
   ];
 
@@ -162,7 +172,7 @@ export function getVeoModels() {
 
 export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
   const videoGenTasks: { [key: string]: SelectItem[] } = {
-    'veo-3.1-generate-001': [
+    [VEO_3_1_MODEL_NAME]: [
       {
         displayName: 'Text to Video',
         value: 'text-to-video',
@@ -180,7 +190,7 @@ export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
         value: 'video-extension',
       },
     ],
-    'veo-3.1-fast-generate-001': [
+    [VEO_3_1_FAST_MODEL_NAME]: [
       {
         displayName: 'Text to Video',
         value: 'text-to-video',
@@ -198,7 +208,7 @@ export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
         value: 'video-extension',
       },
     ],
-    'veo-3.0-generate-001': [
+    [VEO_3_MODEL_NAME]: [
       {
         displayName: 'Text to Video',
         value: 'text-to-video',
@@ -208,7 +218,7 @@ export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
         value: 'image-to-video',
       },
     ],
-    'veo-3.0-fast-generate-001': [
+    [VEO_3_FAST_MODEL_NAME]: [
       {
         displayName: 'Text to Video',
         value: 'text-to-video',

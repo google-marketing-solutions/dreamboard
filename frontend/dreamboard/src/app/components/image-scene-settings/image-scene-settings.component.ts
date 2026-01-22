@@ -300,6 +300,17 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
       this.currentGeneratedImageIndex = -1;
     }*/
+    if (this.scene.imageGenerationSettings.generatedImages.length > 0) {
+      // Select the last generated image
+      this.imageSettingsForm.controls['selectedImageUri'].setValue(
+        this.scene.imageGenerationSettings.generatedImages[
+          this.scene.imageGenerationSettings.generatedImages.length - 1
+        ].gcsUri,
+      );
+    } else {
+      this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
+    }
+
     // Reference Type is set in initReferenceImageCards
     this.initReferenceImageCards();
   }
@@ -427,19 +438,14 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       previousImageIndex < 0
         ? this.scene.imageGenerationSettings.generatedImages.length - 1
         : previousImageIndex;
-
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
     const generatedImage =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
       ];
     // Set selected generated image in form
     this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.gcsUri
+      generatedImage.gcsUri,
     );
-    // Set selected generated image in scene
-    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;*/
   }
 
   /**
@@ -456,18 +462,14 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.scene.imageGenerationSettings.generatedImages.length
         ? 0
         : nextImageIndex;
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
     const generatedImage =
       this.scene.imageGenerationSettings.generatedImages[
         this.currentGeneratedImageIndex
       ];
     // Set selected generated image in form
     this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.gcsUri
+      generatedImage.gcsUri,
     );
-    // Set selected generated image in scene
-    this.scene.imageGenerationSettings.selectedImageForVideo = generatedImage;*/
   }
 
   /**
@@ -488,6 +490,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     const imageUri = event.value;
     const updateForm = false;
     this.updateSelectedImage(imageUri, updateForm);*/
+    const imageUri = event.value;
+    this.setCurrentGeneratedImageIndex(imageUri);
   }
 
   /**
@@ -643,10 +647,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
             this.scene.imageGenerationSettings.generatedImages[
               this.scene.imageGenerationSettings.generatedImages.length - 1
             ];
-          /* TODO (ae)
           const updateForm = true;
-          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);*/
-          this.setCurrentGeneratedImageIndex(lastGenImage.gcsUri);
+          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
         },
         (error: any) => {
           let errorMessage;

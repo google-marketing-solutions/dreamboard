@@ -51,10 +51,7 @@
 </div>
 
 <form [formGroup]="imageSettingsForm">
-  <h2>Scene {{ scene.number }}</h2>
-  <p>{{ scene.description }}</p>
-
-  <!--mat-form-field class="selected-image-for-video">
+  <mat-form-field class="selected-image-for-video">
     <mat-label>Selected Image for Video</mat-label>
     <mat-select
       name="selectedImageUri"
@@ -69,7 +66,7 @@
       }}</mat-option>
       }
     </mat-select>
-  </mat-form-field-->
+  </mat-form-field>
 
   <!-- AI image generation collapsible -->
   <mat-accordion>

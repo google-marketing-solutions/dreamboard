@@ -22,6 +22,8 @@
 import { ImageItem } from './image-gen-models';
 
 export interface VideoGenerationSettings {
+  videoModel: string;
+  videoGenTask: string;
   prompt: string;
   durationInSecs: number;
   aspectRatio?: string;
@@ -43,6 +45,7 @@ export interface VideoGenerationSettings {
   endFrame?: number;
   generatedVideos: Video[];
   selectedVideoForMerge?: Video;
+  selectedVideosForExtension: Video[];
 }
 
 export interface Video {
@@ -82,13 +85,15 @@ export enum Transition {
 export interface VideoSegmentGenerationOperation {
   scene_id: string;
   segment_number: number;
+  video_model: string;
+  video_gen_task: string;
   prompt: string;
   seed_images: ImageItem[];
   duration_in_secs?: number;
   aspect_ratio?: string;
   frames_per_sec?: number;
   person_generation?: string;
-  outputResolution?: string;
+  output_resolution?: string;
   sample_count?: number;
   seed?: number;
   negative_prompt?: string;

@@ -26,11 +26,9 @@ import uuid
 import utils
 from core.config import settings
 from google import genai
-from google.genai.types import GenerateVideosConfig, Image, HttpOptions, GeneratedVideo
+from google.genai import types
 from models.video import video_request_models
-from models.video.video_gen_models import Video, VideoGenerationResponse
-
-DEFAULT_MODEL_NAME = "veo-3.0-generate-001"
+from models.video import video_gen_models
 
 
 class VeoAPIService:
@@ -44,23 +42,25 @@ class VeoAPIService:
         vertexai=True,
         project=os.getenv("PROJECT_ID"),
         location=os.getenv("LOCATION"),
-        http_options=HttpOptions(headers={"User-Agent": settings.USER_AGENT}),
+        http_options=types.HttpOptions(
+            headers={"User-Agent": settings.USER_AGENT}
+        ),
     )
 
   def generate_video(
       self,
       story_id: str,
       output_gcs_uri: str,
-      video_segment: video_request_models.VideoSegmentRequest,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
       wait: bool | None = True,
-  ) -> VideoGenerationResponse:
+  ) -> video_gen_models.VideoGenerationResponse:
     """
     Generates a video using Veo.
 
     Args:
         story_id: The ID of the story.
         output_gcs_uri: The GCS URI where the output video will be stored.
-        video_segment: The VideoSegmentRequest containing video generation
+        video_segment: The VideoSegmentGenerationOperation containing video generation
                        parameters.
         wait: If True, the method waits for the video generation to
               complete. Otherwise, it returns immediately with the
@@ -76,51 +76,75 @@ class VeoAPIService:
         story_id,
         video_segment.segment_number,
     )
-    if video_segment.seed_image:
-      image_uri = video_segment.seed_image.gcs_uri
-      # Image to Video generation
-      operation = self.client.models.generate_videos(
-          model=DEFAULT_MODEL_NAME,
-          prompt=video_segment.prompt,
-          image=Image(
-              gcs_uri=image_uri,
-              mime_type=video_segment.seed_image.mime_type,
-          ),
-          config=GenerateVideosConfig(
-              number_of_videos=video_segment.sample_count,
-              output_gcs_uri=output_gcs_uri,
-              fps=video_segment.frames_per_sec,
-              duration_seconds=video_segment.duration_in_secs,
-              aspect_ratio=video_segment.aspect_ratio,
-              person_generation=video_segment.person_generation,
-              resolution=video_segment.output_resolution,
-              enhance_prompt=video_segment.enhance_prompt,
-              negative_prompt=video_segment.negative_prompt,
-              generate_audio=video_segment.generate_audio,
-          ),
-      )
 
-    else:
-      # Text to Video generation
-      operation = self.client.models.generate_videos(
-          model=DEFAULT_MODEL_NAME,
-          prompt=video_segment.prompt,
-          config=GenerateVideosConfig(
-              number_of_videos=video_segment.sample_count,
-              output_gcs_uri=output_gcs_uri,
-              fps=video_segment.frames_per_sec,
-              duration_seconds=video_segment.duration_in_secs,
-              aspect_ratio=video_segment.aspect_ratio,
-              person_generation=video_segment.person_generation,
-              enhance_prompt=video_segment.enhance_prompt,
-              negative_prompt=video_segment.negative_prompt,
-              generate_audio=video_segment.generate_audio,
-          ),
-      )
+    if (
+        video_segment.video_model
+        == video_request_models.VideoModelName.VEO_3_MODEL_NAME.value
+        or video_segment.video_model
+        == video_request_models.VideoModelName.VEO_3_FAST_MODEL_NAME.value
+    ):
+      # Image to Video in Veo 3.0
+      if len(video_segment.seed_images) == 1:
+        operation = self.generate_video_single_image_to_video_operation(
+            output_gcs_uri, video_segment
+        )
+      else:
+        # Text to Video generation in Veo 3.0
+        operation = self.generate_video_text_to_video_operation(
+            output_gcs_uri, video_segment
+        )
+
+    elif (
+        video_segment.video_model
+        == video_request_models.VideoModelName.VEO_3_1_MODEL_NAME.value
+        or video_segment.video_model
+        == video_request_models.VideoModelName.VEO_3_1_FAST_MODEL_NAME.value
+    ):
+      # Image to Video in Veo 3.1
+      if len(video_segment.seed_images) > 0:
+        # Request with 1 image is the same as Veo 3.0
+        if len(video_segment.seed_images) == 1:
+          operation = self.generate_video_single_image_to_video_operation(
+              output_gcs_uri, video_segment
+          )
+        elif len(video_segment.seed_images) > 1:
+
+          if (
+              video_segment.video_gen_task.value
+              == video_request_models.VideoGenTasks.REFERENCE_TO_VIDEO.value
+          ):
+            operation = self.generate_video_multiple_images_to_video_operation(
+                output_gcs_uri, video_segment
+            )
+          if (
+              video_segment.video_gen_task.value
+              == video_request_models.VideoGenTasks.IMAGE_TO_VIDEO.value
+          ):
+            operation = self.generate_video_first_last_frame_to_video_operation(
+                output_gcs_uri, video_segment
+            )
+            if isinstance(operation, tuple):
+              # For some reason this is a tuple...
+              operation = operation[0]
+
+      elif len(video_segment.selected_videos_for_extension) > 0:
+        # Video to Video extension
+        operation = (
+            self.generate_video_single_video_to_video_extension_operation(
+                output_gcs_uri, video_segment
+            )
+        )
+
+        return operation
+      else:
+        # Text to Video generation
+        operation = self.generate_video_text_to_video_operation(
+            output_gcs_uri, video_segment
+        )
 
     # For asynchronous request, return immediately
     if not wait:
-      return VideoGenerationResponse(
+      return video_gen_models.VideoGenerationResponse(
           done=False,
           operation_name=operation.name,
           execution_message=(
@@ -142,7 +166,7 @@ class VeoAPIService:
       gen_videos = operation.result.generated_videos
       # Check if any videos were actually generated
       if not operation.result.generated_videos:
-        return VideoGenerationResponse(
+        return video_gen_models.VideoGenerationResponse(
             done=False,
             operation_name=operation.name,
             execution_message=(
@@ -168,7 +192,7 @@ class VeoAPIService:
         file_name = utils.get_file_name_from_uri(gen_video.video.uri)
         gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
         videos.append(
-            Video(
+            video_gen_models.Video(
                 id=uuid.uuid4(),
                 name=f"{scene_folder}/{file_name}",
                 gcs_uri=gen_video.video.uri,
@@ -183,7 +207,7 @@ class VeoAPIService:
             )
         )
 
-      return VideoGenerationResponse(
+      return video_gen_models.VideoGenerationResponse(
           done=True,
           operation_name=operation.name,
           execution_message=(
@@ -198,7 +222,7 @@ class VeoAPIService:
           "There was an error generating the video: %s.", operation.error
       )
 
-      return VideoGenerationResponse(
+      return video_gen_models.VideoGenerationResponse(
           done=False,
           operation_name=operation.name,
           execution_message=(
@@ -208,44 +232,206 @@ class VeoAPIService:
           video_segment=video_segment,
       )
 
-  def generate_video_for_agent(
+  def get_generic_generation_config(
       self,
-      video_segment: video_request_models.VideoSegmentRequest,
-      output_gcs_uri: str | None = None,
-  ) -> list[GeneratedVideo] | None:
-    """Generates a Veo video for an agent tool call
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ) -> types.GenerateVideosConfig:
+    """Gets the generation configuration for Veo 3.0.
+
     Args:
         output_gcs_uri: The GCS URI where the output video will be stored.
-        video_segment: The VideoSegmentRequest containing video generation
-                        parameters.
+        video_segment: The VideoSegmentGenerationOperation containing video generation
+                       parameters.
 
     Returns:
-        A list of VideoGenerationResponse objects indicating the status of the
-        video generation.
-
+        A GenerateVideosConfig object for Veo 3.0.
     """
+    config = types.GenerateVideosConfig(
+        number_of_videos=video_segment.sample_count,
+        output_gcs_uri=output_gcs_uri,
+        fps=video_segment.frames_per_sec,
+        duration_seconds=video_segment.duration_in_secs,
+        aspect_ratio=video_segment.aspect_ratio,
+        person_generation=video_segment.person_generation,
+        resolution=video_segment.output_resolution,
+        enhance_prompt=video_segment.enhance_prompt,
+        negative_prompt=video_segment.negative_prompt,
+        generate_audio=video_segment.generate_audio,
+    )
+    return config
+
+  def generate_video_text_to_video_operation(
+      self,
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ):
+    """Generates a video from a text prompt.
+
+    Args:
+        output_gcs_uri: The GCS URI where the output video will be stored.
+        video_segment: The VideoSegmentGenerationOperation containing video generation
+                       parameters.
+
+    Returns:
+        The video generation operation.
+    """
+    # Generate videos
     operation = self.client.models.generate_videos(
-        model=DEFAULT_MODEL_NAME,
+        model=video_segment.video_model,
         prompt=video_segment.prompt,
-        config=GenerateVideosConfig(
-            number_of_videos=video_segment.sample_count,
-            output_gcs_uri=output_gcs_uri,
-            fps=video_segment.frames_per_sec,
-            duration_seconds=video_segment.duration_in_secs,
-            aspect_ratio=video_segment.aspect_ratio,
-            person_generation=video_segment.person_generation,
-            enhance_prompt=video_segment.enhance_prompt,
-            negative_prompt=video_segment.negative_prompt,
-            generate_audio=video_segment.generate_audio,
+        config=self.get_generic_generation_config(
+            output_gcs_uri, video_segment
         ),
     )
 
-    while not operation.done:
-      time.sleep(15)
-      operation = self.client.operations.get(operation)
-      print(operation)
+    return operation
 
-    if operation.response:
-      return operation.result.generated_videos
-    else:
-      return None
+  def generate_video_single_image_to_video_operation(
+      self,
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ):
+    """Generates a video from a single seed image and a prompt.
+
+    Args:
+        output_gcs_uri: The GCS URI where the output video will be stored.
+        video_segment: The VideoSegmentGenerationOperation containing video generation
+                       parameters, including the seed image.
+
+    Returns:
+        The video generation operation.
+    """
+    seed_image = video_segment.seed_images[0]
+    # Generate videos
+    operation = self.client.models.generate_videos(
+        model=video_segment.video_model,
+        prompt=video_segment.prompt,
+        image=types.Image(
+            gcs_uri=seed_image.gcs_uri,
+            mime_type=seed_image.mime_type,
+        ),
+        config=self.get_generic_generation_config(
+            output_gcs_uri, video_segment
+        ),
+    )
+    return operation
+
+  def generate_video_multiple_images_to_video_operation(
+      self,
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ):
+    """Generates a video from multiple reference images and a prompt.
+
+    Args:
+        output_gcs_uri: The GCS URI where the output video will be stored.
+        video_segment: The VideoSegmentGenerationOperation containing video generation
+                       parameters, including reference images.
+
+    Returns:
+        The video generation operation.
+    """
+    ref_images = []
+    for seed_image in video_segment.seed_images:
+      image = types.Image(
+          gcs_uri=seed_image.gcs_uri,
+          mime_type=seed_image.mime_type,
+      )
+      ref_image = types.VideoGenerationReferenceImage(
+          image=image, reference_type="asset"
+      )
+      ref_images.append(ref_image)
+    # Generate videos
+    operation = (
+        self.client.models.generate_videos(
+            model=video_segment.video_model,
+            prompt=video_segment.prompt,
+            config=types.GenerateVideosConfig(
+                number_of_videos=video_segment.sample_count,
+                output_gcs_uri=output_gcs_uri,
+                fps=video_segment.frames_per_sec,
+                duration_seconds=video_segment.duration_in_secs,
+                aspect_ratio=video_segment.aspect_ratio,
+                person_generation=video_segment.person_generation,
+                resolution=video_segment.output_resolution,
+                enhance_prompt=video_segment.enhance_prompt,
+                negative_prompt=video_segment.negative_prompt,
+                generate_audio=video_segment.generate_audio,
+                reference_images=ref_images,
+            ),
+        ),
+    )
+
+    return operation
+
+  def generate_video_first_last_frame_to_video_operation(
+      self,
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ):
+    """Generates a video using a first and last frame as guidance.
+
+    Args:
+        output_gcs_uri: The GCS URI where the output video will be stored.
+        video_segment: The VideoSegmentGenerationOperation containing video generation
+                       parameters, including the first and last frame
+                       images.
+
+    Returns:
+        The video generation operation.
+    """
+    first_frame = video_segment.seed_images[0]
+    last_frame = video_segment.seed_images[-1]
+    last_frame_image = types.Image(
+        gcs_uri=last_frame.gcs_uri,
+        mime_type=last_frame.mime_type,
+    )
+    # Generate videos
+    operation = (
+        self.client.models.generate_videos(
+            model=video_segment.video_model,
+            prompt=video_segment.prompt,
+            image=types.Image(  # First frame is part of operation object image=first_frame
+                gcs_uri=first_frame.gcs_uri,
+                mime_type=first_frame.mime_type,
+            ),
+            config=types.GenerateVideosConfig(
+                number_of_videos=video_segment.sample_count,
+                output_gcs_uri=output_gcs_uri,
+                fps=video_segment.frames_per_sec,
+                duration_seconds=video_segment.duration_in_secs,
+                aspect_ratio=video_segment.aspect_ratio,
+                person_generation=video_segment.person_generation,
+                resolution=video_segment.output_resolution,
+                enhance_prompt=video_segment.enhance_prompt,
+                negative_prompt=video_segment.negative_prompt,
+                generate_audio=video_segment.generate_audio,
+                last_frame=last_frame_image,
+            ),
+        ),
+    )
+
+    return operation
+
+  def generate_video_single_video_to_video_extension_operation(
+      self,
+      output_gcs_uri: str,
+      video_segment: video_request_models.VideoSegmentGenerationOperation,
+  ) -> types.GenerateVideosOperation:
+    """"""
+    video = video_segment.seed_videos_info.selected_videos_for_extension[0]
+    # Generate videos
+    operation = self.client.models.generate_videos(
+        model=video_segment.video_model,
+        video=types.Video(
+            uri=video.gcs_uri,
+            mime_type=video.mime_type,
+        ),  # This must be a video from a previous generation
+        prompt=video_segment.prompt,
+        config=self.get_generic_generation_config(
+            output_gcs_uri, video_segment
+        ),
+    )
+
+    return operation

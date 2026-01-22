@@ -33,13 +33,9 @@
     <button mat-button>
       <mat-icon>download</mat-icon>
       <a
-        [href]="
-          this.scene.videoGenerationSettings.selectedVideoForMerge?.signedUri
-        "
+        [href]="scene.videoGenerationSettings.selectedVideoForMerge?.signedUri"
         download
-        [download]="
-          this.scene.videoGenerationSettings.selectedVideoForMerge?.name
-        "
+        [download]="scene.videoGenerationSettings.selectedVideoForMerge?.name"
         target="_blank"
         >Video</a
       >
@@ -65,9 +61,6 @@
 </div>
 
 <form [formGroup]="videoSettingsForm">
-  <h2>Scene {{ scene.number }}</h2>
-  <p>{{ scene.description }}</p>
-
   <mat-form-field class="selected-video">
     <mat-label>Selected Video For Merge</mat-label>
     <mat-select
@@ -93,12 +86,12 @@
     <mat-form-field>
       <mat-label>Veo Model</mat-label>
       <mat-select
-        formControlName="veoModel"
-        (selectionChange)="onVeoModelSelected($event)"
+        formControlName="videoModel"
+        (selectionChange)="onVideoModelSelected($event)"
       >
-        @for (veoModel of veoModels; track veoModel) {
-          <mat-option [value]="veoModel.value">{{
-            veoModel.displayName
+        @for (videoModel of videoModels; track videoModel.value) {
+          <mat-option [value]="videoModel.value">{{
+            videoModel.displayName
           }}</mat-option>
         }
       </mat-select>
@@ -117,9 +110,10 @@
   </div>
 
   @if (
-    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+    (this.videoSettingsForm.get("videoModel")?.value ===
+      "veo-3.1-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
-    (this.videoSettingsForm.get("veoModel")?.value ===
+    (this.videoSettingsForm.get("videoModel")?.value ===
       "veo-3.1-fast-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
   ) {
@@ -148,16 +142,17 @@
       <span>OR</span>
       <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
         <mat-icon>upload</mat-icon>
-        Image from Library
+        Images from Library
       </button>
     </div>
   }
 
   @if (
-    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+    (this.videoSettingsForm.get("videoModel")?.value ===
+      "veo-3.1-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value ===
         "reference-to-video") ||
-    (this.videoSettingsForm.get("veoModel")?.value ===
+    (this.videoSettingsForm.get("videoModel")?.value ===
       "veo-3.1-fast-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value ===
         "reference-to-video")
@@ -176,16 +171,17 @@
       <span>OR</span>
       <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
         <mat-icon>upload</mat-icon>
-        Image from Library
+        Images from Library
       </button>
     </div>
   }
 
   @if (
-    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.1-generate-001" &&
+    (this.videoSettingsForm.get("videoModel")?.value ===
+      "veo-3.1-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value ===
         "video-extension") ||
-    (this.videoSettingsForm.get("veoModel")?.value ===
+    (this.videoSettingsForm.get("videoModel")?.value ===
       "veo-3.1-fast-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value === "video-extension")
   ) {
@@ -200,9 +196,10 @@
   }
 
   @if (
-    (this.videoSettingsForm.get("veoModel")?.value === "veo-3.0-generate-001" &&
+    (this.videoSettingsForm.get("videoModel")?.value ===
+      "veo-3.0-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
-    (this.videoSettingsForm.get("veoModel")?.value ===
+    (this.videoSettingsForm.get("videoModel")?.value ===
       "veo-3.0-fast-generate-001" &&
       this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
   ) {
@@ -221,9 +218,36 @@
       <span>OR</span>
       <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
         <mat-icon>upload</mat-icon>
-        Image from Library
+        Images from Library
       </button>
     </div>
+  }
+
+  @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0) {
+    <label>Images from Library</label>
+    <div class="assets-from-library">
+      @for (
+        image of scene.imageGenerationSettings.selectedImagesForVideo;
+        track image.id
+      ) {
+        <img [src]="image.signedUri" />
+      }
+    </div>
+  }
+
+  @if (
+    scene.videoGenerationSettings.selectedVideosForExtension &&
+    scene.videoGenerationSettings.selectedVideosForExtension.length > 0
+  ) {
+      <label>Videos from Library</label>
+    @for (
+      video of scene.videoGenerationSettings.selectedVideosForExtension;
+      track video.id
+    ) {
+      <video controls>
+        <source [src]="video.signedUri" type="video/mp4" />
+      </video>
+    }
   }
 
   <div class="item-container">

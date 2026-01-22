@@ -54,9 +54,12 @@ import {
   getOutputResolutionOptions,
   getDurationInSecsOptions,
   updateScenesWithGeneratedVideos,
-  getVeoModels,
+  getVideoModels,
   getVideoGenTasksByModelName,
-  DEFAULT_VIDEO_MODEL_NAME,
+  VEO_3_1_MODEL_NAME,
+  VEO_3_MODEL_NAME,
+  VEO_3_1_FAST_MODEL_NAME,
+  VEO_3_FAST_MODEL_NAME,
 } from '../../video-utils';
 import { getOutputMimeTypes } from '../../image-utils';
 import {
@@ -93,14 +96,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   personGenerationOptions: SelectItem[] = getPersonGenerationOptions();
   outputResolutionOptions: SelectItem[] = getOutputResolutionOptions();
   durationInSecsOptions: SelectItem[] = getDurationInSecsOptions();
-  veoModels = getVeoModels();
-  videoGenTasks = getVideoGenTasksByModelName(DEFAULT_VIDEO_MODEL_NAME);
+  videoModels = getVideoModels();
+  videoGenTasks = getVideoGenTasksByModelName(VEO_3_1_MODEL_NAME);
   currentGeneratedVideoIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
   assetsSelectionDialog = inject(MatDialog);
 
   videoSettingsForm = new FormGroup({
-    veoModel: new FormControl(DEFAULT_VIDEO_MODEL_NAME, [Validators.required]),
+    videoModel: new FormControl(VEO_3_1_MODEL_NAME, [Validators.required]),
     videoGenTask: new FormControl('text-to-video', [Validators.required]),
     prompt: new FormControl('', []),
     sampleCount: new FormControl(2, []),
@@ -163,6 +166,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * @returns {void}
    */
   initVideoSettingsForm(): void {
+    const veoModel = this.scene.videoGenerationSettings.videoModel
+      ? this.scene.videoGenerationSettings.videoModel
+      : VEO_3_1_MODEL_NAME;
+    this.videoSettingsForm.controls['videoModel'].setValue(veoModel);
+    const videoGenTask = this.scene.videoGenerationSettings.videoGenTask
+      ? this.scene.videoGenerationSettings.videoGenTask
+      : 'text-to-video';
+    this.videoSettingsForm.controls['videoGenTask'].setValue(videoGenTask);
     this.videoSettingsForm.controls['prompt'].setValue(
       this.scene.videoGenerationSettings.prompt,
     );
@@ -240,10 +251,15 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * @returns {void}
    */
   setVideoSettings(): void {
+    this.scene.videoGenerationSettings.videoModel =
+      this.videoSettingsForm.get('videoModel')?.value!;
+    this.scene.videoGenerationSettings.videoGenTask =
+      this.videoSettingsForm.get('videoGenTask')?.value!;
     this.scene.videoGenerationSettings.prompt =
       this.videoSettingsForm.get('prompt')?.value!;
-    this.scene.videoGenerationSettings.durationInSecs =
-      parseInt(this.videoSettingsForm.get('durationInSecs')?.value!);
+    this.scene.videoGenerationSettings.durationInSecs = parseInt(
+      this.videoSettingsForm.get('durationInSecs')?.value!,
+    );
     this.scene.videoGenerationSettings.aspectRatio =
       this.videoSettingsForm.get('aspectRatio')?.value!;
     this.scene.videoGenerationSettings.personGeneration =
@@ -280,9 +296,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       selectedVideoForMerge;
   }
 
-  onVeoModelSelected(event: MatSelectChange) {
-    const veoModel = event.value;
-    this.videoGenTasks = getVideoGenTasksByModelName(veoModel);
+  onVideoModelSelected(event: MatSelectChange) {
+    const videoModel = event.value;
+    this.videoGenTasks = getVideoGenTasksByModelName(videoModel);
+    this.scene.videoGenerationSettings.videoModel = videoModel;
   }
 
   onVideoGenTaskSelected(event: MatSelectChange) {
@@ -291,6 +308,12 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       // Clear selected images for video
       this.scene.imageGenerationSettings.selectedImagesForVideo = [];
     }
+    if (videoGenTask !== 'video-extension') {
+      // Clear videos for extension
+      this.scene.videoGenerationSettings.selectedVideosForExtension = [];
+    }
+
+    this.scene.videoGenerationSettings.videoGenTask = videoGenTask;
   }
 
   addUploadedFile(file: UploadedFile) {
@@ -310,18 +333,63 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   }
 
   openAssetsSelectionDialog(assetType: string) {
-      const dialogRef = this.assetsSelectionDialog.open(AssetsSelectionDialogComponent, {
+    const dialogRef = this.assetsSelectionDialog.open(
+      AssetsSelectionDialogComponent,
+      {
         minWidth: '800px',
         data: {
-          "assetType": assetType
+          storyId: this.storyId,
+          scene: this.scene,
+          assetType: assetType,
+          maxAllowedSelectedAssets: this.getMaxAllowedSelectedAssets(),
         },
-        disableClose: true // Prevents closing on Escape key and backdrop click
-      });
-      // Subscribe to the afterClosed() observable to receive data upon closure
-      dialogRef.afterClosed().subscribe((resp: any) => {
-        console.log(resp);
-      });
+        disableClose: true, // Prevents closing on Escape key and backdrop click
+      },
+    );
+    // Subscribe to the afterClosed() observable to receive data upon closure
+    dialogRef.afterClosed().subscribe((selectedAssets: Image[] | Video[]) => {
+      if (selectedAssets.length > 0) {
+        if (selectedAssets[0].mimeType.includes('image')) {
+          this.scene.imageGenerationSettings.selectedImagesForVideo =
+            selectedAssets as Image[];
+        } else if (selectedAssets[0].mimeType.includes('video')) {
+          this.scene.videoGenerationSettings.selectedVideosForExtension =
+            selectedAssets as Video[];
+        }
+      }
+    });
+  }
+
+  getMaxAllowedSelectedAssets() {
+    const videoModel = this.videoSettingsForm.get('videoModel')?.value!;
+    const videoGenTask = this.videoSettingsForm.get('videoGenTask')?.value!;
+
+    if (
+      videoModel === VEO_3_1_MODEL_NAME ||
+      videoModel === VEO_3_1_FAST_MODEL_NAME
+    ) {
+      if (videoGenTask === 'image-to-video') {
+        return 2;
+      }
+      if (videoGenTask === 'reference-to-video') {
+        return 3;
+      }
+      if (videoGenTask === 'video-extension') {
+        return 1;
+      }
     }
+
+    if (
+      videoModel === VEO_3_MODEL_NAME ||
+      videoModel === VEO_3_FAST_MODEL_NAME
+    ) {
+      if (videoGenTask === 'image-to-video') {
+        return 1;
+      }
+    }
+
+    return 0;
+  }
 
   /**
    * Determines the `UploadedFileType` based on a given string identifier.
@@ -527,15 +595,19 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     const videoSegment: VideoSegmentGenerationOperation = {
       scene_id: this.scene.id,
       segment_number: this.scene.number,
+      video_model: this.videoSettingsForm.get('videoModel')?.value!,
+      video_gen_task: this.videoSettingsForm.get('videoGenTask')?.value!,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
       seed_images: seedImages, // Can be null for text to video generation
-      duration_in_secs: parseInt(this.videoSettingsForm.get('durationInSecs')?.value!),
+      duration_in_secs: parseInt(
+        this.videoSettingsForm.get('durationInSecs')?.value!,
+      ),
       aspect_ratio: this.videoSettingsForm.get('aspectRatio')?.value!,
       frames_per_sec: parseInt(
         this.videoSettingsForm.get('framesPerSec')?.value!,
       ),
       person_generation: this.videoSettingsForm.get('personGeneration')?.value!,
-      outputResolution: this.videoSettingsForm.get('outputResolution')?.value!,
+      output_resolution: this.videoSettingsForm.get('outputResolution')?.value!,
       sample_count: this.videoSettingsForm.get('sampleCount')?.value!,
       /*seed?: this.videoSettingsForm.get('prompt')?.value;*/
       negative_prompt: this.videoSettingsForm.get('negativePrompt')?.value!,
