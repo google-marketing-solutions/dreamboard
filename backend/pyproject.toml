@@ -20,7 +20,7 @@ dependencies = [
     "pyink>=24.10.1",
     "pyjwt>=2.10.1",
     "python-dotenv>=1.1.0",
-    "python-multipart==0.0.20",
+    "python-multipart==0.0.22",
     "scikit-image==0.25.2",
     "scipy==1.15.2",
     "sqlmodel>=0.0.24",
