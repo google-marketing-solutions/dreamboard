@@ -287,19 +287,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     );
 
     // On edit
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
-    if (this.scene.imageGenerationSettings.selectedImageForVideo) {
-      this.setCurrentGeneratedImageIndex(
-        this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri
-      );
-      this.imageSettingsForm.controls['selectedImageUri'].setValue(
-        this.scene.imageGenerationSettings.selectedImageForVideo.gcsUri
-      );
-    } else {
-      this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
-      this.currentGeneratedImageIndex = -1;
-    }*/
     if (this.scene.imageGenerationSettings.generatedImages.length > 0) {
       // Select the last generated image
       this.imageSettingsForm.controls['selectedImageUri'].setValue(
@@ -340,16 +327,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.imageSettingsForm.get('personGeneration')?.value!;
     this.scene.imageGenerationSettings.negativePrompt =
       this.imageSettingsForm.get('negativePrompt')?.value!;
-    // Set up selected image. generatedImages array is populated after API call
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
-
-    const selectedImageForVideo: Image =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.currentGeneratedImageIndex
-      ];
-    this.scene.imageGenerationSettings.selectedImageForVideo =
-      selectedImageForVideo;*/
   }
 
   /**
@@ -481,15 +458,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    * @returns {void}
    */
   onImageSelected(event: MatSelectChange): void {
-    // Clear selected video
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
-    if (event.value === 'no-image') {
-      this.scene.imageGenerationSettings.selectedImageForVideo = undefined;
-    }
-    const imageUri = event.value;
-    const updateForm = false;
-    this.updateSelectedImage(imageUri, updateForm);*/
     const imageUri = event.value;
     this.setCurrentGeneratedImageIndex(imageUri);
   }
@@ -681,15 +649,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     }
     // Find image index in array
     this.setCurrentGeneratedImageIndex(gcsUri);
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
-    const selectedImageForVideo =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.currentGeneratedImageIndex
-      ];
-    // Set selected image in scene to be used as selectedImageForVideo
-    this.scene.imageGenerationSettings.selectedImageForVideo =
-      selectedImageForVideo;*/
   }
 
   /**
@@ -743,25 +702,9 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     }
 
     // Build uploaded user provided images for file uploader component
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
     if (fileType === UploadedFileType.UserProvidedImage) {
-      const selectedImageForVideo =
-        this.scene.imageGenerationSettings.selectedImageForVideo;
-      if (selectedImageForVideo) {
-        const uploadedFile: UploadedFile = {
-          sceneId: this.scene.id,
-          id: selectedImageForVideo.id!, // check this
-          name: selectedImageForVideo.name,
-          gcsUri: selectedImageForVideo.gcsUri,
-          signedUri: selectedImageForVideo.signedUri,
-          gcsFusePath: selectedImageForVideo.gcsFusePath,
-          mimeType: selectedImageForVideo.mimeType,
-          type: UploadedFileType.ReferenceImage,
-        };
-        fileItems.push(uploadedFile);
-      }
-    }*/
+      // TODO (ae) implement
+    }
 
     return fileItems;
   }

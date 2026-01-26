@@ -28,9 +28,10 @@ async def generate_video(prompt: str, tool_context: "ToolContext") -> dict:
   Returns:
       A dictionary containing the generated image and status.
   """
-  # Note: scene_id and segment_number are dummy values to reuse data structure
+  # Note: id are dummy values to reuse data structure
   video_segment_request = VideoSegmentGenerationOperation(
-      prompt=prompt, scene_id="first", segment_number=1
+      prompt=prompt,
+      id="first",
   )
   veo_api_service = VeoAPIService()
   video_response = veo_api_service.generate_video_for_agent(

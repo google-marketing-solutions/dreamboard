@@ -103,8 +103,7 @@ class VideoGenerator:
     tasks = []
     for video_segment in video_segments:
       output_gcs_uri = (
-          f"{utils.get_videos_bucket_base_path(story_id)}/"
-          f"{video_segment.segment_number}"
+          f"{utils.get_videos_bucket_base_path(story_id)}/{video_segment.id}"
       )
       # Add video generation task only if regenerate_video_segment is True
       if video_segment.regenerate_video_segment:
@@ -122,7 +121,7 @@ class VideoGenerator:
             "skipped for story id %s and video segment %s since "
             "regenerate_video_segment=False.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
         )
 
     return tasks
@@ -156,11 +155,10 @@ class VideoGenerator:
           "DreamBoard - VIDEO_GENERATOR: Starting video generation for "
           "story id %s and video segment %s...",
           story_id,
-          video_segment.segment_number,
+          video_segment.id,
       )
       output_gcs_uri = (
-          f"{utils.get_videos_bucket_base_path(story_id)}/"
-          f"{video_segment.segment_number}"
+          f"{utils.get_videos_bucket_base_path(story_id)}/{video_segment.id}"
       )
       # Generate only if regenerate_video_segment is True
       if video_segment.regenerate_video_segment:
@@ -171,7 +169,7 @@ class VideoGenerator:
             "DreamBoard - VIDEO_GENERATOR: Video generation ready for "
             "story id %s and video segment %s with operation name %s.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
             response.operation_name,
         )
         response.video_segment = video_segment
@@ -182,7 +180,7 @@ class VideoGenerator:
             "story id %s and video segment %s since "
             "regenerate_video_segment=False.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
         )
         video_generation_resps.append(
             video_gen_models.VideoGenerationResponse(
@@ -220,46 +218,14 @@ class VideoGenerator:
         story_id,
         output_folder,
     )
-
     # 1. Get video URIs and transitions from video segments
     videos = []
-    video_cut_specs = []
-    video_cut = 0
     for vsg in video_merge_request.video_segments:
-      if vsg.selected_video:
-        videos.append(vsg.selected_video)
-
-        video_cut_specs.append({
-            "start_seconds": vsg.start_seconds if vsg.start_seconds else 0,
-            "start_frame": vsg.start_frame if vsg.start_frame else 1,
-            "end_seconds": vsg.end_seconds if vsg.end_seconds else 7,
-            "end_frame": vsg.end_frame if vsg.end_frame else vsg.frames_per_sec,
-            "cut_video": vsg.cut_video,
-            "fps": vsg.frames_per_sec,
-        })
-        if video_cut:
-          video_cut = 1
-        elif vsg.cut_video:
-          video_cut = 1
-        else:
-          video_cut = 0
+      if vsg.selected_video_for_merge:
+        videos.append(vsg.selected_video_for_merge)
 
     # Download to local/server folder.
     utils.download_videos(story_id, videos)
-
-    # 2. Cut any video segments into the specified size:
-    # a) Call cut_video_segment function.
-    # b) Goes to editing_service.py to cut a bunch of videos.
-    # c) Puts the videos in a new location.
-    for video, video_cut_spec in zip(videos, video_cut_specs):
-      # Get the new output URI for the shortened video.
-      if video_cut_spec["cut_video"]:
-        shortened_vid_uri = self.editing_service.cut_video_segment(
-            video, video_cut_spec
-        )
-
-        # Update the URI for each video.
-        video.gcs_fuse_path = shortened_vid_uri
 
     # 3. Generate final video.
     logging.info(
@@ -267,17 +233,11 @@ class VideoGenerator:
         "story id %s...",
         story_id,
     )
-    gcs_fuse_paths_to_merge = self.__get_videos_to_merge(videos)
+    video_paths_to_merge = self.__get_videos_to_merge(videos)
     video_transitions = []
     for vsg in video_merge_request.video_segments:
-      if vsg.cut_video:
-        # Highest priority: If the video is to be cut, force the transition
-        # to CONCATENATE.
-        transition_value = (
-            video_request_models.VideoTransition.CONCATENATE.value
-        )
-      elif vsg.transition:
-        # Second priority: If a specific transition is provided, use its value.
+      if vsg.transition:
+        # If a specific transition is provided, use its value.
         transition_value = vsg.transition.value
       else:
         # Default: If no other conditions are met, use CONCATENATE as the
@@ -288,33 +248,32 @@ class VideoGenerator:
       video_transitions.append(transition_value)
 
     video_with_audio_merges = []
-    if len(gcs_fuse_paths_to_merge) > 1:
-      final_video_gcs_fuse_path, video_with_audio_merges = self.__merge(
-          output_folder, gcs_fuse_paths_to_merge, video_transitions
+    if len(video_paths_to_merge) > 1:
+      final_video_gcs_path, video_with_audio_merges = self.__merge(
+          output_folder, video_paths_to_merge, video_transitions
       )
-    elif len(gcs_fuse_paths_to_merge) == 1:
+    elif len(video_paths_to_merge) == 1:
       logging.info(
           "DreamBoard - VIDEO_GENERATOR: Skipping merge action since "
           "there is only 1 video segment."
       )
-      final_video_gcs_fuse_path = gcs_fuse_paths_to_merge[0]
+      final_video_gcs_path = video_paths_to_merge[0]
       video_with_audio_merges.append(True)
     else:
       return None
 
-    final_video_name = utils.get_file_name_from_uri(final_video_gcs_fuse_path)
-
+    final_video_name = utils.get_file_name_from_uri(final_video_gcs_path)
     # Override scene folder in dev since local paths are different.
     output_gcs_path = (
         f"{utils.get_videos_bucket_folder_path(story_id)}/{final_video_name}"
     )
     # Upload merged final video to GCS.
     storage_service.storage_service.upload_from_filename(
-        final_video_gcs_fuse_path, output_gcs_path
+        final_video_gcs_path, output_gcs_path
     )
-
+    # Get video duration
     try:
-      final_video_clip = editor.VideoFileClip(final_video_gcs_fuse_path)
+      final_video_clip = editor.VideoFileClip(final_video_gcs_path)
       final_video_duration = final_video_clip.duration
     except Exception as ex:
       logging.error(
@@ -334,9 +293,8 @@ class VideoGenerator:
 
     logging.info(
         "DreamBoard - VIDEO_GENERATOR: %s videos were merged successfully!",
-        len(gcs_fuse_paths_to_merge),
+        len(video_paths_to_merge),
     )
-
     # Check if audio was merged succesfully to show correct message to the user.
     if any(video_with_audio_merges):
       execution_message = (
@@ -356,7 +314,7 @@ class VideoGenerator:
                 name=final_video_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
-                gcs_fuse_path=final_video_gcs_fuse_path,
+                gcs_fuse_path=final_video_gcs_path,
                 mime_type="video/mp4",
                 duration=final_video_duration,
             )

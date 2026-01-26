@@ -39,9 +39,19 @@
   <div class="files-container">
     @for (fileItem of fileItems; track fileItem.id; let i = $index) {
       <div class="file">
-        <div>
-            <img [src]="fileItem.signedUri" />
+        @if (fileItem.mimeType.includes("image")) {
+          <div class="asset-container">
+            <img [id]="fileItem.id" [src]="fileItem.signedUri" />
+            <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">delete</mat-icon>
           </div>
+        } @else if (fileItem.mimeType.includes("video")) {
+          <div class="asset-container">
+            <video [id]="fileItem.id" controls>
+              <source [src]="fileItem.signedUri" [type]="fileItem.mimeType" />
+              <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">delete</mat-icon>
+            </video>
+          </div>
+        }
         <div class="file-info">
           <div class="file-info-details">
             <mat-icon class="scale-icon">{{ statusIcon }}</mat-icon>

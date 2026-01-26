@@ -21,10 +21,21 @@ payloads related to video generation, including video segments, creative
 direction, and transitions.
 """
 
+import os
 from enum import Enum
 from typing import Optional, Tuple, Union
 from models.image.image_gen_models import Image
 from pydantic import BaseModel, Field
+
+
+VEO_3_1_MODEL_NAME = f"veo-3.1-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
+VEO_3_1_FAST_MODEL_NAME = (
+    f"veo-3.1-fast-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
+)
+VEO_3_MODEL_NAME = f"veo-3.0-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
+VEO_3_FAST_MODEL_NAME = (
+    f"veo-3.0-fast-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
+)
 
 
 class VideoTransition(Enum):
@@ -135,23 +146,16 @@ class VideoItem(BaseModel):
   frame_uris: list[str] | None = None
   duration: float
 
-class VideoModelName(Enum):
-  """
-  Defines the different types of video generation models supported.
-  """
-  VEO_3_1_MODEL_NAME = "veo-3.1-generate-001"
-  VEO_3_1_FAST_MODEL_NAME = "veo-3.1-fast-generate-001"
-  VEO_3_MODEL_NAME = "veo-3.0-generate-001"
-  VEO_3_FAST_MODEL_NAME = "veo-3.0-fast-generate-001"
 
 class VideoGenTasks(Enum):
   """
   Defines the different types of video generation tasks.
   """
-  TEXT_TO_VIDEO = "text_to_video"
-  IMAGE_TO_VIDEO = "image_to_video"
-  REFERENCE_TO_VIDEO = "reference_to_video"
-  VIDEO_EXTENSION = "video_extension"
+
+  TEXT_TO_VIDEO = "text-to-video"
+  IMAGE_TO_VIDEO = "image-to-video"
+  REFERENCE_TO_VIDEO = "reference-to-video"
+  VIDEO_EXTENSION = "video-extension"
 
 
 class VideoSegmentGenerationOperation(BaseModel):
@@ -162,8 +166,7 @@ class VideoSegmentGenerationOperation(BaseModel):
   parameters.
 
   Attributes:
-      scene_id: The ID of the scene this segment belongs to.
-      segment_number: The sequence number of the segment.
+      id: The ID of the operation this segment belongs to.
       video_model: The video model to use for generation.
       video_gen_task: The specific generation task (e.g., text-to-video).
       prompt: The text prompt for generation.
@@ -187,10 +190,9 @@ class VideoSegmentGenerationOperation(BaseModel):
       selected_videos_for_extension: List of videos selected for extension.
   """
 
-  scene_id: str
-  segment_number: int
-  video_model: VideoModelName
-  video_gen_task: VideoGenTasks
+  id: str
+  video_model: str
+  video_gen_task: str
   prompt: str | None = None
   seed_images: list[Image] = []
   duration_in_secs: int | None = 8
@@ -212,24 +214,6 @@ class VideoSegmentGenerationOperation(BaseModel):
   selected_videos_for_extension: list[VideoItem] | None = None
 
 
-class VideoSegmentMergeOperation(BaseModel):
-  """
-  Represents a video segment to be included in a merge operation.
-
-  Attributes:
-      scene_id: The ID of the scene.
-      segment_number: The sequence number of the segment.
-      transition: The transition to apply after this segment.
-      include_video_segment: Whether to include this segment in the merge.
-      selected_video_for_merge: The specific video item selected for merging.
-  """
-  scene_id: str
-  segment_number: int
-  transition: VideoTransition | None = None
-  include_video_segment: bool
-  selected_video_for_merge: VideoItem
-
-
 class VideoGenerationRequest(BaseModel):
   """
   Represents the complete request for a video generation task.
@@ -243,6 +227,24 @@ class VideoGenerationRequest(BaseModel):
   """
 
   video_segments: list[VideoSegmentGenerationOperation]
+
+
+class VideoSegmentMergeOperation(BaseModel):
+  """
+  Represents a video segment to be included in a merge operation.
+
+  Attributes:
+      id: The ID of the operation.
+      transition: The transition to apply after this segment.
+      include_video_segment: Whether to include this segment in the merge.
+      selected_video_for_merge: The specific video item selected for merging.
+  """
+
+  id: str
+  transition: VideoTransition | None = None
+  include_video_segment: bool
+  selected_video_for_merge: VideoItem
+
 
 class VideoMergeRequest(BaseModel):
   """

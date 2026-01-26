@@ -37,7 +37,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { FilesManagerService } from '../../services/files-manager.service';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription } from 'rxjs';
 import { HttpEventType } from '@angular/common/http';
 import { openSnackBar } from '../../utils';
@@ -47,12 +47,19 @@ import {
   UploadedFileType,
   UploadStatus,
 } from '../../models/settings-models';
-import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { v4 as uuidv4 } from 'uuid';
+import { deleteElementFromArray } from '../../utils';
+import { ComponentsCommunicationService } from '../../services/components-communication.service';
+import { FilesManagerService } from '../../services/files-manager.service';
 
 @Component({
   selector: 'app-file-uploader-new',
-  imports: [MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+  ],
   templateUrl: './file-uploader-new.component.html',
   styleUrl: './file-uploader-new.component.css',
 })
@@ -69,6 +76,7 @@ export class FileUploaderNewComponent {
   uploadError: boolean = false;
   uploadSub!: Subscription;
   @Output() fileUploadedEventNew = new EventEmitter<UploadedFile>();
+  @Output() fileDeletedEventNew = new EventEmitter<UploadedFile>();
   private _snackBar = inject(MatSnackBar);
 
   constructor(
@@ -119,7 +127,7 @@ export class FileUploaderNewComponent {
   getButtonTypeLabel(): string {
     switch (this.fileType) {
       case UploadedFileType.ReferenceImage:
-        return 'Reference image';
+        return 'Reference Image';
       case UploadedFileType.UserProvidedImage:
         return 'Your Reference Image';
       case UploadedFileType.CreativeBrief:
@@ -155,6 +163,11 @@ export class FileUploaderNewComponent {
     this.processFiles(files);
   }
 
+  onFileDeleted(fileItem: UploadedFile) {
+    deleteElementFromArray(fileItem.id, this.fileItems);
+    this.fileDeletedEventNew.next(fileItem);
+  }
+
   /**
    * Processes the selected or dropped files for upload.
    * For each file, it prepares `FormData`, creates an `UploadedFile` item,
@@ -166,6 +179,10 @@ export class FileUploaderNewComponent {
    */
   processFiles(files: File[]): void {
     this.setUploadStatus(UploadStatus.InProgress);
+    if (!this.enableMultipleFiles) {
+      // Reset files for single uploads
+      this.fileItems = [];
+    }
     for (const file of files) {
       // File uploader needs a FormData
       const formData = new FormData();
@@ -242,7 +259,7 @@ export class FileUploaderNewComponent {
   }
 
   disableUploadButton() {
-    return false
+    return false;
   }
 
   /**

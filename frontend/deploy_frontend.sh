@@ -79,8 +79,8 @@ if confirm "Do you wish to proceed?"; then
         echo "Cloud Run Host Name -> "$BACKEND_CLOUD_RUN_HOST_NAME
 
         cd dreamboard/src/environments/
-        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g;" environment-template.ts > environment.ts
-        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g;" environment-template.ts > environment.development.ts
+        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g; s@{VIDEO_MODEL_VERSION}@$VIDEO_MODEL_VERSION@g;" environment-template.ts > environment.ts
+        sed "s@{BACKEND_CLOUD_RUN_SERVICE_URL}@$BACKEND_CLOUD_RUN_SERVICE_URL@g; s@{CLIENT_ID}@$CLIENT_ID@g; s@{VIDEO_MODEL_VERSION}@$VIDEO_MODEL_VERSION@g;" environment-template.ts > environment.development.ts
 
         cd ..
         cd ..

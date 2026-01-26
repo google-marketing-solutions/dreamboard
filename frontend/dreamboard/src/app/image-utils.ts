@@ -223,14 +223,6 @@ export function updateScenesWithGeneratedImages(
           scene.imageGenerationSettings.generatedImages,
           genImages,
         );
-        // Select first generated image as selected image for video
-        /* TODO (ae) We don't need this anymore since users can select images
-        from the Video Generation Settings UI
-        if (genImages.length > 0) {
-          scene.imageGenerationSettings.selectedImagesForVideo?.push(
-            genImages[0],
-          );
-        }*/
         executionStatus['succeded'] = true;
         executionStatus['execution_message'] +=
           `Images generated successfully! \n`;

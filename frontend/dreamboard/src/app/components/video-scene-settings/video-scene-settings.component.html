@@ -41,27 +41,10 @@
       >
     </button>
   }
-  <!--div class="reference-image">
-  TODO (ae) We don't need this anymore since users can select images
-  from the Video Generation Settings UI
-    @if (scene.imageGenerationSettings.selectedImageForVideo) {
-      <img
-        [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-      />
-      <button mat-button (click)="removeSelectedImageForVideo()">
-        <mat-icon>delete_forever</mat-icon> Image
-      </button>
-    } @else {
-      <p>
-        <mat-icon>warning</mat-icon>You haven't selected a reference image for
-        your video. Reference images improve video accuracy and quality.
-      </p>
-    }
-  </div-->
 </div>
 
 <form [formGroup]="videoSettingsForm">
-  <mat-form-field class="selected-video">
+  <mat-form-field class="selected-video-for-merge">
     <mat-label>Selected Video For Merge</mat-label>
     <mat-select
       name="selectedVideoUri"
@@ -81,7 +64,6 @@
   </mat-form-field>
 
   <h2>Video Generation Settings</h2>
-
   <div class="item-container-small">
     <mat-form-field>
       <mat-label>Veo Model</mat-label>
@@ -89,9 +71,12 @@
         formControlName="videoModel"
         (selectionChange)="onVideoModelSelected($event)"
       >
-        @for (videoModel of videoModels; track videoModel.value) {
-          <mat-option [value]="videoModel.value">{{
-            videoModel.displayName
+        @for (
+          videoModelsOption of videoModelsOptions;
+          track videoModelsOption.value
+        ) {
+          <mat-option [value]="videoModelsOption.value">{{
+            videoModelsOption.displayName
           }}</mat-option>
         }
       </mat-select>
@@ -99,156 +84,197 @@
 
     <mat-form-field>
       <mat-label>Task</mat-label>
-      <mat-select formControlName="videoGenTask">
-        @for (videoGenTask of videoGenTasks; track videoGenTask.value) {
-          <mat-option [value]="videoGenTask.value">{{
-            videoGenTask.displayName
+      <mat-select
+        formControlName="videoGenTask"
+        (selectionChange)="onVideoGenTaskSelected($event)"
+      >
+        @for (
+          videoGenTasksOption of videoGenTasksOptions;
+          track videoGenTasksOption.value
+        ) {
+          <mat-option [value]="videoGenTasksOption.value">{{
+            videoGenTasksOption.displayName
           }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
   </div>
 
-  @if (
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-fast-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
-  ) {
-    <label>Input Images</label>
-    <div class="image-to-video">
-      <div class="uploader-item">
-        <app-file-uploader-new
-          (fileUploadedEventNew)="addUploadedFile($event)"
-          [storyId]="this.storyId"
-          [sceneId]="scene.id"
-          [fileType]="getFileType('referenceImage')"
-          [enableMultipleFiles]="false"
-        ></app-file-uploader-new>
-        <span>Start</span>
-      </div>
-      <div class="uploader-item">
-        <app-file-uploader-new
-          (fileUploadedEventNew)="addUploadedFile($event)"
-          [storyId]="this.storyId"
-          [sceneId]="scene.id"
-          [fileType]="getFileType('referenceImage')"
-          [enableMultipleFiles]="false"
-        ></app-file-uploader-new>
-        <span>End (Optional)</span>
-      </div>
-      <span>OR</span>
-      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
-        <mat-icon>upload</mat-icon>
-        Images from Library
-      </button>
-    </div>
-  }
-
-  @if (
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value ===
-        "reference-to-video") ||
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-fast-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value ===
-        "reference-to-video")
-  ) {
-    <div class="image-to-video">
-      <div class="uploader-item">
-        <app-file-uploader-new
-          (fileUploadedEventNew)="addUploadedFile($event)"
-          [storyId]="this.storyId"
-          [sceneId]="scene.id"
-          [fileType]="getFileType('referenceImage')"
-          [enableMultipleFiles]="true"
-        ></app-file-uploader-new>
-        <span>Up to 3 images</span>
-      </div>
-      <span>OR</span>
-      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
-        <mat-icon>upload</mat-icon>
-        Images from Library
-      </button>
-    </div>
-  }
-
-  @if (
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value ===
-        "video-extension") ||
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.1-fast-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value === "video-extension")
-  ) {
-    <button
-      class="library-button"
-      mat-flat-button
-      (click)="openAssetsSelectionDialog('videos')"
-    >
-      <mat-icon>upload</mat-icon>
-      Videos from Library
-    </button>
-  }
-
-  @if (
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.0-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video") ||
-    (this.videoSettingsForm.get("videoModel")?.value ===
-      "veo-3.0-fast-generate-001" &&
-      this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
-  ) {
-    <label>Input Images</label>
-    <div class="image-to-video">
-      <div class="uploader-item">
-        <app-file-uploader-new
-          (fileUploadedEventNew)="addUploadedFile($event)"
-          [storyId]="this.storyId"
-          [sceneId]="scene.id"
-          [fileType]="getFileType('userProvidedImage')"
-          [enableMultipleFiles]="false"
-        ></app-file-uploader-new>
-        <span>Start</span>
-      </div>
-      <span>OR</span>
-      <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
-        <mat-icon>upload</mat-icon>
-        Images from Library
-      </button>
-    </div>
-  }
-
-  @if (scene.imageGenerationSettings.selectedImagesForVideo.length > 0) {
-    <label>Images from Library</label>
-    <div class="assets-from-library">
-      @for (
-        image of scene.imageGenerationSettings.selectedImagesForVideo;
-        track image.id
-      ) {
-        <img [src]="image.signedUri" />
-      }
-    </div>
-  }
-
-  @if (
-    scene.videoGenerationSettings.selectedVideosForExtension &&
-    scene.videoGenerationSettings.selectedVideosForExtension.length > 0
-  ) {
-      <label>Videos from Library</label>
-    @for (
-      video of scene.videoGenerationSettings.selectedVideosForExtension;
-      track video.id
+  <!-- Assets (images/videos) selection area -->
+  <div class="assets-selection-container">
+    @if (
+      (scene.imageGenerationSettings.selectedImagesForVideo &&
+        scene.imageGenerationSettings.selectedImagesForVideo.length >
+          getMaxAllowedSelectedAssets()) ||
+      (scene.videoGenerationSettings.selectedVideosForExtension &&
+        scene.videoGenerationSettings.selectedVideosForExtension.length >
+          getMaxAllowedSelectedAssets())
     ) {
-      <video controls>
-        <source [src]="video.signedUri" type="video/mp4" />
-      </video>
+      <div class="max-allowed-warning">
+        <span>
+          <mat-icon>warning</mat-icon>
+          Max allowed number of assets for selected Video Model and Task is
+          <strong>{{ getMaxAllowedSelectedAssets() }}</strong
+          >.
+        </span>
+      </div>
     }
-  }
+    @if (
+      (this.videoSettingsForm.get("videoModel")?.value === VEO_3_1_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value ===
+          "image-to-video") ||
+      (this.videoSettingsForm.get("videoModel")?.value ===
+        VEO_3_1_FAST_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
+    ) {
+      <div class="image-to-video">
+        <div class="uploader-item">
+          <app-file-uploader-new
+            (fileUploadedEventNew)="addUploadedFile($event)"
+            (fileDeletedEventNew)="onAssetDeleted($event)"
+            [storyId]="this.storyId"
+            [sceneId]="scene.id"
+            [fileType]="getFileType('referenceImage')"
+            [enableMultipleFiles]="false"
+          ></app-file-uploader-new>
+          <span>Start</span>
+        </div>
+        <div class="uploader-item">
+          <app-file-uploader-new
+            (fileUploadedEventNew)="addUploadedFile($event)"
+            (fileDeletedEventNew)="onAssetDeleted($event)"
+            [storyId]="this.storyId"
+            [sceneId]="scene.id"
+            [fileType]="getFileType('referenceImage')"
+            [enableMultipleFiles]="false"
+          ></app-file-uploader-new>
+          <span>End (Optional)</span>
+        </div>
+        <span>OR</span>
+        <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+          <mat-icon>upload</mat-icon>
+          Images from Library
+        </button>
+      </div>
+    }
+
+    @if (
+      (this.videoSettingsForm.get("videoModel")?.value === VEO_3_1_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value ===
+          "reference-to-video") ||
+      (this.videoSettingsForm.get("videoModel")?.value ===
+        VEO_3_1_FAST_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value ===
+          "reference-to-video")
+    ) {
+      <div class="reference-to-video">
+        <div class="uploader-item">
+          <app-file-uploader-new
+            (fileUploadedEventNew)="addUploadedFile($event)"
+            (fileDeletedEventNew)="onAssetDeleted($event)"
+            [storyId]="this.storyId"
+            [sceneId]="scene.id"
+            [fileType]="getFileType('referenceImage')"
+            [enableMultipleFiles]="true"
+          ></app-file-uploader-new>
+          <span>(Up to 3 images)</span>
+        </div>
+        <span>OR</span>
+        <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+          <mat-icon>upload</mat-icon>
+          Images from Library
+        </button>
+      </div>
+    }
+
+    @if (
+      (this.videoSettingsForm.get("videoModel")?.value === VEO_3_1_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value ===
+          "video-extension") ||
+      (this.videoSettingsForm.get("videoModel")?.value ===
+        VEO_3_1_FAST_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value === "video-extension")
+    ) {
+      <div class="library-button-container">
+        <button mat-flat-button (click)="openAssetsSelectionDialog('videos')">
+          <mat-icon>upload</mat-icon>
+          Videos from Library
+        </button>
+      </div>
+    }
+
+    @if (
+      (this.videoSettingsForm.get("videoModel")?.value === VEO_3_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value ===
+          "image-to-video") ||
+      (this.videoSettingsForm.get("videoModel")?.value ===
+        VEO_3_FAST_MODEL_NAME &&
+        this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
+    ) {
+      <div class="image-to-video">
+        <div class="uploader-item">
+          <app-file-uploader-new
+            (fileUploadedEventNew)="addUploadedFile($event)"
+            (fileDeletedEventNew)="onAssetDeleted($event)"
+            [storyId]="this.storyId"
+            [sceneId]="scene.id"
+            [fileType]="getFileType('referenceImage')"
+            [enableMultipleFiles]="false"
+          ></app-file-uploader-new>
+          <span>Start</span>
+        </div>
+        <span>OR</span>
+        <button mat-flat-button (click)="openAssetsSelectionDialog('images')">
+          <mat-icon>upload</mat-icon>
+          Images from Library
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="selected-assets-for-video">
+    @if (
+      scene.imageGenerationSettings.selectedImagesForVideo &&
+      scene.imageGenerationSettings.selectedImagesForVideo.length > 0
+    ) {
+      <span>Selected Images for Video Generation</span>
+      <div>
+        @for (
+          image of scene.imageGenerationSettings.selectedImagesForVideo;
+          track image.id
+        ) {
+          <div class="asset-item">
+            <img [src]="image.signedUri" />
+            <mat-icon matTooltip="Delete" (click)="onAssetDeleted(image)"
+              >delete</mat-icon
+            >
+          </div>
+        }
+      </div>
+    }
+
+    @if (
+      scene.videoGenerationSettings.selectedVideosForExtension &&
+      scene.videoGenerationSettings.selectedVideosForExtension.length > 0
+    ) {
+      <span>Selected Videos for Video Extension</span>
+      <div>
+        @for (
+          video of scene.videoGenerationSettings.selectedVideosForExtension;
+          track video.id
+        ) {
+          <div class="asset-item">
+            <video controls>
+              <source [src]="video.signedUri" [type]="video.mimeType" />
+            </video>
+            <mat-icon matTooltip="Delete" (click)="onAssetDeleted(video)"
+              >delete</mat-icon
+            >
+          </div>
+        }
+      </div>
+    }
+  </div>
 
   <div class="item-container">
     <mat-form-field>

@@ -26,7 +26,6 @@ export interface Image {
   signedUri: string;
   gcsFusePath: string;
   mimeType: string;
-
 }
 
 export interface ImageReference extends Image {

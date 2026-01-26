@@ -31,6 +31,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import {
   FormControl,
   FormGroup,
@@ -45,6 +46,7 @@ import {
   VideoSegmentGenerationOperation,
   VideoGenerationResponse,
   Video,
+  VideoItem,
 } from '../../models/video-gen-models';
 import { Image, ImageItem } from '../../models/image-gen-models';
 import {
@@ -52,13 +54,13 @@ import {
   getFramesPerSecondOptions,
   getPersonGenerationOptions,
   getOutputResolutionOptions,
-  getDurationInSecsOptions,
+  getDurationInSecsOptionsByModelNameAndVideoGenTask,
   updateScenesWithGeneratedVideos,
   getVideoModels,
   getVideoGenTasksByModelName,
   VEO_3_1_MODEL_NAME,
-  VEO_3_MODEL_NAME,
   VEO_3_1_FAST_MODEL_NAME,
+  VEO_3_MODEL_NAME,
   VEO_3_FAST_MODEL_NAME,
 } from '../../video-utils';
 import { getOutputMimeTypes } from '../../image-utils';
@@ -68,7 +70,11 @@ import {
   UploadedFileType,
 } from '../../models/settings-models';
 import { VideoGenerationService } from '../../services/video-generation.service';
-import { openSnackBar, closeSnackBar } from '../../utils';
+import {
+  openSnackBar,
+  closeSnackBar,
+  deleteElementFromArray,
+} from '../../utils';
 import { TextGenerationService } from '../../services/text-generation.service';
 import { FileUploaderNewComponent } from '../file-uploader-new/file-uploader-new.component';
 import { AssetsSelectionDialogComponent } from '../assets-selection-dialog/assets-selection-dialog.component';
@@ -78,6 +84,7 @@ import { AssetsSelectionDialogComponent } from '../assets-selection-dialog/asset
   imports: [
     MatButtonModule,
     MatInputModule,
+    MatDividerModule,
     MatSelectModule,
     MatIconModule,
     MatCheckboxModule,
@@ -90,17 +97,28 @@ import { AssetsSelectionDialogComponent } from '../assets-selection-dialog/asset
 export class VideoSceneSettingsComponent implements AfterViewInit {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
+  VEO_3_1_MODEL_NAME: string = VEO_3_1_MODEL_NAME;
+  VEO_3_MODEL_NAME: string = VEO_3_MODEL_NAME;
+  VEO_3_1_FAST_MODEL_NAME: string = VEO_3_1_FAST_MODEL_NAME;
+  VEO_3_FAST_MODEL_NAME: string = VEO_3_FAST_MODEL_NAME;
   aspectRatioOptions: SelectItem[] = getAspectRatios();
   framesPerSecOptions: SelectItem[] = getFramesPerSecondOptions();
   imageMimeTypes: SelectItem[] = getOutputMimeTypes();
   personGenerationOptions: SelectItem[] = getPersonGenerationOptions();
   outputResolutionOptions: SelectItem[] = getOutputResolutionOptions();
-  durationInSecsOptions: SelectItem[] = getDurationInSecsOptions();
-  videoModels = getVideoModels();
-  videoGenTasks = getVideoGenTasksByModelName(VEO_3_1_MODEL_NAME);
+  durationInSecsOptions: SelectItem[] =
+    getDurationInSecsOptionsByModelNameAndVideoGenTask(
+      VEO_3_1_MODEL_NAME,
+      'text-to-video',
+    );
+  videoModelsOptions: SelectItem[] = getVideoModels();
+  videoGenTasksOptions: SelectItem[] =
+    getVideoGenTasksByModelName(VEO_3_1_MODEL_NAME);
   currentGeneratedVideoIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
   assetsSelectionDialog = inject(MatDialog);
+  uploadedAssets: any = []; // TODO (ae) this should video Image[] | Video[]
+  assetsFromLibrary: any = []; // TODO (ae) this should video Image[] | Video[]
 
   videoSettingsForm = new FormGroup({
     videoModel: new FormControl(VEO_3_1_MODEL_NAME, [Validators.required]),
@@ -173,6 +191,13 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     const videoGenTask = this.scene.videoGenerationSettings.videoGenTask
       ? this.scene.videoGenerationSettings.videoGenTask
       : 'text-to-video';
+    // Update task list based on model name
+    this.videoGenTasksOptions = getVideoGenTasksByModelName(veoModel);
+    this.durationInSecsOptions =
+      getDurationInSecsOptionsByModelNameAndVideoGenTask(
+        veoModel,
+        videoGenTask,
+      );
     this.videoSettingsForm.controls['videoGenTask'].setValue(videoGenTask);
     this.videoSettingsForm.controls['prompt'].setValue(
       this.scene.videoGenerationSettings.prompt,
@@ -298,22 +323,44 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
 
   onVideoModelSelected(event: MatSelectChange) {
     const videoModel = event.value;
-    this.videoGenTasks = getVideoGenTasksByModelName(videoModel);
+    // Update based on model name
+    this.videoGenTasksOptions = getVideoGenTasksByModelName(videoModel);
+    // Reset to text to video
+    const videoGenTask = 'text-to-video';
+    this.videoSettingsForm.controls['videoGenTask'].setValue(videoGenTask);
+    this.setVideoDurationInSecs(videoModel, videoGenTask);
     this.scene.videoGenerationSettings.videoModel = videoModel;
+    this.clearAssets();
   }
 
   onVideoGenTaskSelected(event: MatSelectChange) {
     const videoGenTask = event.value;
-    if (videoGenTask === 'text-to-video') {
-      // Clear selected images for video
-      this.scene.imageGenerationSettings.selectedImagesForVideo = [];
-    }
-    if (videoGenTask !== 'video-extension') {
-      // Clear videos for extension
-      this.scene.videoGenerationSettings.selectedVideosForExtension = [];
-    }
-
+    this.setVideoDurationInSecs(
+      this.videoSettingsForm.get('videoModel')?.value!,
+      videoGenTask,
+    );
     this.scene.videoGenerationSettings.videoGenTask = videoGenTask;
+    this.clearAssets();
+  }
+
+  setVideoDurationInSecs(videoModel: string, videoGenTask: string) {
+    // Update based on model name and video gen task
+    this.durationInSecsOptions =
+      getDurationInSecsOptionsByModelNameAndVideoGenTask(
+        videoModel,
+        videoGenTask,
+      );
+    this.videoSettingsForm.controls['durationInSecs'].setValue(
+      this.durationInSecsOptions[0].value,
+    );
+  }
+
+  clearAssets() {
+    // Clear selected images for video and for extension
+    this.scene.imageGenerationSettings.selectedImagesForVideo = [];
+    this.scene.videoGenerationSettings.selectedVideosForExtension = [];
+    this.uploadedAssets = [];
+    this.assetsFromLibrary = [];
   }
 
   addUploadedFile(file: UploadedFile) {
@@ -326,6 +373,8 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         gcsFusePath: file.gcsFusePath,
         mimeType: file.mimeType,
       };
+      this.uploadedAssets.push(referenceImage);
+      // Add elements here to use later in validations for bulk generation
       this.scene.imageGenerationSettings.selectedImagesForVideo.push(
         referenceImage,
       );
@@ -349,15 +398,40 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     // Subscribe to the afterClosed() observable to receive data upon closure
     dialogRef.afterClosed().subscribe((selectedAssets: Image[] | Video[]) => {
       if (selectedAssets.length > 0) {
-        if (selectedAssets[0].mimeType.includes('image')) {
-          this.scene.imageGenerationSettings.selectedImagesForVideo =
-            selectedAssets as Image[];
-        } else if (selectedAssets[0].mimeType.includes('video')) {
-          this.scene.videoGenerationSettings.selectedVideosForExtension =
-            selectedAssets as Video[];
+        this.assetsFromLibrary.push(...selectedAssets);
+        // Add elements here to use later in validations for bulk generation
+        if (assetType === 'images') {
+          this.scene.imageGenerationSettings.selectedImagesForVideo.push(
+            ...selectedAssets,
+          );
+        } else if (assetType === 'videos') {
+          this.scene.videoGenerationSettings.selectedVideosForExtension.push(
+            ...(selectedAssets as Video[]),
+          );
         }
       }
     });
+  }
+
+  onAssetDeleted(asset: Image | Video) {
+    // Check if asset is in assetsFromLibrary array
+    deleteElementFromArray(asset.id, this.assetsFromLibrary);
+    // Check if asset is in uploadedAssets array
+    deleteElementFromArray(asset.id, this.uploadedAssets);
+    // Check if asset is in selectedImagesForVideos array
+    if (asset.mimeType.includes('image')) {
+      deleteElementFromArray(
+        asset.id,
+        this.scene.imageGenerationSettings.selectedImagesForVideo,
+      );
+    }
+    // Check if asset is in selectedVideosForExtension array
+    if (asset.mimeType.includes('video')) {
+      deleteElementFromArray(
+        asset.id,
+        this.scene.videoGenerationSettings.selectedVideosForExtension,
+      );
+    }
   }
 
   getMaxAllowedSelectedAssets() {
@@ -508,12 +582,6 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       selectedVideoForMerge;
   }
 
-  removeSelectedImageForVideo() {
-    /* TODO (ae) We don't need this anymore since users can select images
-    from the Video Generation Settings UI
-    this.scene.imageGenerationSettings.selectedImageForVideo = undefined;*/
-  }
-
   /**
    * Initiates the video generation process for the current scene.
    * It displays a loading snackbar, constructs a `VideoGenerationRequest`,
@@ -547,11 +615,15 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
             const updateForm = true;
             this.updateSelectedVideo(lastVideo.gcsUri, updateForm);
           }
-          openSnackBar(
-            this._snackBar,
-            executionStatus['execution_message'],
-            20,
-          );
+          if (executionStatus['execution_message'].includes('successfully')) {
+            openSnackBar(
+              this._snackBar,
+              executionStatus['execution_message'],
+              20,
+            );
+          } else {
+            openSnackBar(this._snackBar, executionStatus['execution_message']);
+          }
         },
         (error: any) => {
           let errorMessage;
@@ -591,10 +663,25 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
         },
       );
 
+    const selectedVideosForExtension =
+      this.scene.videoGenerationSettings.selectedVideosForExtension.map(
+        (video: Video) => {
+          const selectedVideoForExtension: VideoItem = {
+            id: video.id,
+            name: video.name,
+            gcs_uri: video.gcsUri,
+            signed_uri: video.signedUri,
+            gcs_fuse_path: video.gcsFusePath,
+            mime_type: video.mimeType,
+            duration: video.duration,
+          };
+          return selectedVideoForExtension;
+        },
+      );
+
     const cutVideo = this.videoSettingsForm.get('cutVideo')?.value!;
     const videoSegment: VideoSegmentGenerationOperation = {
-      scene_id: this.scene.id,
-      segment_number: this.scene.number,
+      id: this.scene.id,
       video_model: this.videoSettingsForm.get('videoModel')?.value!,
       video_gen_task: this.videoSettingsForm.get('videoGenTask')?.value!,
       prompt: this.videoSettingsForm.get('prompt')?.value!,
@@ -628,7 +715,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       end_frame: cutVideo
         ? this.videoCutSettingsForm.get('endFrame')?.value!
         : parseInt(this.videoSettingsForm.get('framesPerSec')?.value!) - 1,
-      selected_videos_for_extension: [], // TODO (ae) NEED TO ADD THIS LATER
+      selected_videos_for_extension: selectedVideosForExtension,
     };
 
     const videoGenerationRequest: VideoGenerationRequest = {
@@ -646,14 +733,36 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    */
   disableGenerateVideoButton(): boolean {
     if (
-      this.scene.imageGenerationSettings.selectedImagesForVideo.length > 0 ||
-      this.videoSettingsForm.get('prompt')?.value
+      (this.videoSettingsForm.get('videoGenTask')?.value === 'image-to-video' &&
+        this.scene.imageGenerationSettings.selectedImagesForVideo.length ===
+          0) ||
+      this.scene.imageGenerationSettings.selectedImagesForVideo.length >
+        this.getMaxAllowedSelectedAssets()
     ) {
-      // For Image to Video, prompt is not required
-      return false;
+      return true;
+    } else if (
+      (this.videoSettingsForm.get('videoGenTask')?.value ===
+        'reference-to-video' &&
+        this.scene.imageGenerationSettings.selectedImagesForVideo.length ===
+          0) ||
+      this.scene.imageGenerationSettings.selectedImagesForVideo.length >
+        this.getMaxAllowedSelectedAssets()
+    ) {
+      return true;
+    } else if (
+      this.videoSettingsForm.get('videoGenTask')?.value === 'video-extension' &&
+      this.scene.videoGenerationSettings.selectedVideosForExtension.length !==
+        this.getMaxAllowedSelectedAssets()
+    ) {
+      return true;
+    } else if (
+      this.videoSettingsForm.get('videoGenTask')?.value === 'text-to-video' &&
+      !this.videoSettingsForm.get('prompt')?.value
+    ) {
+      return true;
     }
 
-    return true;
+    return false;
   }
 
   /**

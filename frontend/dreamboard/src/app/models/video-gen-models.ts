@@ -83,8 +83,7 @@ export enum Transition {
 }
 
 export interface VideoSegmentGenerationOperation {
-  scene_id: string;
-  segment_number: number;
+  id: string;
   video_model: string;
   video_gen_task: string;
   prompt: string;
@@ -109,8 +108,7 @@ export interface VideoSegmentGenerationOperation {
 }
 
 export interface VideoSegmentMergeOperation {
-  scene_id: string;
-  segment_number: number;
+  id: string;
   transition?: Transition;
   include_video_segment: boolean;
   selected_video_for_merge?: VideoItem; // Video that will be used for the merge operation

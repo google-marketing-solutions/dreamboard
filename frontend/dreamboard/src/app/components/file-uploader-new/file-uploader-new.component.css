@@ -41,8 +41,7 @@
 
   .files-container {
     display: flex;
-    justify-content: space-between;
-    margin: 10px 5px 10px 5px;
+    justify-content: center;
     overflow-y: auto;
 
     .file {
@@ -53,13 +52,13 @@
         background-color: #f1eded;
         display: flex;
         justify-content: space-between;
+        border-radius: 15px;
 
         .file-info-details {
-          width: 70%;
-
           label {
             padding: 5px;
             vertical-align: super;
+            font-size: 10px;
           }
         }
 
@@ -82,14 +81,26 @@
       }
 
       img {
-        max-width: 150px;
-        max-height: 150px;
+        max-width: 100px;
+        max-height: 100px;
       }
 
       .upload-error-message {
         padding: 5px;
         font-size: 10px;
         color: red;
+      }
+    }
+    .asset-container {
+      position: relative;
+      mat-icon {
+        /* Position the button absolutely relative to the container */
+        position: absolute;
+        /* Place it in the top-right corner */
+        top: 5px;
+        right: 0px;
+        color: #ba005c;
+        font-size: 16px;
       }
     }
   }

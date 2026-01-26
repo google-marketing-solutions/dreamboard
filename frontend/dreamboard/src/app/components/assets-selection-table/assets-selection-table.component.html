@@ -1,9 +1,10 @@
 <div class="assets-container">
-
   <!-- Generated / Uploaded assets table -->
   <div class="mat-elevation-z8">
     <mat-form-field>
-      <mat-label>Filter your {{ this.assetType }} in the table below.</mat-label>
+      <mat-label
+        >Filter your {{ this.assetType }} in the table below.</mat-label
+      >
       <input
         matInput
         (keyup)="applyFilter($event)"
@@ -11,62 +12,60 @@
         #input
       />
     </mat-form-field>
-    <!--button
-      mat-flat-button
-      class="refresh-button"
-      color="warn"
-      matTooltip="Click here in case the table elements don't update."
-      (click)="refreshTable(true)"
-    >
-      <mat-icon>refresh</mat-icon> Refresh Table
-    </button-->
     <table mat-table [dataSource]="dataSource" matSort>
       <!-- Preview Column -->
       <ng-container matColumnDef="assetPreview">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset Preview</th>
         <td mat-cell *matCellDef="let row">
-          <img [src]="row.signedUri" />
-          <label>{{ row.name }}</label>
+          @if (row.mimeType.includes("image")) {
+            <img [src]="row.signedUri" />
+            <label>{{ row.name }}</label>
+          } @else if (row.mimeType.includes("video")) {
+            <video controls>
+              <source [src]="row.signedUri" [type]="row.mimeType" />
+            </video>
+          }
         </td>
       </ng-container>
 
       <!-- Checkbox Column -->
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>
-          @if(!isSelectionMode) { Actions } @else {
-          <!-- Show this only in Video Generation Settings -->
-          <button
-            mat-flat-button
-            color="warn"
-            matTooltip="Clear All"
-            (click)="clearAllSelections(); $event.stopPropagation()"
-          >
-            Clear All
-          </button>
+          @if (!isSelectionMode) {
+            Actions
+          } @else {
+            <!-- Show this only in Video Generation Settings -->
+            <button
+              mat-flat-button
+              color="warn"
+              matTooltip="Clear All"
+              (click)="clearAllSelections(); $event.stopPropagation()"
+            >
+              Clear All
+            </button>
           }
         </th>
         <td mat-cell *matCellDef="let row">
-          @if(!isSelectionMode) {
-
-          <button
-            mat-icon-button
-            color="warn"
-            matTooltip="Delete Asset"
-            (click)="onDeleteAsset(row); $event.stopPropagation()"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
-          }@else {
-          <!-- Show this only in Video Generation Settings -->
-          <mat-checkbox
-            [disabled]="disableCheckBox(row)"
-            class="selected-asset-for-video-checkbox"
-            (click)="$event.stopPropagation()"
-            (change)="$event ? toggleSingleRow(row) : null"
-            [checked]="selection.isSelected(row)"
-            [aria-label]="checkboxLabel(row)"
-          >
-          </mat-checkbox>
+          @if (!isSelectionMode) {
+            <button
+              mat-icon-button
+              color="warn"
+              matTooltip="Delete Asset"
+              (click)="onDeleteAsset(row); $event.stopPropagation()"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          } @else {
+            <!-- Show this only in Video Generation Settings -->
+            <mat-checkbox
+              [disabled]="disableCheckBox(row)"
+              class="selected-asset-for-video-checkbox"
+              (click)="$event.stopPropagation()"
+              (change)="$event ? toggleSingleRow(row) : null"
+              [checked]="selection.isSelected(row)"
+              [aria-label]="checkboxLabel(row)"
+            >
+            </mat-checkbox>
           }
         </td>
       </ng-container>

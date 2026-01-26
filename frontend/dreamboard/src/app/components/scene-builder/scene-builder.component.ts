@@ -117,7 +117,7 @@ export class SceneBuilderComponent {
     const dialogRef = this.sceneSettingsDialog.open(
       SceneSettingsDialogComponent,
       {
-        minWidth: '1200px',
+        minWidth: '98%',
         data: {
           storyId: this.story.id,
           sceneId: sceneId,
@@ -490,9 +490,24 @@ export class SceneBuilderComponent {
           },
         );
 
+      const selectedVideosForExtension =
+        scene.videoGenerationSettings.selectedVideosForExtension.map(
+          (video: Video) => {
+            const selectedVideoForExtension: VideoItem = {
+              id: video.id,
+              name: video.name,
+              gcs_uri: video.gcsUri,
+              signed_uri: video.signedUri,
+              gcs_fuse_path: video.gcsFusePath,
+              mime_type: video.mimeType,
+              duration: video.duration,
+            };
+            return selectedVideoForExtension;
+          },
+        );
+
       const videoSegment: VideoSegmentGenerationOperation = {
-        scene_id: scene.id,
-        segment_number: scene.number,
+        id: scene.id,
         video_model: scene.videoGenerationSettings.videoModel,
         video_gen_task: scene.videoGenerationSettings.videoGenTask,
         prompt: scene.videoGenerationSettings.prompt,
@@ -501,6 +516,7 @@ export class SceneBuilderComponent {
         aspect_ratio: scene.videoGenerationSettings.aspectRatio,
         frames_per_sec: scene.videoGenerationSettings.framesPerSec!,
         person_generation: scene.videoGenerationSettings.personGeneration,
+        output_resolution: scene.videoGenerationSettings.outputResolution,
         sample_count: scene.videoGenerationSettings.sampleCount,
         /*seed: scene.videoSettings.seed,*/
         negative_prompt: scene.videoGenerationSettings.negativePrompt,
@@ -515,7 +531,7 @@ export class SceneBuilderComponent {
           end_seconds: scene.videoGenerationSettings.endSeconds,
           end_frame: scene.videoGenerationSettings.endFrame,
         }),
-        selected_videos_for_extension: [], // TODO (ae) NEED TO ADD THIS LATER
+        selected_videos_for_extension: selectedVideosForExtension,
       };
       videoSegments.push(videoSegment);
 
@@ -563,8 +579,7 @@ export class SceneBuilderComponent {
       }
 
       const videoSegment: VideoSegmentMergeOperation = {
-        scene_id: scene.id,
-        segment_number: scene.number,
+        id: scene.id,
         transition: scene.videoGenerationSettings.transition,
         include_video_segment:
           scene.videoGenerationSettings.includeVideoSegment,
