@@ -81,6 +81,7 @@ export class SceneBuilderComponent {
   creativeDirectionSettingsDialog = inject(MatDialog);
   //scenes: VideoScene[] = [];
   exportingScenes: boolean = false;
+  currentGeneratedImageIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
 
   constructor(
@@ -118,15 +119,21 @@ export class SceneBuilderComponent {
       SceneSettingsDialogComponent,
       {
         minWidth: '98%',
+        minHeight: '98%',
         data: {
           storyId: this.story.id,
           sceneId: sceneId,
           scene: scene,
           scenes: this.story.scenes,
+          currentGeneratedImageIndex: this.currentGeneratedImageIndex, // To open the dialog always with the selected image
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
       },
     );
+    dialogRef.afterClosed().subscribe((data: any) => {
+      // To close the dialog always with the selected image
+      this.currentGeneratedImageIndex = data.currentGeneratedImageIndex;
+    });
   }
 
   /**

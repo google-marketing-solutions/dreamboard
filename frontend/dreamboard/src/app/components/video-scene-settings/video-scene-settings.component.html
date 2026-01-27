@@ -127,6 +127,12 @@
         VEO_3_1_FAST_MODEL_NAME &&
         this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
     ) {
+      <div class="info">
+        <span
+          ><mat-icon>info</mat-icon> You can generate videos by specifying the
+          first and last frames of the video.</span
+        >
+      </div>
       <div class="image-to-video">
         <div class="uploader-item">
           <app-file-uploader-new
@@ -167,6 +173,13 @@
         this.videoSettingsForm.get("videoGenTask")?.value ===
           "reference-to-video")
     ) {
+      <div class="info">
+        <span
+          ><mat-icon>info</mat-icon> You provide up to three images of a single
+          person, character, or product. Veo preserves the subject's appearance
+          in the output video.</span
+        >
+      </div>
       <div class="reference-to-video">
         <div class="uploader-item">
           <app-file-uploader-new
@@ -195,6 +208,12 @@
         VEO_3_1_FAST_MODEL_NAME &&
         this.videoSettingsForm.get("videoGenTask")?.value === "video-extension")
     ) {
+      <div class="info">
+        <span
+          ><mat-icon>info</mat-icon> You can extend videos that you previously
+          generated using Veo that are 1 to 30 seconds in length.</span
+        >
+      </div>
       <div class="library-button-container">
         <button mat-flat-button (click)="openAssetsSelectionDialog('videos')">
           <mat-icon>upload</mat-icon>
@@ -211,6 +230,12 @@
         VEO_3_FAST_MODEL_NAME &&
         this.videoSettingsForm.get("videoGenTask")?.value === "image-to-video")
     ) {
+      <div class="info">
+        <span
+          ><mat-icon>info</mat-icon> You can select a single image as reference
+          for your video.</span
+        >
+      </div>
       <div class="image-to-video">
         <div class="uploader-item">
           <app-file-uploader-new
@@ -238,7 +263,12 @@
       scene.imageGenerationSettings.selectedImagesForVideo.length > 0
     ) {
       <span>Selected Images for Video Generation</span>
-      <div>
+      <div class="delete-all-assets-container">
+        <button matButton (click)="clearAssets()">
+          <mat-icon>delete</mat-icon>Clear All
+        </button>
+      </div>
+      <div class="assets-list">
         @for (
           image of scene.imageGenerationSettings.selectedImagesForVideo;
           track image.id

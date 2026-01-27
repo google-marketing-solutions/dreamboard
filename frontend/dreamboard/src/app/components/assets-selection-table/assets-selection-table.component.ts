@@ -68,19 +68,36 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
   selection = new SelectionModel<Image | Video>(true, []);
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
+  /**
+   * Initializes the component.
+   * @param cdr - ChangeDetectorRef for manually triggering change detection.
+   */
   constructor(private cdr: ChangeDetectorRef) {
     // Assign the data to the data source for the table to render
     this.dataSource = new MatTableDataSource(this.assets);
   }
 
+  /**
+   * Lifecycle hook that is called after Angular has fully initialized a component's view.
+   * Sets the paginator for the data source.
+   */
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
   }
 
+  /**
+   * Lifecycle hook that is called when any data-bound property of a directive changes.
+   * Refreshes the table data when inputs change.
+   * @param changes - The changed properties.
+   */
   ngOnChanges(changes: SimpleChanges): void {
     this.refreshTable(false);
   }
 
+  /**
+   * Filters the table data based on the input value.
+   * @param event - The input event containing the filter value.
+   */
   applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
@@ -90,21 +107,36 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  /** Whether the number of selected elements matches the total number of rows. */
+  /**
+   * Checks whether the number of selected elements matches the total number of rows.
+   * @returns `true` if all rows are selected, otherwise `false`.
+   */
   isAllSelected(): boolean {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSource.data.length;
     return numSelected === numRows;
   }
 
+  /**
+   * Clears all selected assets.
+   */
   clearAllSelections(): void {
     this.selection.clear();
   }
 
+  /**
+   * Toggles the selection of a single row.
+   * @param row - The asset row to toggle.
+   */
   toggleSingleRow(row: Image): void {
     this.selection.toggle(row);
   }
 
+  /**
+   * Determines if the checkbox for a row should be disabled.
+   * @param row - The asset row to check.
+   * @returns `true` if the max allowed assets are selected and the current row is not selected; otherwise `false`.
+   */
   disableCheckBox(row: Image): boolean {
     const isSelected = this.selection.isSelected(row);
     if (
@@ -117,7 +149,11 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
     return false;
   }
 
-  /** The label for the checkbox on the passed row */
+  /**
+   * Returns the label for the checkbox on the passed row.
+   * @param row - The asset row.
+   * @returns The label string for the checkbox.
+   */
   checkboxLabel(row?: Image): string {
     if (!row) {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
@@ -127,6 +163,10 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
     }`;
   }
 
+  /**
+   * Refreshes the table data source with the current assets.
+   * @param triggerDetectChanges - Whether to manually trigger change detection.
+   */
   refreshTable(triggerDetectChanges: boolean): void {
     // Create copy to show always the latest generated images
     const reversed = [...this.assets].reverse();
@@ -136,10 +176,19 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  getSelectedAssets() {
+  /**
+   * Retrieves the currently selected assets.
+   * @returns An array of selected `Image` or `Video` objects.
+   */
+  getSelectedAssets(): Image[] | Video[] {
     return this.selection.selected;
   }
 
+  /**
+   * Handles the deletion of an asset.
+   * Emits an event to the parent component and refreshes the table.
+   * @param asset - The asset to be deleted.
+   */
   onDeleteAsset(asset: Image | Video): void {
     // Send trigger to parent component to update the img carousel in case
     // a displayed asset has been removed
@@ -148,6 +197,10 @@ export class AssetsSelectionTableComponent implements AfterViewInit, OnChanges {
     this.refreshTable(false);
   }
 
+  /**
+   * Returns the available page size options for the paginator.
+   * @returns An array of numbers representing page sizes.
+   */
   getPageSizeOptions(): number[] {
     return [5, 10, 15, 20, 25, 30];
   }

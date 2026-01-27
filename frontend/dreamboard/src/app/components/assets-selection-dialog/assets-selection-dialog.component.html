@@ -21,7 +21,11 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button [disabled]="disableSelectAssetsButton()" (click)="selectAssets()">
+  <button
+    mat-button
+    [disabled]="disableSelectAssetsButton()"
+    (click)="selectAssets()"
+  >
     Select Assets
   </button>
   <button mat-button [mat-dialog-close]="true" cdkFocusInitial>Cancel</button>

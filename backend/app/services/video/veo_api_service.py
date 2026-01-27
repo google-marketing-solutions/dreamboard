@@ -107,6 +107,24 @@ class VeoAPIService:
                   output_gcs_uri, video_segment
               )
             elif len(video_segment.seed_images) > 1:
+              # Workaround since new features are only supported in preview versions of the model
+              if (
+                  os.getenv("USE_PREVIEW_VIDEO_MODEL") == "True"
+                  and video_segment.video_model
+                  == video_request_models.VEO_3_1_MODEL_NAME
+              ):
+                video_segment.video_model = (
+                    video_request_models.VEO_3_1_MODEL_NAME_PREVIEW
+                )
+              elif (
+                  os.getenv("USE_PREVIEW_VIDEO_MODEL") == "True"
+                  and video_segment.video_model
+                  == video_request_models.VEO_3_1_FAST_MODEL_NAME
+              ):
+                video_segment.video_model = (
+                    video_request_models.VEO_3_1_FAST_MODEL_NAME_PREVIEW
+                )
+
               # Multiple images support
               if (
                   video_segment.video_gen_task

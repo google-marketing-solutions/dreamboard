@@ -29,12 +29,11 @@ import { Video } from './models/video-gen-models';
 import { VideoScene } from './models/scene-models';
 import { getNewImageSettings } from './image-utils';
 import { v4 as uuidv4 } from 'uuid';
-import { environment } from '../environments/environment.development';
 
-export const VEO_3_1_MODEL_NAME = `veo-3.1-generate-${environment.videoModelVersion}`;
-export const VEO_3_1_FAST_MODEL_NAME = `veo-3.1-fast-generate-${environment.videoModelVersion}`;
-export const VEO_3_MODEL_NAME = `veo-3.0-generate-${environment.videoModelVersion}`;
-export const VEO_3_FAST_MODEL_NAME = `veo-3.0-fast-generate-${environment.videoModelVersion}`;
+export const VEO_3_1_MODEL_NAME = `veo-3.1-generate-001`;
+export const VEO_3_1_FAST_MODEL_NAME = `veo-3.1-fast-generate-001`;
+export const VEO_3_MODEL_NAME = `veo-3.0-generate-001`;
+export const VEO_3_FAST_MODEL_NAME = `veo-3.0-fast-generate-001`;
 export const VIDEO_MODEL_MAX_LENGTH = 8;
 
 export function getNewVideoScene(existingScenesLen: number) {
@@ -143,15 +142,15 @@ export function getDurationInSecsOptionsByModelNameAndVideoGenTask(
     if (videoGenTask === 'text-to-video' || videoGenTask === 'image-to-video') {
       durationInSecsOptions = [
         {
-          displayName: '4',
+          displayName: '4 ',
           value: '4',
         },
         {
-          displayName: '6',
+          displayName: '6 ',
           value: '6',
         },
         {
-          displayName: '8',
+          displayName: '8 ',
           value: '8',
         },
       ];
@@ -159,7 +158,7 @@ export function getDurationInSecsOptionsByModelNameAndVideoGenTask(
     if (videoGenTask === 'reference-to-video') {
       durationInSecsOptions = [
         {
-          displayName: '8',
+          displayName: '8 ',
           value: '8',
         },
       ];
@@ -167,7 +166,7 @@ export function getDurationInSecsOptionsByModelNameAndVideoGenTask(
     if (videoGenTask === 'video-extension') {
       durationInSecsOptions = [
         {
-          displayName: '7',
+          displayName: '7 ',
           value: '7',
         },
       ];
@@ -178,15 +177,15 @@ export function getDurationInSecsOptionsByModelNameAndVideoGenTask(
     if (videoGenTask === 'text-to-video' || videoGenTask === 'image-to-video') {
       durationInSecsOptions = [
         {
-          displayName: '4',
+          displayName: '4 ',
           value: '4',
         },
         {
-          displayName: '6',
+          displayName: '6 ',
           value: '6',
         },
         {
-          displayName: '8',
+          displayName: '8 ',
           value: '8',
         },
       ];

@@ -164,6 +164,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     ]),
   });
 
+  /**
+   * Initializes the component with required services.
+   * @param videoGenerationService - Service for generating videos.
+   * @param textGenerationService - Service for text generation (e.g., prompt rewriting).
+   */
   constructor(
     private videoGenerationService: VideoGenerationService,
     private textGenerationService: TextGenerationService,
@@ -321,6 +326,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       selectedVideoForMerge;
   }
 
+  /**
+   * Handles the selection of a video model.
+   * Updates available tasks and resets specific settings based on the selected model.
+   * @param event - The change event containing the selected video model.
+   */
   onVideoModelSelected(event: MatSelectChange) {
     const videoModel = event.value;
     // Update based on model name
@@ -333,6 +343,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.clearAssets();
   }
 
+  /**
+   * Handles the selection of a video generation task.
+   * Updates duration options and clears selected assets.
+   * @param event - The change event containing the selected task.
+   */
   onVideoGenTaskSelected(event: MatSelectChange) {
     const videoGenTask = event.value;
     this.setVideoDurationInSecs(
@@ -343,6 +358,12 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.clearAssets();
   }
 
+  /**
+   * Sets the available duration options based on the selected model and task.
+   * Defaults to the first available duration option.
+   * @param videoModel - The selected video model name.
+   * @param videoGenTask - The selected video generation task.
+   */
   setVideoDurationInSecs(videoModel: string, videoGenTask: string) {
     // Update based on model name and video gen task
     this.durationInSecsOptions =
@@ -355,6 +376,9 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     );
   }
 
+  /**
+   * Clears all selected assets (images and videos) from the scene settings and local state.
+   */
   clearAssets() {
     // Clear selected images for video and for extension
     this.scene.imageGenerationSettings.selectedImagesForVideo = [];
@@ -363,6 +387,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.assetsFromLibrary = [];
   }
 
+  /**
+   * Adds an uploaded file to the list of assets if it is a reference image.
+   * @param file - The uploaded file object.
+   */
   addUploadedFile(file: UploadedFile) {
     if (file.type === UploadedFileType.ReferenceImage) {
       const referenceImage: Image = {
@@ -381,6 +409,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     }
   }
 
+  /**
+   * Opens a dialog for selecting assets (images or videos) from the library.
+   * Updates the scene settings with the selected assets upon closure.
+   * @param assetType - The type of asset to select ('images' or 'videos').
+   */
   openAssetsSelectionDialog(assetType: string) {
     const dialogRef = this.assetsSelectionDialog.open(
       AssetsSelectionDialogComponent,
@@ -413,6 +446,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     });
   }
 
+  /**
+   * Handles the deletion of an asset from the lists.
+   * Removes the asset from local arrays and scene settings arrays.
+   * @param asset - The asset (Image or Video) to be deleted.
+   */
   onAssetDeleted(asset: Image | Video) {
     // Check if asset is in assetsFromLibrary array
     deleteElementFromArray(asset.id, this.assetsFromLibrary);
@@ -434,6 +472,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     }
   }
 
+  /**
+   * Determines the maximum number of assets allowed for selection based on the current model and task.
+   * @returns The maximum number of allowed assets.
+   */
   getMaxAllowedSelectedAssets() {
     const videoModel = this.videoSettingsForm.get('videoModel')?.value!;
     const videoGenTask = this.videoSettingsForm.get('videoGenTask')?.value!;
@@ -560,6 +602,11 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
     this.currentGeneratedVideoIndex = index;
   }
 
+  /**
+   * Updates the selected video for merging/extension and refreshes the UI.
+   * @param gcsUri - The GCS URI of the selected video.
+   * @param updateForm - Whether to update the form control value.
+   */
   updateSelectedVideo(gcsUri: string, updateForm: boolean) {
     // Reload video in the Scene Builder HTML element to update it
     // since reload does not happen when the object is updated
@@ -586,7 +633,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * Initiates the video generation process for the current scene.
    * It displays a loading snackbar, constructs a `VideoGenerationRequest`,
    * sends it to the `VideoGenerationService`, and handles the API response.
-   * Upon successful generation, it updates the scene's `generatedVideos` and selects the first one.
+   * Upon successful generation, it updates the scene's `generatedVideos` and selects the last one.
    * It also handles error responses by displaying an error snackbar.
    * @returns {void}
    */
@@ -642,10 +689,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
   }
 
   /**
-   * Constructs a `VideoSegmentGenerationRequest` object based on the current values in the `videoSettingsForm`
+   * Constructs a `VideoGenerationRequest` object based on the current values in the `videoSettingsForm`
    * and the associated `scene` data. This request object is used to send to the video generation API.
    * It includes details like prompt, duration, aspect ratio, and an optional seed image.
-   * @returns {VideoSegmentGenerationRequest} The constructed video segment request object.
+   * @returns {VideoGenerationRequest} The constructed video generation request object.
    */
   buildVideoGenerationRequest(): VideoGenerationRequest {
     const seedImages =
@@ -727,8 +774,10 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
 
   /**
    * Determines whether the "Generate Video" button should be disabled.
-   * The button is enabled if a seed image is selected for the scene,
-   * or if the video prompt in the form is valid.
+   * The button is enabled based on the selected video generation task:
+   * - 'image-to-video' or 'reference-to-video': Requires selected images within allowed limits.
+   * - 'video-extension': Requires a specific number of selected videos.
+   * - 'text-to-video': Requires a valid prompt.
    * @returns {boolean} `true` if the button should be disabled, `false` otherwise.
    */
   disableGenerateVideoButton(): boolean {

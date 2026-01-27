@@ -79,10 +79,11 @@ export class FileUploaderNewComponent {
   @Output() fileDeletedEventNew = new EventEmitter<UploadedFile>();
   private _snackBar = inject(MatSnackBar);
 
-  constructor(
-    private filesManagerService: FilesManagerService,
-    private componentsCommunicationService: ComponentsCommunicationService,
-  ) {}
+  /**
+   * Initializes the component with required services.
+   * @param filesManagerService - Service for handling file uploads.
+   */
+  constructor(private filesManagerService: FilesManagerService) {}
 
   /**
    * Sets the visual status of the file uploader based on the provided `UploadStatus`.
@@ -113,6 +114,10 @@ export class FileUploaderNewComponent {
     }
   }
 
+  /**
+   * Triggers the hidden file input click event when the visible upload button is clicked.
+   * @param event - The click event from the button.
+   */
   clickFileUpload(event: any) {
     const buttonUploader = event.target.parentElement.parentElement;
     const div = buttonUploader.parentElement;
@@ -120,10 +125,18 @@ export class FileUploaderNewComponent {
     document.getElementById(inputUploaderId)?.click();
   }
 
+  /**
+   * Generates a unique ID for the element.
+   * @returns A unique UUID string.
+   */
   getElementId() {
     return uuidv4();
   }
 
+  /**
+   * Retrieves the label for the upload button based on the configured file type.
+   * @returns The label string corresponding to the `fileType`.
+   */
   getButtonTypeLabel(): string {
     switch (this.fileType) {
       case UploadedFileType.ReferenceImage:
@@ -163,6 +176,11 @@ export class FileUploaderNewComponent {
     this.processFiles(files);
   }
 
+  /**
+   * Handles the deletion of an uploaded file.
+   * Removes the file from the local list and emits an event.
+   * @param fileItem - The file item to be deleted.
+   */
   onFileDeleted(fileItem: UploadedFile) {
     deleteElementFromArray(fileItem.id, this.fileItems);
     this.fileDeletedEventNew.next(fileItem);
@@ -243,7 +261,11 @@ export class FileUploaderNewComponent {
     this.fileUploadElementRef.nativeElement.value = '';
   }
 
-  getAcceptOptions() {
+  /**
+   * Returns the accepted file extensions string for the file input based on the file type.
+   * @returns A comma-separated string of file extensions (e.g., ".png,.jpeg,.jpg").
+   */
+  getAcceptOptions(): string {
     switch (this.fileType) {
       case UploadedFileType.ReferenceImage:
       case UploadedFileType.UserProvidedImage:
@@ -258,7 +280,11 @@ export class FileUploaderNewComponent {
     }
   }
 
-  disableUploadButton() {
+  /**
+   * Determines whether the upload button should be disabled.
+   * @returns `true` if the button should be disabled, otherwise `false`.
+   */
+  disableUploadButton(): boolean {
     return false;
   }
 
@@ -267,7 +293,7 @@ export class FileUploaderNewComponent {
    * @param {number} bytes - The number of bytes to format.
    * @returns {string} The formatted file size string.
    */
-  getSize(bytes: number) {
+  getSize(bytes: number): string {
     if (bytes === 0) {
       return '0 Bytes';
     }

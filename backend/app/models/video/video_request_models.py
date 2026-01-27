@@ -28,14 +28,12 @@ from models.image.image_gen_models import Image
 from pydantic import BaseModel, Field
 
 
-VEO_3_1_MODEL_NAME = f"veo-3.1-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
-VEO_3_1_FAST_MODEL_NAME = (
-    f"veo-3.1-fast-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
-)
-VEO_3_MODEL_NAME = f"veo-3.0-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
-VEO_3_FAST_MODEL_NAME = (
-    f"veo-3.0-fast-generate-{os.getenv('VIDEO_MODEL_VERSION')}"
-)
+VEO_3_1_MODEL_NAME = f"veo-3.1-generate-001"
+VEO_3_1_MODEL_NAME_PREVIEW = f"veo-3.1-generate-preview"
+VEO_3_1_FAST_MODEL_NAME = f"veo-3.1-fast-generate-001"
+VEO_3_1_FAST_MODEL_NAME_PREVIEW = f"veo-3.1-fast-generate-preview"
+VEO_3_MODEL_NAME = f"veo-3.0-generate-001"
+VEO_3_FAST_MODEL_NAME = f"veo-3.0-fast-generate-001"
 
 
 class VideoTransition(Enum):

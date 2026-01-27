@@ -36,12 +36,6 @@ import {
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AssetsSelectionTableComponent } from '../assets-selection-table/assets-selection-table.component';
@@ -56,7 +50,6 @@ import { Video } from '../../models/video-gen-models';
     MatDialogContent,
     MatDialogModule,
     MatInputModule,
-    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     AssetsSelectionTableComponent,
@@ -81,16 +74,21 @@ export class AssetsSelectionDialogComponent {
   private _snackBar = inject(MatSnackBar);
   confirmDialog = inject(MatDialog);
 
+  /**
+   * Initializes the component.
+   * @param dialogRef - Reference to the dialog opened.
+   */
   constructor(public dialogRef: MatDialogRef<AssetsSelectionDialogComponent>) {}
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
-   * It initializes the 'sceneDescription' form control with the description
-   * from the `scene` data provided to the dialog.
-   * @returns {void}
    */
   ngAfterViewInit(): void {}
 
+  /**
+   * Retrieves the assets associated with the current scene based on the configured asset type.
+   * @returns An array of `Image` or `Video` objects representing the generated assets.
+   */
   getAssetsByType(): Image[] | Video[] {
     if (this.assetType === 'images') {
       return this.scene.imageGenerationSettings.generatedImages;
@@ -102,12 +100,19 @@ export class AssetsSelectionDialogComponent {
     return [];
   }
 
+  /**
+   * Gets the selected assets from the child table component and closes the dialog with the result.
+   */
   selectAssets(): void {
     this.selectedAssets =
       this.assetsSelectionTableComponent.getSelectedAssets();
     this.dialogRef.close(this.selectedAssets);
   }
 
+  /**
+   * Determines whether the select button should be disabled.
+   * @returns `true` if the table component is available and no assets are selected; otherwise `false`.
+   */
   disableSelectAssetsButton(): boolean {
     if (this.assetsSelectionTableComponent) {
       this.selectedAssets =

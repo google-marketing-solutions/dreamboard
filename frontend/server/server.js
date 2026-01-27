@@ -1,6 +1,7 @@
 const { GoogleAuth } = require("google-auth-library");
 const { Storage } = require("@google-cloud/storage");
 require("dotenv").config({ path: __dirname + "/.env" });
+const { v4: uuidv4 } = require('uuid');
 const express = require("express");
 const multer = require("multer");
 const app = express();
@@ -125,20 +126,20 @@ app.post(
     try {
       const fileName = req.file.originalname.trim();
       console.log(
-        `DreamBoard - NodeJS handleFileUploadRequest: Starting file upload ${fileName} in GCS path ${req.body.bucketPath}...`
+        `DreamBoard - NodeJS handleFileUploadRequest: Starting file upload ${fileName} in GCS path ${req.body.bucketPath}...`,
       );
       // Construct the full GCS path for the file.
       // workaround: replace @ with / to get the file path
       const filePath = `dreamboard/${req.body.bucketPath.replace(
         "@",
-        "/"
+        "/",
       )}/${fileName}`;
       // Upload the file content to GCS.
 
       const bucket = storage.bucket(process.env.GCS_BUCKET);
       const blob = bucket.file(filePath); // Use original filename for GCS
 
-      console.log('Creating write stream...');
+      console.log("Creating write stream...");
       const blobStream = blob.createWriteStream({
         resumable: true, // For smaller files, resumable can be set to false
         metadata: {
@@ -146,13 +147,13 @@ app.post(
         },
       });
 
-      console.log('Setting OnError function...');
+      console.log("Setting OnError function...");
       blobStream.on("error", (err) => {
         console.error(`Error uploading file ${filePath} to GCS:`, err);
         res.status(500).send({ detail: `Error uploading file. ${filePath}` });
       });
 
-      console.log('Setting OnFinish function...');
+      console.log("Setting OnFinish function...");
       blobStream.on("finish", async () => {
         // Construct the GCS URI.
         const gcsUri = `gs://${process.env.GCS_BUCKET}/${filePath}`;
@@ -163,6 +164,7 @@ app.post(
 
         // Create an UploadedFile object with all relevant details.
         uploadedFile = {
+          id: uuidv4(),
           name: fileName,
           gcs_uri: gcsUri,
           signed_uri: signedURI,
@@ -179,7 +181,7 @@ app.post(
       console.log(`NodeJS handleFileUploadRequest - ERROR: ${error}`);
       res.status(500).send({ detail: error.message });
     }
-  }
+  },
 );
 
 app.listen(PORT, () => {

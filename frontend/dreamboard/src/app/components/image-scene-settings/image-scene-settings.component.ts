@@ -535,6 +535,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.currentGeneratedImageIndex = index;
   }
 
+  setImageIndex(index: number) {
+    this.currentGeneratedImageIndex = index;
+  }
+
   /**
    * Rewrites the image prompt for the current scene using the `TextGenerationService`.
    * It sends the current prompt and scene description to the text generation API,
