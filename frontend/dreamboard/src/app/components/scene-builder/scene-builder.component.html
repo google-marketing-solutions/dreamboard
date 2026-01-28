@@ -66,22 +66,42 @@
             scene.imageGenerationSettings.generatedImages.length > 0 &&
             !scene.videoGenerationSettings.selectedVideoForMerge
           ) {
-            <div class="scene-image">
-              <img
-                mat-card-image
-                [src]="
-                  scene.imageGenerationSettings.generatedImages[
-                    currentGeneratedImageIndex
-                  ].signedUri
-                "
-                [alt]="
-                  scene.imageGenerationSettings.generatedImages[
-                    currentGeneratedImageIndex
-                  ].name
-                "
-                class="selected-image"
-              />
-            </div>
+            @if (
+              this.currentGeneratedImageIndex <=
+                scene.imageGenerationSettings.generatedImages.length - 1 &&
+              scene.imageGenerationSettings.generatedImages[
+                currentGeneratedImageIndex
+              ]
+            ) {
+              <div class="scene-image">
+                <img
+                  mat-card-image
+                  [src]="
+                    scene.imageGenerationSettings.generatedImages[
+                      currentGeneratedImageIndex
+                    ].signedUri
+                  "
+                  [alt]="
+                    scene.imageGenerationSettings.generatedImages[
+                      currentGeneratedImageIndex
+                    ].name
+                  "
+                  class="selected-image"
+                />
+              </div>
+            } @else {
+              <!-- Show the first one if the index is not correct on init -->
+              <div class="scene-image">
+                <img
+                  mat-card-image
+                  [src]="
+                    scene.imageGenerationSettings.generatedImages[0].signedUri
+                  "
+                  [alt]="scene.imageGenerationSettings.generatedImages[0].name"
+                  class="selected-image"
+                />
+              </div>
+            }
           } @else if (
             scene.imageGenerationSettings.generatedImages.length === 0 &&
             !scene.videoGenerationSettings.selectedVideoForMerge

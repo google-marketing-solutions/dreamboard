@@ -42,13 +42,13 @@
         @if (fileItem.mimeType.includes("image")) {
           <div class="asset-container">
             <img [id]="fileItem.id" [src]="fileItem.signedUri" />
-            <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">delete</mat-icon>
+            <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">close</mat-icon>
           </div>
         } @else if (fileItem.mimeType.includes("video")) {
           <div class="asset-container">
             <video [id]="fileItem.id" controls>
               <source [src]="fileItem.signedUri" [type]="fileItem.mimeType" />
-              <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">delete</mat-icon>
+              <mat-icon matTooltip="Delete" (click)="onFileDeleted(fileItem)">close</mat-icon>
             </video>
           </div>
         }

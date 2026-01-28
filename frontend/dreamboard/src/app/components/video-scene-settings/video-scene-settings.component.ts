@@ -58,6 +58,8 @@ import {
   updateScenesWithGeneratedVideos,
   getVideoModels,
   getVideoGenTasksByModelName,
+  getMaxAllowedSelectedAssetsForSelection,
+  invalidNumberOfAssetsForVideoGenTask,
   VEO_3_1_MODEL_NAME,
   VEO_3_1_FAST_MODEL_NAME,
   VEO_3_MODEL_NAME,
@@ -476,35 +478,16 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * Determines the maximum number of assets allowed for selection based on the current model and task.
    * @returns The maximum number of allowed assets.
    */
-  getMaxAllowedSelectedAssets() {
+  getMaxAllowedSelectedAssets(): number {
     const videoModel = this.videoSettingsForm.get('videoModel')?.value!;
     const videoGenTask = this.videoSettingsForm.get('videoGenTask')?.value!;
+    // Get based on model name and video gen task
+    const maxAssets = getMaxAllowedSelectedAssetsForSelection(
+      videoModel,
+      videoGenTask,
+    );
 
-    if (
-      videoModel === VEO_3_1_MODEL_NAME ||
-      videoModel === VEO_3_1_FAST_MODEL_NAME
-    ) {
-      if (videoGenTask === 'image-to-video') {
-        return 2;
-      }
-      if (videoGenTask === 'reference-to-video') {
-        return 3;
-      }
-      if (videoGenTask === 'video-extension') {
-        return 1;
-      }
-    }
-
-    if (
-      videoModel === VEO_3_MODEL_NAME ||
-      videoModel === VEO_3_FAST_MODEL_NAME
-    ) {
-      if (videoGenTask === 'image-to-video') {
-        return 1;
-      }
-    }
-
-    return 0;
+    return maxAssets;
   }
 
   /**
@@ -781,7 +764,7 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
    * @returns {boolean} `true` if the button should be disabled, `false` otherwise.
    */
   disableGenerateVideoButton(): boolean {
-    if (
+    /*if (
       (this.videoSettingsForm.get('videoGenTask')?.value === 'image-to-video' &&
         this.scene.imageGenerationSettings.selectedImagesForVideo.length ===
           0) ||
@@ -803,6 +786,14 @@ export class VideoSceneSettingsComponent implements AfterViewInit {
       this.scene.videoGenerationSettings.selectedVideosForExtension.length !==
         this.getMaxAllowedSelectedAssets()
     ) {
+      return true;*/
+
+    const invalidAssetSelection = invalidNumberOfAssetsForVideoGenTask(
+      this.videoSettingsForm.get('videoModel')?.value!,
+      this.videoSettingsForm.get('videoGenTask')?.value!,
+      this.scene,
+    );
+    if (invalidAssetSelection) {
       return true;
     } else if (
       this.videoSettingsForm.get('videoGenTask')?.value === 'text-to-video' &&

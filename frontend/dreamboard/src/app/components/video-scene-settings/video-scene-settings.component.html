@@ -265,18 +265,19 @@
       <span>Selected Images for Video Generation</span>
       <div class="delete-all-assets-container">
         <button matButton (click)="clearAssets()">
-          <mat-icon>delete</mat-icon>Clear All
+          <mat-icon>close</mat-icon>Clear All
         </button>
       </div>
       <div class="assets-list">
         @for (
           image of scene.imageGenerationSettings.selectedImagesForVideo;
-          track image.id
+          let i = $index;
+          track image.id + "-" + i
         ) {
           <div class="asset-item">
             <img [src]="image.signedUri" />
             <mat-icon matTooltip="Delete" (click)="onAssetDeleted(image)"
-              >delete</mat-icon
+              >close</mat-icon
             >
           </div>
         }
@@ -291,14 +292,15 @@
       <div>
         @for (
           video of scene.videoGenerationSettings.selectedVideosForExtension;
-          track video.id
+          let i = $index;
+          track video.id + "-" + i
         ) {
           <div class="asset-item">
             <video controls>
               <source [src]="video.signedUri" [type]="video.mimeType" />
             </video>
             <mat-icon matTooltip="Delete" (click)="onAssetDeleted(video)"
-              >delete</mat-icon
+              >close</mat-icon
             >
           </div>
         }

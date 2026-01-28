@@ -806,7 +806,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       });
 
     const segments: ImageSceneRequest = {
-      scene_num: this.scene.number,
+      id: this.scene.id,
       img_prompt: this.imageSettingsForm.get('prompt')?.value!,
       creative_dir: {
         aspect_ratio: this.imageSettingsForm.get('aspectRatio')?.value,

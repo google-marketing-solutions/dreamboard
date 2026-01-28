@@ -170,9 +170,7 @@ class ImageService:
     if generation_id is None or generation_id == "":
       output_gcs_uri = scene.creative_dir.output_gcs_uri
     else:
-      output_gcs_uri = (
-          f"{get_images_bucket_path(generation_id)}/{scene.scene_num}"
-      )
+      output_gcs_uri = f"{get_images_bucket_path(generation_id)}/{scene.id}"
 
     logging.info("Starting image generation for folder %s...", output_gcs_uri)
 
@@ -236,7 +234,11 @@ class ImageService:
           config=types.GenerateImagesConfig(**generate_config_params),
       )
 
-    responsible_AI_reason = response.generated_images[0].rai_filtered_reason
+    responsible_AI_reason = (
+        response.generated_images[0].rai_filtered_reason
+        if response.generated_images
+        else None
+    )
     if responsible_AI_reason:
       raise ValueError(responsible_AI_reason)
 
@@ -244,18 +246,11 @@ class ImageService:
     image_parts = [image.image for image in response.generated_images]
 
     # Process and store the generated images.
-    current_time = int(time.time())
-    for i, part in enumerate(image_parts):
-      # Generate a unique scene ID for each image.
-      scene_id = f"{str(current_time)}{str(i)}"
-      # Get the GCS URI of the generated image.
-      scene_img_uri = part.gcs_uri
-
+    for part in image_parts:
       # Update the scene object with generated image details.
-      scene.scene_id.append(scene_id)
-      scene.image_uri.append(scene_img_uri)
+      scene.image_uris.append(part.gcs_uri)
       scene.image_content_type = part.mime_type
-      logging.debug("Scene Id: %s, image_uri: %s", scene_id, scene_img_uri)
+      logging.debug("Scene Id: %s, image uri: %s", scene.id, part.gcs_uri)
 
   def generate_images_for_agent(
       self, scene: request_models.Scene, output_gcs_uri: str | None = None

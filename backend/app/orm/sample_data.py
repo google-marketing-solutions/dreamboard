@@ -22,8 +22,8 @@ from models.agent.user_model import UserInDB
 from models.agent.enums import AgentType
 
 
-FLASH_MODEL = "gemini-2.5-flash"
-PRO_MODEL = "gemini-2.5-pro"
+FLASH_MODEL = "gemini-3-flash"
+PRO_MODEL = "gemini-3-pro"
 
 # TODO: note that the sample data should probably be database migrations
 # using Alembic (part of SQLAlchemy) to easily stand up a new database

@@ -181,16 +181,7 @@ export function findSceneResponse(
   scene: VideoScene,
 ) {
   return resps.filter((resp: ImageGenerationResponse) => {
-    console.log(
-      'scene ids: ' +
-        resp.scene_ids +
-        ', segment Num: ' +
-        resp.segment_number +
-        ', scene num: ' +
-        scene.number,
-    );
-    // return resp.scene_ids === scene.id && resp.segment_number === scene.number;
-    return resp.segment_number === scene.number;
+    return resp.scene_id === scene.id;
   });
 }
 
@@ -209,15 +200,19 @@ export function updateScenesWithGeneratedImages(
       const response = respsFound[0];
       if (response.done) {
         // Setup the images used.
-        const genImages: Image[] = response.images.map((image: ImageItem) => {
-          return {
-            name: image.name,
-            gcsUri: image.gcs_uri,
-            signedUri: image.signed_uri,
-            gcsFusePath: image.gcs_fuse_path,
-            mimeType: image.mime_type,
-          } as Image;
-        });
+        const genImages: Image[] = response.images.map(
+          (imageItem: ImageItem) => {
+            const image: Image = {
+              id: imageItem.id,
+              name: imageItem.name,
+              gcsUri: imageItem.gcs_uri,
+              signedUri: imageItem.signed_uri,
+              gcsFusePath: imageItem.gcs_fuse_path,
+              mimeType: imageItem.mime_type,
+            };
+            return image;
+          },
+        );
         // Append images to carrousel
         scene.imageGenerationSettings.generatedImages.push.apply(
           scene.imageGenerationSettings.generatedImages,
@@ -238,5 +233,3 @@ export function updateScenesWithGeneratedImages(
 
   return executionStatus;
 }
-
-

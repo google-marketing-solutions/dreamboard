@@ -223,12 +223,14 @@ class VeoAPIService:
             scene_folder = utils.get_scene_folder_path_from_uri(
                 uri=gen_video.video.uri
             )
+            scene_folder_parts = scene_folder.split("/")
+            scene_folder_part = "".join(scene_folder_parts[1:])
             file_name = utils.get_file_name_from_uri(gen_video.video.uri)
             gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{file_name}"
             videos.append(
                 video_gen_models.Video(
                     id=uuid.uuid4(),
-                    name=f"{scene_folder}/{file_name}",
+                    name=f"{scene_folder_part}/{file_name}",
                     gcs_uri=gen_video.video.uri,
                     # Get a signed URI for direct access
                     signed_uri=utils.get_signed_uri_from_gcs_uri(

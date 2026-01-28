@@ -431,3 +431,61 @@ export function getVideoFormats() {
     },
   ];
 }
+
+export function getMaxAllowedSelectedAssetsForSelection(
+  videoModel: string,
+  videoGenTask: string,
+) {
+  if (
+    videoModel === VEO_3_1_MODEL_NAME ||
+    videoModel === VEO_3_1_FAST_MODEL_NAME
+  ) {
+    if (videoGenTask === 'image-to-video') {
+      return 2;
+    }
+    if (videoGenTask === 'reference-to-video') {
+      return 3;
+    }
+    if (videoGenTask === 'video-extension') {
+      return 1;
+    }
+  }
+
+  if (videoModel === VEO_3_MODEL_NAME || videoModel === VEO_3_FAST_MODEL_NAME) {
+    if (videoGenTask === 'image-to-video') {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+export function invalidNumberOfAssetsForVideoGenTask(
+  videoModel: string,
+  videoGenTask: string,
+  scene: VideoScene,
+) {
+  if (
+    videoGenTask === 'image-to-video' &&
+    (scene.imageGenerationSettings.selectedImagesForVideo.length === 0 ||
+      scene.imageGenerationSettings.selectedImagesForVideo.length >
+        getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask))
+  ) {
+    return true;
+  } else if (
+    videoGenTask === 'reference-to-video' &&
+    (scene.imageGenerationSettings.selectedImagesForVideo.length === 0 ||
+      scene.imageGenerationSettings.selectedImagesForVideo.length >
+        getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask))
+  ) {
+    return true;
+  } else if (
+    videoGenTask === 'video-extension' &&
+    scene.videoGenerationSettings.selectedVideosForExtension.length !==
+      getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask)
+  ) {
+    return true;
+  }
+
+  return false;
+}

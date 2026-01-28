@@ -1,42 +1,73 @@
 <div class="images-container">
   <div class="images">
     @if (scene.imageGenerationSettings.generatedImages.length === 0) {
-    <p>
-      Your generated & uploaded images will show here. <br />
-      <mat-icon>insert_photo</mat-icon>
-    </p>
-
+      <p>
+        Your generated & uploaded images will show here. <br />
+        <mat-icon>insert_photo</mat-icon>
+      </p>
     } @else {
-    <div class="carousel">
-      @for (image of scene.imageGenerationSettings.generatedImages; track image;
-      let i = $index) { @if (i === currentGeneratedImageIndex) {
-      <img [src]="image.signedUri" class="generated-image" />
-      } }
-      <!-- Previous and Next buttons -->
-      <button class="carousel-buttons prev" (click)="onPrev()">
-        <span class="arrow left"></span>
-      </button>
-      <button class="carousel-buttons next" (click)="onNext()">
-        <span class="arrow right"></span>
-      </button>
-    </div>
+      <div class="carousel">
+        @for (
+          image of scene.imageGenerationSettings.generatedImages;
+          track image;
+          let i = $index
+        ) {
+          @if (i === currentGeneratedImageIndex) {
+            <img [src]="image.signedUri" class="generated-image" />
+          }
+        }
+        <!-- Previous and Next buttons -->
+        <button class="carousel-buttons prev" (click)="onPrev()">
+          <span class="arrow left"></span>
+        </button>
+        <button class="carousel-buttons next" (click)="onNext()">
+          <span class="arrow right"></span>
+        </button>
+      </div>
     }
   </div>
-  @if(scene.imageGenerationSettings.generatedImages.length > 0) {
-  <button mat-button>
-    <mat-icon>download</mat-icon>
-    <a
-      [href]="
-        this.scene.imageGenerationSettings.generatedImages[this.currentGeneratedImageIndex].signedUri
-      "
-      download
-      [download]="
-        this.scene.imageGenerationSettings.generatedImages[this.currentGeneratedImageIndex].signedUri
-      "
-      target="_blank"
-      >Image</a
-    >
-  </button>
+  @if (scene.imageGenerationSettings.generatedImages.length > 0) {
+    @if (
+      this.currentGeneratedImageIndex <=
+        this.scene.imageGenerationSettings.generatedImages.length - 1 &&
+      this.scene.imageGenerationSettings.generatedImages[
+        this.currentGeneratedImageIndex
+      ]
+    ) {
+      <button mat-button>
+        <mat-icon>download</mat-icon>
+        <a
+          [href]="
+            scene.imageGenerationSettings.generatedImages[
+              currentGeneratedImageIndex
+            ].signedUri
+          "
+          download
+          [download]="
+            scene.imageGenerationSettings.generatedImages[
+              currentGeneratedImageIndex
+            ].signedUri
+          "
+          target="_blank"
+          >Image</a
+        >
+      </button>
+    } @else {
+      <!-- Show the first one if the index is not correct on init -->
+      <button mat-button>
+        <mat-icon>download</mat-icon>
+        <a
+          [href]="
+            scene.imageGenerationSettings.generatedImages[0].signedUri
+          "
+          download
+          [download]="
+            scene.imageGenerationSettings.generatedImages[0].signedUri"
+          target="_blank"
+          >Image</a
+        >
+      </button>
+    }
   }
   <div class="reference-image">
     <app-file-uploader
@@ -52,18 +83,21 @@
 
 <form [formGroup]="imageSettingsForm">
   <mat-form-field class="selected-image-for-video">
-    <mat-label>Selected Image for Video</mat-label>
+    <mat-label>Selected Image</mat-label>
     <mat-select
       name="selectedImageUri"
       formControlName="selectedImageUri"
       (selectionChange)="onImageSelected($event)"
     >
       <mat-option value="no-image">No image</mat-option>
-      @for (image of scene.imageGenerationSettings.generatedImages; track image;
-      let i = $index) {
-      <mat-option [value]="image.gcsUri" [id]="i.toString()">{{
-        image.name
-      }}</mat-option>
+      @for (
+        image of scene.imageGenerationSettings.generatedImages;
+        track image;
+        let i = $index
+      ) {
+        <mat-option [value]="image.gcsUri" [id]="i.toString()">{{
+          image.name
+        }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -104,58 +138,63 @@
             <mat-icon>add</mat-icon>
           </button>
         </div>
-        @if(referenceImageCards.length > 0) {
-        <mat-form-field>
-          <mat-label>Reference Type</mat-label>
-          <mat-select
-            formControlName="referenceType"
-            (selectionChange)="onReferenceTypeChanged($event)"
-          >
-            @for (imageReferenceType of imageReferenceTypes; track
-            imageReferenceType) {
-            <mat-option [value]="imageReferenceType.value">{{
-              imageReferenceType.displayName
-            }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        @if (referenceImageCards.length > 0) {
+          <mat-form-field>
+            <mat-label>Reference Type</mat-label>
+            <mat-select
+              formControlName="referenceType"
+              (selectionChange)="onReferenceTypeChanged($event)"
+            >
+              @for (
+                imageReferenceType of imageReferenceTypes;
+                track imageReferenceType
+              ) {
+                <mat-option [value]="imageReferenceType.value">{{
+                  imageReferenceType.displayName
+                }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         }
         <div class="reference-images-container">
-          @for (referenceImageCard of referenceImageCards; track
-          referenceImageCard; let i = $index) {
-          <mat-card appearance="outlined" [id]="referenceImageCard.id">
-            <mat-card-header>
-              <mat-icon
-                class="delete-button"
-                (click)="removeReferenceImage($event)"
-                >delete</mat-icon
-              >
-              <mat-card-title>Reference Image [{{ i + 1 }}]</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <span></span>
-              <app-file-uploader
-                (fileUploadedEvent)="addUploadedFile($event)"
-                [storyId]="this.storyId"
-                [sceneId]="scene.id"
-                [referenceImageId]="referenceImageCard.id"
-                [fileType]="getFileType('referenceImage')"
-                [fileItems]="
-                  getFileItemsByType(referenceImageCard.id, 'ReferenceImage')
-                "
-              ></app-file-uploader>
-              <mat-form-field>
-                <mat-label>Description (optional)</mat-label>
-                <textarea
-                  [id]="'desc@' + referenceImageCard.id"
-                  matInput
-                  placeholder=""
-                  rows="1"
-                  formControlName="imageReferenceDescription"
-                ></textarea>
-              </mat-form-field>
-            </mat-card-content>
-          </mat-card>
+          @for (
+            referenceImageCard of referenceImageCards;
+            track referenceImageCard;
+            let i = $index
+          ) {
+            <mat-card appearance="outlined" [id]="referenceImageCard.id">
+              <mat-card-header>
+                <mat-icon
+                  class="delete-button"
+                  (click)="removeReferenceImage($event)"
+                  >delete</mat-icon
+                >
+                <mat-card-title>Reference Image [{{ i + 1 }}]</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <span></span>
+                <app-file-uploader
+                  (fileUploadedEvent)="addUploadedFile($event)"
+                  [storyId]="this.storyId"
+                  [sceneId]="scene.id"
+                  [referenceImageId]="referenceImageCard.id"
+                  [fileType]="getFileType('referenceImage')"
+                  [fileItems]="
+                    getFileItemsByType(referenceImageCard.id, 'ReferenceImage')
+                  "
+                ></app-file-uploader>
+                <mat-form-field>
+                  <mat-label>Description (optional)</mat-label>
+                  <textarea
+                    [id]="'desc@' + referenceImageCard.id"
+                    matInput
+                    placeholder=""
+                    rows="1"
+                    formControlName="imageReferenceDescription"
+                  ></textarea>
+                </mat-form-field>
+              </mat-card-content>
+            </mat-card>
           }
         </div>
 
@@ -199,9 +238,9 @@
           <mat-label>Aspect Ratio</mat-label>
           <mat-select formControlName="aspectRatio">
             @for (aspectRatio of aspectRatios; track aspectRatio) {
-            <mat-option [value]="aspectRatio.value">{{
-              aspectRatio.displayName
-            }}</mat-option>
+              <mat-option [value]="aspectRatio.value">{{
+                aspectRatio.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -210,9 +249,9 @@
           <mat-label>Output Mime Type</mat-label>
           <mat-select formControlName="outputMimeType">
             @for (outputMimeType of outputMimeTypes; track outputMimeType) {
-            <mat-option [value]="outputMimeType.value">{{
-              outputMimeType.displayName
-            }}</mat-option>
+              <mat-option [value]="outputMimeType.value">{{
+                outputMimeType.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -226,9 +265,9 @@
           <mat-label>Language</mat-label>
           <mat-select formControlName="language">
             @for (language of languages; track language) {
-            <mat-option [value]="language.value">{{
-              language.displayName
-            }}</mat-option>
+              <mat-option [value]="language.value">{{
+                language.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -236,11 +275,13 @@
         <mat-form-field>
           <mat-label>Safety Filter Level</mat-label>
           <mat-select formControlName="safetyFilterLevel">
-            @for (safetyFilterLevel of safetyFilterLevels; track
-            safetyFilterLevel) {
-            <mat-option [value]="safetyFilterLevel.value">{{
-              safetyFilterLevel.displayName
-            }}</mat-option>
+            @for (
+              safetyFilterLevel of safetyFilterLevels;
+              track safetyFilterLevel
+            ) {
+              <mat-option [value]="safetyFilterLevel.value">{{
+                safetyFilterLevel.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -248,11 +289,13 @@
         <mat-form-field>
           <mat-label>Person Generation</mat-label>
           <mat-select formControlName="personGeneration">
-            @for (personGenerationOption of personGenerationOptions; track
-            personGenerationOption) {
-            <mat-option [value]="personGenerationOption.value">{{
-              personGenerationOption.displayName
-            }}</mat-option>
+            @for (
+              personGenerationOption of personGenerationOptions;
+              track personGenerationOption
+            ) {
+              <mat-option [value]="personGenerationOption.value">{{
+                personGenerationOption.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>

@@ -265,6 +265,18 @@ export class SceneBuilderComponent {
       );
       return;
     }
+    // Validate that asset selection is correct for video model and video gen task
+    if (validations['invalidAssetSelection'].length > 0) {
+      openSnackBar(
+        this._snackBar,
+        `The asset selection (images/videos) for video generation is not correct for scenes ${validations[
+          'invalidAssetSelection'
+        ].join(
+          ', ',
+        )}. Please correct the selection for each scene and try again.`,
+      );
+      return;
+    }
 
     openSnackBar(
       this._snackBar,
@@ -615,7 +627,7 @@ export class SceneBuilderComponent {
   buildImageGenerationParams(scenes: VideoScene[]): ImageGenerationRequest {
     const imageScenes = scenes.map((scene: VideoScene) => {
       return {
-        scene_num: scene.number,
+        id: scene.id,
         img_prompt: scene.imageGenerationSettings.prompt,
         creative_dir: {
           number_of_images: scene.imageGenerationSettings.numImages,
