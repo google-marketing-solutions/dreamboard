@@ -16,7 +16,7 @@ from google.adk.tools import ToolContext
 from google.genai import types
 
 from services.video.veo_api_service import VeoAPIService
-from models.video.video_request_models import VideoSegmentRequest
+from models.video.video_request_models import VideoSegmentGenerationOperation
 
 
 async def generate_video(prompt: str, tool_context: "ToolContext") -> dict:
@@ -28,9 +28,10 @@ async def generate_video(prompt: str, tool_context: "ToolContext") -> dict:
   Returns:
       A dictionary containing the generated image and status.
   """
-  # Note: scene_id and segment_number are dummy values to reuse data structure
-  video_segment_request = VideoSegmentRequest(
-      prompt=prompt, scene_id="first", segment_number=1
+  # Note: id are dummy values to reuse data structure
+  video_segment_request = VideoSegmentGenerationOperation(
+      prompt=prompt,
+      id="first",
   )
   veo_api_service = VeoAPIService()
   video_response = veo_api_service.generate_video_for_agent(

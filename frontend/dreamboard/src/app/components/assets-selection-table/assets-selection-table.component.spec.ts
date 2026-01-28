@@ -19,50 +19,25 @@
  *
  ***************************************************************************/
 
-.stories-container {
-  margin-top: 8px;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-  .scenes-container {
-    margin-top: 16px;
+import { AssetsSelectionTableComponent } from './assets-selection-table.component';
 
-    mat-card {
-      margin-bottom: 16px;
+describe('GeneratedImagesTableComponent', () => {
+  let component: AssetsSelectionTableComponent;
+  let fixture: ComponentFixture<AssetsSelectionTableComponent>;
 
-      mat-card-subtitle {
-        font-size: 10px;
-      }
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AssetsSelectionTableComponent],
+    }).compileComponents();
 
-      mat-icon {
-        margin-left: 85%;
-      }
-    }
-  }
+    fixture = TestBed.createComponent(AssetsSelectionTableComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
-  .selection-buttons {
-    display: flex;
-    justify-content: center;
-
-    button {
-      margin-left: 5px;
-    }
-  }
-
-  .no-stories {
-    text-align: center;
-    margin: 200px 0px;
-  }
-}
-
-mat-form-field {
-  margin-top: 16px;
-  width: 95%;
-}
-
-h3 {
-  margin-top: 50px;
-}
-
-.element-id {
-  margin-top: 8px;
-  font-size: 10px;
-}
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});

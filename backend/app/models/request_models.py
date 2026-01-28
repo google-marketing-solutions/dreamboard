@@ -36,8 +36,7 @@ class CreativeDirection(BaseModel):
   Attributes:
       aspect_ratio: The desired aspect ratio of the output image (e.g., "1:1",
                     "16:9"). Defaults to "1:1".
-      model: The specific Imagen model to use for generation
-             (e.g., "imagen-3.0-generate-002").
+      model: The specific Imagen model to use for generation.
       number_of_images: The number of images to generate for this scene.
                         Defaults to 1.
       output_mime_type: The desired MIME type for the output images
@@ -88,14 +87,12 @@ class Scene(BaseModel):
   metadata.
 
   Attributes:
-      scene_num: The sequential number of the scene.
+      id: The ID of the scene.
       img_prompt: The text prompt for image generation.
-      image_uri: A list of URIs for generated images associated with this
+      image_uris: A list of URIs for generated images associated with this
                  scene. Defaults to an empty list.
       image_content_type: The MIME type of the image content. Defaults to
                           "image/png".
-      scene_id: A list of unique identifiers for generated images within
-                this scene. Defaults to an empty list.
       creative_dir: An optional `CreativeDirection` object specifying image
                     generation parameters.
       video_prompt: An optional text prompt for video generation (if
@@ -111,15 +108,13 @@ class Scene(BaseModel):
                   2 for VIDEO). Defaults to 1.
   """
 
-  scene_num: int
+  id: str
   img_prompt: str
-  image_uri: Optional[List[str]] = []
+  image_uris: Optional[List[str]] = []
   image_content_type: Optional[str] | None = "image/png"
   # TODO: add reference image when genai code is available.
   # reference_image_uri: Optional[str] = ""
-  scene_id: Optional[List[str]] = []
   creative_dir: Optional[CreativeDirection] = None
-  video_prompt: Optional[str] = ""
   reference_images: Optional[List[image_gen_models.ImageReference]] = None
   use_reference_image_for_image: Optional[bool] | None = False
   edit_mode: Optional[str] | None = "EDIT_MODE_DEFAULT"
@@ -145,7 +140,7 @@ class SceneSegments:
 
   def add_image_segment(
       self,
-      scene_num: int,
+      scene_id: int,
       img_prompt: str,
       scene_type: int,
       creative_dir: CreativeDirection = None,
@@ -167,7 +162,7 @@ class SceneSegments:
     """
     self.scenes.append(
         Scene(
-            scene_num=scene_num,
+            id=scene_id,
             img_prompt=img_prompt,
             creative_dir=creative_dir,
             scene_type=scene_type,
@@ -176,82 +171,6 @@ class SceneSegments:
             edit_mode=edit_mode,
         )
     )
-
-  def remove_image_segment(self, scene_num: int):
-    """
-    Removes a scene by its scene number and renumbers the remaining scenes.
-
-    Args:
-        scene_num: The number of the scene to remove.
-    """
-    if 0 <= scene_num < len(self.scenes):
-      del self.scenes[scene_num]
-
-    self.renumber_scenes()
-
-  def renumber_scenes(self):
-    """
-    Updates the `scene_num` attribute for each scene in the list to
-    maintain sequential order after additions or removals.
-    """
-    for i, scene in enumerate(self.scenes):
-      scene.scene_num = i
-
-  def get_scenes(self) -> List[Scene]:
-    """
-    Returns the complete list of `Scene` objects managed by this instance.
-    """
-    return self.scenes
-
-  def get_scene(self, scene_id: str):
-    """
-    Returns a single scene given its identifier (index).
-
-    Note: The parameter name `scene_id` suggests an ID, but it's used
-    as an index in the current implementation. Consider clarifying or
-    adjusting.
-
-    Args:
-        scene_id: The index of the scene to retrieve.
-    """
-    return self.scenes[scene_id]
-
-
-class SceneSegmentRequest(BaseModel):
-  """
-  Represents a request for a specific scene segment, typically used for
-  requesting information or actions related to a part of a larger scene.
-
-  Attributes:
-      scene_segment_num: The number identifying the specific scene segment.
-      scene_description: A description of the content or purpose of the
-                         scene segment.
-      image_prompt: The image generation prompt associated with this segment.
-      image_uri: The URI of an image relevant to this segment.
-      creative_dir: An optional dictionary containing creative direction
-                    parameters for this segment.
-  """
-
-  scene_segment_num: int
-  scene_description: str
-  image_prompt: str
-  image_uri: str
-  creative_dir: dict | None  # for now an optional dict
-
-
-class StorageRequest(BaseModel):
-  """
-  Represents a request for the Storage Service to handle file operations.
-
-  Attributes:
-      bucket: The name of the Google Cloud Storage bucket.
-      folderPath: The path to the folder within the bucket.
-      output_file_name: The desired name for the output file.
-  """
-
-  bucket: str
-  folderPath: str
-  output_file_name: str
 
 
 @dataclass

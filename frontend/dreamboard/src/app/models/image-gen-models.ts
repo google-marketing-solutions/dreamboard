@@ -26,7 +26,6 @@ export interface Image {
   signedUri: string;
   gcsFusePath: string;
   mimeType: string;
-
 }
 
 export interface ImageReference extends Image {
@@ -51,7 +50,7 @@ export interface ImageGenerationSettings {
   personGeneration?: string;
   seed?: number;
   negativePrompt?: string;
-  selectedImageForVideo?: Image; // Image used to generate the video
+  selectedImagesForVideo: Image[]; // Images used to generate the video
   referenceImages?: ImageReference[]; // Image used to generate new images with AI, if selected, can also be used to generate the video
   generatedImages: Image[]; // Contains AI generated images and reference images
   useReferenceImageForImage?: boolean;
@@ -83,7 +82,7 @@ export interface ReferenceImageCard {
 /* Models for backend interactions */
 
 export interface ImageItem {
-  id?: string;
+  id: string;
   name: string;
   gcs_uri: string;
   signed_uri: string;
@@ -103,10 +102,10 @@ export interface ImageReferenceItem extends ImageItem {
 }
 
 export interface ImageSceneRequest {
-  scene_num: number;
+  id: string;
   img_prompt: string;
   image_uri?: string[];
-  scene_id?: string[];
+  /*scene_id?: string[];*/
   creative_dir?: ImageCreativeDirection;
   image_content_type?: string;
   reference_images?: ImageReferenceItem[];
@@ -137,8 +136,7 @@ export interface ImageGenerationRequest {
 }
 
 export interface ImageGenerationResponse {
-  scene_ids: string;
-  segment_number: number;
+  scene_id: string;
   done: boolean;
   operation_name: string;
   execution_message: string;

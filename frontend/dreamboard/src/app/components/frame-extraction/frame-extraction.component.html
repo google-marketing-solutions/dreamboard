@@ -15,9 +15,9 @@
           <mat-select (selectionChange)="onVideoSelected($event)" [(ngModel)]="selectedVideoUrl">
             <mat-option value="">Select a scene's video</mat-option>
             @for (scene of scenes; track scene) {
-              @if(scene.videoGenerationSettings.selectedVideo) {
-                <mat-option [value]="scene.videoGenerationSettings.selectedVideo.signedUri">
-                  Scene {{ scene.number }} - {{ scene.videoGenerationSettings.selectedVideo.name }}
+              @if(scene.videoGenerationSettings.selectedVideoForMerge) {
+                <mat-option [value]="scene.videoGenerationSettings.selectedVideoForMerge.signedUri">
+                  Scene {{ scene.number }} - {{ scene.videoGenerationSettings.selectedVideoForMerge.name }}
                 </mat-option>
               }
             }

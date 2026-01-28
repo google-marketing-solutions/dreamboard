@@ -35,7 +35,7 @@ export class ImageGenerationService {
 
   generateImage(
     story_id: string,
-    imageGeneration: ImageGenerationRequest
+    imageGeneration: ImageGenerationRequest,
   ): any {
     const requestBody = {
       url: `${this.BASE_URL}/generate_image/${story_id}`,
@@ -43,7 +43,7 @@ export class ImageGenerationService {
     };
     return this.http.post<any>(
       `${this.PROXY_URL}/api/handleRequest`,
-      requestBody
+      requestBody,
     );
   }
 
@@ -59,7 +59,7 @@ export class ImageGenerationService {
       } */
     return this.http.post<any>(
       `${this.PROXY_URL}/api/handleFileUploadRequest`,
-      requestBody
+      requestBody,
     );
   }
 }

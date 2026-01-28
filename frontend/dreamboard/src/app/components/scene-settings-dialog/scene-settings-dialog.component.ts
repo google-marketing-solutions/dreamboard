@@ -31,6 +31,7 @@ import {
   MatDialogTitle,
   MatDialogContent,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -66,6 +67,8 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   sceneId: string = this.dialogData.sceneId;
   scene: VideoScene = this.dialogData.scene;
   scenes: VideoScene[] = this.dialogData.scenes;
+  currentGeneratedImageIndex: number =
+    this.dialogData.currentGeneratedImageIndex;
   @ViewChild(ImageSceneSettingsComponent)
   imageSceneSettingsComponent!: ImageSceneSettingsComponent;
   @ViewChild(VideoSceneSettingsComponent)
@@ -74,7 +77,8 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     sceneDescription: new FormControl('', []),
   });
 
-  constructor() {}
+  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {
+  }
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -84,16 +88,19 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
    */
   ngAfterViewInit(): void {
     this.sceneSettingsForm.controls['sceneDescription'].setValue(
-      this.scene.description
+      this.scene.description,
     );
+    if (this.imageSceneSettingsComponent) {
+      this.imageSceneSettingsComponent.setImageIndex(this.currentGeneratedImageIndex);
+    }
   }
 
   onStepChange(event: StepperSelectionEvent): void {
     // If moving to image settings index === 0 save video settings
-    if(event.selectedIndex === 0) {
+    if (event.selectedIndex === 0) {
       this.updateSceneVideoSettings(true);
     }
-    if(event.selectedIndex === 1) {
+    if (event.selectedIndex === 1) {
       this.updateSceneImageSettings(true);
     }
   }
@@ -131,6 +138,12 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   save(): void {
     this.updateSceneImageSettings(false);
     this.updateSceneVideoSettings(false);
+    // Send currently selected image and video
+    const data: any = {
+      currentGeneratedImageIndex:
+        this.imageSceneSettingsComponent.currentGeneratedImageIndex,
+    };
+    this.dialogRef.close(data);
   }
 
   /**

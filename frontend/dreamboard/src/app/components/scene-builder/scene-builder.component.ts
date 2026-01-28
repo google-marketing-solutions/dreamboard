@@ -36,13 +36,17 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { VideoScene } from '../../models/scene-models';
 import {
   VideoGenerationRequest,
-  VideoSegmentRequest,
+  VideoSegmentGenerationOperation,
+  VideoMergeRequest,
+  VideoSegmentMergeOperation,
   VideoGenerationResponse,
+  VideoMergeResponse,
   VideoItem,
   Video,
 } from '../../models/video-gen-models';
 import { ExportStory } from '../../models/story-models';
 import {
+  Image,
   ImageItem,
   ImageSceneRequest,
   ImageGenerationRequest,
@@ -77,13 +81,14 @@ export class SceneBuilderComponent {
   creativeDirectionSettingsDialog = inject(MatDialog);
   //scenes: VideoScene[] = [];
   exportingScenes: boolean = false;
+  currentGeneratedImageIndex: number = 0;
   private _snackBar = inject(MatSnackBar);
 
   constructor(
     private videoGenerationService: VideoGenerationService,
     private imageGenerationService: ImageGenerationService,
     private componentsCommunicationService: ComponentsCommunicationService,
-    private storiesStorageService: StoriesStorageService
+    private storiesStorageService: StoriesStorageService,
   ) {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
@@ -99,7 +104,7 @@ export class SceneBuilderComponent {
         } else {
           // TODO (ae) remove?
         }
-      }
+      },
     );
   }
 
@@ -113,16 +118,22 @@ export class SceneBuilderComponent {
     const dialogRef = this.sceneSettingsDialog.open(
       SceneSettingsDialogComponent,
       {
-        minWidth: '1200px',
+        minWidth: '98%',
+        minHeight: '98vh',
         data: {
           storyId: this.story.id,
           sceneId: sceneId,
           scene: scene,
-            scenes: this.story.scenes,
+          scenes: this.story.scenes,
+          currentGeneratedImageIndex: this.currentGeneratedImageIndex, // To open the dialog always with the selected image
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
-      }
+      },
     );
+    dialogRef.afterClosed().subscribe((data: any) => {
+      // To close the dialog always with the selected image
+      this.currentGeneratedImageIndex = data.currentGeneratedImageIndex;
+    });
   }
 
   /**
@@ -142,7 +153,7 @@ export class SceneBuilderComponent {
           storyId: this.story.id,
           scene: this.story.scenes[transitionIndex],
         },
-      }
+      },
     );
   }
 
@@ -216,7 +227,7 @@ export class SceneBuilderComponent {
     const foundScenes: VideoScene[] = this.story.scenes.filter(
       (scene: VideoScene) => {
         return scene.id === sceneId;
-      }
+      },
     );
     if (foundScenes.length > 0) {
       const scene = foundScenes[0];
@@ -241,7 +252,7 @@ export class SceneBuilderComponent {
         this._snackBar,
         `A video prompt is required for the following scenes since a reference image was not selected. Scenes: ${validations[
           'invalidTextToVideoScenes'
-        ].join(', ')}. Please add a prompt or select an image and try again.`
+        ].join(', ')}. Please add a prompt or select an image and try again.`,
       );
       return;
     }
@@ -250,7 +261,19 @@ export class SceneBuilderComponent {
       openSnackBar(
         this._snackBar,
         `There are not videos to generate since the 'Regenerate video in bulk generation' option was disabled for all videos.
-        Please enable the option and try again.`
+        Please enable the option and try again.`,
+      );
+      return;
+    }
+    // Validate that asset selection is correct for video model and video gen task
+    if (validations['invalidAssetSelection'].length > 0) {
+      openSnackBar(
+        this._snackBar,
+        `The asset selection (images/videos) for video generation is not correct for scenes ${validations[
+          'invalidAssetSelection'
+        ].join(
+          ', ',
+        )}. Please correct the selection for each scene and try again.`,
       );
       return;
     }
@@ -259,13 +282,10 @@ export class SceneBuilderComponent {
       this._snackBar,
       `Generating videos for the following scenes: ${validations[
         'sceneVideosToGenerate'
-      ].join(', ')}. This might take some time...`
+      ].join(', ')}. This might take some time...`,
     );
 
-    const videoGeneration = this.buildVideoGenerationParams(
-      'GENERATE',
-      this.story.scenes
-    );
+    const videoGeneration = this.buildVideoGenerationRequest(this.story.scenes);
     this.videoGenerationService
       .generateVideosFromScenes(this.story.id, videoGeneration)
       .subscribe(
@@ -273,12 +293,12 @@ export class SceneBuilderComponent {
           // Find scenes in responses to update generated videos
           const executionStatus = updateScenesWithGeneratedVideos(
             resps,
-            this.story.scenes
+            this.story.scenes,
           );
           openSnackBar(
             this._snackBar,
             executionStatus['execution_message'],
-            20
+            20,
           );
         },
         (error: any) => {
@@ -291,9 +311,9 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -316,9 +336,9 @@ export class SceneBuilderComponent {
         console.error(errorMessage);
         openSnackBar(
           this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
+          `ERROR: ${errorMessage}. Please try again.`,
         );
-      }
+      },
     );
   }
 
@@ -339,8 +359,8 @@ export class SceneBuilderComponent {
         `The following scenes do not have a selected video to merge: ${validations[
           'scenesWithNoGeneratedVideo'
         ].join(
-          ', '
-        )}. Please generate and select a video for all scenes and try again.`
+          ', ',
+        )}. Please generate and select a video for all scenes and try again.`,
       );
       return;
     }
@@ -349,7 +369,7 @@ export class SceneBuilderComponent {
       openSnackBar(
         this._snackBar,
         `There are not videos to merge since the 'Include video segment in final video' option was disabled for all videos.
-        Please enable the option and try again.`
+        Please enable the option and try again.`,
       );
       return;
     }
@@ -360,8 +380,8 @@ export class SceneBuilderComponent {
         `The following scenes contain invalid video cut settings: ${validations[
           'invalidScenesCutVideoParams'
         ].join(
-          ', '
-        )}. Please edit the scene, correct the errors highlighted in red and try again.`
+          ', ',
+        )}. Please edit the scene, correct the errors highlighted in red and try again.`,
       );
       return;
     }
@@ -369,19 +389,16 @@ export class SceneBuilderComponent {
     openSnackBar(
       this._snackBar,
       `Merging videos for Scenes: ${validations['sceneVideosToMerge'].join(
-        ', '
-      )}. This might take some time...`
+        ', ',
+      )}. This might take some time...`,
     );
 
-    const videoGeneration = this.buildVideoGenerationParams(
-      'MERGE',
-      this.story.scenes
-    );
+    const videoMergeRequest = this.buildVideoMergeRequest(this.story.scenes);
 
     this.videoGenerationService
-      .mergeVideos(this.story.id, videoGeneration)
+      .mergeVideos(this.story.id, videoMergeRequest)
       .subscribe(
-        (response: VideoGenerationResponse) => {
+        (response: VideoMergeResponse) => {
           if (response && response.videos.length > 0) {
             openSnackBar(this._snackBar, response.execution_message, 10);
             const finalVideoResponse = response.videos[0];
@@ -393,7 +410,6 @@ export class SceneBuilderComponent {
               gcsFusePath: finalVideoResponse.gcs_fuse_path,
               mimeType: finalVideoResponse.mime_type,
               duration: finalVideoResponse.duration,
-              frameUris: [], // TODO (ae) include later
             };
             this.story.generatedVideos = [video];
             // Trigger component communication to share story with generated video on Post Video Production
@@ -411,9 +427,9 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -441,7 +457,7 @@ export class SceneBuilderComponent {
           // Find scene in responses to update generated images
           const executionStatus = updateScenesWithGeneratedImages(
             images,
-            this.story.scenes
+            this.story.scenes,
           );
         },
         (error: any) => {
@@ -454,9 +470,9 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -469,71 +485,62 @@ export class SceneBuilderComponent {
    * @param {VideoScene[]} scenes - The array of `VideoScene` objects to build the request from.
    * @returns {VideoGenerationRequest} The constructed video generation request.
    */
-  buildVideoGenerationParams(
-    action: string,
-    scenes: VideoScene[]
-  ): VideoGenerationRequest {
-    const videoSegments: VideoSegmentRequest[] = [];
+  buildVideoGenerationRequest(scenes: VideoScene[]): VideoGenerationRequest {
+    const videoSegments: VideoSegmentGenerationOperation[] = [];
+
     scenes.forEach((scene: VideoScene) => {
-      // Do not include video segments that meet these conditions
-      if (action === 'GENERATE') {
-        if (!scene.videoGenerationSettings.regenerateVideo) {
-          return false;
-        }
-      } else if (action === 'MERGE') {
-        if (!scene.videoGenerationSettings.includeVideoSegment) {
-          return false;
-        }
-      }
-      // Add selected image
-      let seedImage: ImageItem | undefined = undefined;
-      if (scene.imageGenerationSettings.selectedImageForVideo) {
-        seedImage = {
-          name: scene.imageGenerationSettings.selectedImageForVideo.name,
-          gcs_uri: scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
-          signed_uri:
-            scene.imageGenerationSettings.selectedImageForVideo.signedUri,
-          gcs_fuse_path:
-            scene.imageGenerationSettings.selectedImageForVideo.gcsFusePath,
-          mime_type:
-            scene.imageGenerationSettings.selectedImageForVideo.mimeType,
-        };
-      }
-      // Add selected video
-      let selectedVideo: VideoItem | undefined = undefined;
-      if (scene.videoGenerationSettings.selectedVideo) {
-        selectedVideo = {
-          id: scene.videoGenerationSettings.selectedVideo.id,
-          name: scene.videoGenerationSettings.selectedVideo.name,
-          gcs_uri: scene.videoGenerationSettings.selectedVideo.gcsUri,
-          signed_uri: scene.videoGenerationSettings.selectedVideo.signedUri,
-          gcs_fuse_path:
-            scene.videoGenerationSettings.selectedVideo?.gcsFusePath,
-          mime_type: scene.videoGenerationSettings.selectedVideo.mimeType,
-          duration: scene.videoGenerationSettings.selectedVideo.duration,
-          frames_uris: [],
-        };
+      // Skip this video since it was not selected to regenerate by the user
+      if (!scene.videoGenerationSettings.regenerateVideo) {
+        return false;
       }
 
-      const videoSegment: VideoSegmentRequest = {
-        scene_id: scene.id,
-        segment_number: scene.number,
+      const seedImages =
+        scene.imageGenerationSettings.selectedImagesForVideo.map(
+          (img: Image) => {
+            const seedImage: ImageItem = {
+              id: img.id,
+              name: img.name,
+              signed_uri: img.signedUri,
+              gcs_uri: img.gcsUri,
+              mime_type: img.mimeType,
+              gcs_fuse_path: '', // Empty here, this is generated in the backend
+            };
+            return seedImage;
+          },
+        );
+
+      const selectedVideosForExtension =
+        scene.videoGenerationSettings.selectedVideosForExtension.map(
+          (video: Video) => {
+            const selectedVideoForExtension: VideoItem = {
+              id: video.id,
+              name: video.name,
+              gcs_uri: video.gcsUri,
+              signed_uri: video.signedUri,
+              gcs_fuse_path: video.gcsFusePath,
+              mime_type: video.mimeType,
+              duration: video.duration,
+            };
+            return selectedVideoForExtension;
+          },
+        );
+
+      const videoSegment: VideoSegmentGenerationOperation = {
+        id: scene.id,
+        video_model: scene.videoGenerationSettings.videoModel,
+        video_gen_task: scene.videoGenerationSettings.videoGenTask,
         prompt: scene.videoGenerationSettings.prompt,
-        seed_image: seedImage, // Can be null for text to video generation
+        seed_images: seedImages, // Empty array for text to video generation
         duration_in_secs: scene.videoGenerationSettings.durationInSecs,
         aspect_ratio: scene.videoGenerationSettings.aspectRatio,
         frames_per_sec: scene.videoGenerationSettings.framesPerSec!,
         person_generation: scene.videoGenerationSettings.personGeneration,
+        output_resolution: scene.videoGenerationSettings.outputResolution,
         sample_count: scene.videoGenerationSettings.sampleCount,
         /*seed: scene.videoSettings.seed,*/
         negative_prompt: scene.videoGenerationSettings.negativePrompt,
-        transition: scene.videoGenerationSettings.transition,
         generate_audio: scene.videoGenerationSettings.generateAudio,
         enhance_prompt: scene.videoGenerationSettings.enhancePrompt,
-        use_last_frame: false, // TODO (ae) implement this later
-        include_video_segment:
-          scene.videoGenerationSettings.includeVideoSegment,
-        generate_video_frames: false,
         regenerate_video_segment: scene.videoGenerationSettings.regenerateVideo,
         cut_video: scene.videoGenerationSettings.cutVideo,
         // Conditionally add cut properties if cutVideo is true
@@ -543,19 +550,71 @@ export class SceneBuilderComponent {
           end_seconds: scene.videoGenerationSettings.endSeconds,
           end_frame: scene.videoGenerationSettings.endFrame,
         }),
-        selected_video: selectedVideo,
+        selected_videos_for_extension: selectedVideosForExtension,
       };
       videoSegments.push(videoSegment);
 
       return true;
     });
 
-    const videoGeneration: VideoGenerationRequest = {
+    const videoGenerationRequest: VideoGenerationRequest = {
       video_segments: videoSegments,
-      creative_direction: undefined, // for now
     };
 
-    return videoGeneration;
+    return videoGenerationRequest;
+  }
+
+  /**
+   * Constructs a `VideoSegmentMergeRequest` object based on the current values in the `videoSettingsForm`
+   * and the associated `scene` data. This request object is used to send to the video generation API.
+   * It includes details like prompt, duration, aspect ratio, and an optional seed image.
+   * @returns {VideoSegmentMergeRequest} The constructed video segment request object.
+   */
+  buildVideoMergeRequest(scenes: VideoScene[]): VideoMergeRequest {
+    const videoSegments: VideoSegmentMergeOperation[] = [];
+
+    scenes.forEach((scene: VideoScene) => {
+      // Skip this video since it was not included by the user for the merge operation
+      if (!scene.videoGenerationSettings.includeVideoSegment) {
+        return false;
+      }
+
+      // Add selected video for merge operation
+      let selectedVideoForMerge: VideoItem | undefined = undefined;
+      if (scene.videoGenerationSettings.selectedVideoForMerge) {
+        selectedVideoForMerge = {
+          id: scene.videoGenerationSettings.selectedVideoForMerge.id,
+          name: scene.videoGenerationSettings.selectedVideoForMerge.name,
+          gcs_uri: scene.videoGenerationSettings.selectedVideoForMerge.gcsUri,
+          signed_uri:
+            scene.videoGenerationSettings.selectedVideoForMerge.signedUri,
+          gcs_fuse_path:
+            scene.videoGenerationSettings.selectedVideoForMerge.gcsFusePath,
+          mime_type:
+            scene.videoGenerationSettings.selectedVideoForMerge.mimeType,
+          duration:
+            scene.videoGenerationSettings.selectedVideoForMerge.duration,
+        };
+      }
+
+      const videoSegment: VideoSegmentMergeOperation = {
+        id: scene.id,
+        transition: scene.videoGenerationSettings.transition,
+        include_video_segment:
+          scene.videoGenerationSettings.includeVideoSegment,
+        selected_video_for_merge: selectedVideoForMerge,
+      };
+
+      videoSegments.push(videoSegment);
+
+      return true;
+    });
+
+    const videoMergeRequest: VideoMergeRequest = {
+      video_segments: videoSegments,
+    };
+
+    return videoMergeRequest;
   }
 
   /**
@@ -568,7 +627,7 @@ export class SceneBuilderComponent {
   buildImageGenerationParams(scenes: VideoScene[]): ImageGenerationRequest {
     const imageScenes = scenes.map((scene: VideoScene) => {
       return {
-        scene_num: scene.number,
+        id: scene.id,
         img_prompt: scene.imageGenerationSettings.prompt,
         creative_dir: {
           number_of_images: scene.imageGenerationSettings.numImages,

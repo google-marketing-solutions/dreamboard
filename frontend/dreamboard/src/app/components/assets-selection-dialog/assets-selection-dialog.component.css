@@ -19,50 +19,24 @@
  *
  ***************************************************************************/
 
-.stories-container {
-  margin-top: 8px;
+.item-container {
+  display: flex;
+  justify-content: flex-start;
 
-  .scenes-container {
-    margin-top: 16px;
-
-    mat-card {
-      margin-bottom: 16px;
-
-      mat-card-subtitle {
-        font-size: 10px;
-      }
-
-      mat-icon {
-        margin-left: 85%;
-      }
-    }
+  mat-form-field {
+    width: 80%;
   }
 
-  .selection-buttons {
-    display: flex;
-    justify-content: center;
-
-    button {
-      margin-left: 5px;
-    }
-  }
-
-  .no-stories {
-    text-align: center;
-    margin: 200px 0px;
+  button {
+    margin-left: 12px;
   }
 }
 
-mat-form-field {
-  margin-top: 16px;
-  width: 95%;
+form {
+  margin-top: 32px;
 }
 
-h3 {
-  margin-top: 50px;
-}
-
-.element-id {
-  margin-top: 8px;
-  font-size: 10px;
+.close-button {
+  margin-top: 10px;
+  float: right;
 }

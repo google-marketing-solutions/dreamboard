@@ -56,6 +56,7 @@ export interface SceneValidations {
   invalidScenesCutVideoParams: number[];
   sceneVideosToGenerate: number[];
   sceneVideosToMerge: number[];
+  invalidAssetSelection: number[];
 }
 
 /* Models for backend interactions */

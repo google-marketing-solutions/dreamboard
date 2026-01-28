@@ -27,7 +27,7 @@ import os
 import uuid
 import utils
 from models.video import video_request_models
-from models.video.video_gen_models import Video, VideoGenerationResponse
+from models.video import video_gen_models
 from moviepy import editor
 from services import storage_service
 from services.video.veo_api_service import VeoAPIService
@@ -49,7 +49,7 @@ class VideoGenerator:
       self,
       story_id: str,
       video_generation: video_request_models.VideoGenerationRequest,
-  ) -> list[VideoGenerationResponse]:
+  ) -> list[video_gen_models.VideoGenerationResponse]:
     """
     Generates a video from video segments using Veo.
 
@@ -62,7 +62,7 @@ class VideoGenerator:
                           generation, including video segments.
 
     Returns:
-        A list of `VideoGenerationResponse` objects, each corresponding
+        A list of `video_gen_models.VideoMergeResponse` objects, each corresponding
         to a generated video segment.
     """
     logging.info(
@@ -79,21 +79,21 @@ class VideoGenerator:
     # 2. Generate video segments using Veo
     video_gen_responses = utils.execute_tasks_in_parallel(video_gen_tasks)
 
-    self.process_video_generation_responses(video_gen_responses)
-
     return video_gen_responses
 
   def get_video_segments_generation_tasks(
       self,
       story_id: str,
-      video_segments: list[video_request_models.VideoSegmentRequest],
+      video_segments: list[
+          video_request_models.VideoSegmentGenerationOperation
+      ],
   ):
     """
     Creates a list of video generation tasks for parallel execution.
 
     Args:
         story_id: The unique identifier for the story.
-        video_segments: A list of `VideoSegmentRequest` objects, each
+        video_segments: A list of `VideoSegmentGenerationOperation` objects, each
                         defining a video segment to be generated.
 
     Returns:
@@ -103,8 +103,7 @@ class VideoGenerator:
     tasks = []
     for video_segment in video_segments:
       output_gcs_uri = (
-          f"{utils.get_videos_bucket_base_path(story_id)}/"
-          f"{video_segment.segment_number}"
+          f"{utils.get_videos_bucket_base_path(story_id)}/{video_segment.id}"
       )
       # Add video generation task only if regenerate_video_segment is True
       if video_segment.regenerate_video_segment:
@@ -122,35 +121,18 @@ class VideoGenerator:
             "skipped for story id %s and video segment %s since "
             "regenerate_video_segment=False.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
         )
 
     return tasks
 
-  def process_video_generation_responses(
-      self, video_gen_responses: list[VideoGenerationResponse]
-  ) -> None:
-    """
-    Processes a list of video generation responses.
-
-    Currently, this method is a placeholder for generating last-second
-    frames for generated videos.
-
-    Args:
-        video_gen_responses: A list of `VideoGenerationResponse` objects
-                             to be processed.
-    """
-    # 1. Generate last sec frames for generated video
-    for video_gen_response in video_gen_responses:
-      # TODO (ae) implement generate video frames
-      if video_gen_response.video_segment.generate_video_frames:
-        pass
-
   def generate_video_segments(
       self,
-      video_segments: list[video_request_models.VideoSegmentRequest],
+      video_segments: list[
+          video_request_models.VideoSegmentGenerationOperation
+      ],
       story_id: str,
-  ) -> list[VideoGenerationResponse]:
+  ) -> list[video_gen_models.VideoGenerationResponse]:
     """
     Generates individual video segments using the Veo API.
 
@@ -158,12 +140,12 @@ class VideoGenerator:
     `regenerate_video_segment` flag.
 
     Args:
-        video_segments: A list of `VideoSegmentRequest` objects, each
+        video_segments: A list of `VideoSegmentGenerationOperation` objects, each
                         defining a video segment to be generated.
         story_id: The unique identifier for the story.
 
     Returns:
-        A list of `VideoGenerationResponse` objects, each corresponding
+        A list of `video_gen_models.VideoMergeResponse` objects, each corresponding
         to a generated video segment.
     """
     video_generation_resps = []
@@ -173,11 +155,10 @@ class VideoGenerator:
           "DreamBoard - VIDEO_GENERATOR: Starting video generation for "
           "story id %s and video segment %s...",
           story_id,
-          video_segment.segment_number,
+          video_segment.id,
       )
       output_gcs_uri = (
-          f"{utils.get_videos_bucket_base_path(story_id)}/"
-          f"{video_segment.segment_number}"
+          f"{utils.get_videos_bucket_base_path(story_id)}/{video_segment.id}"
       )
       # Generate only if regenerate_video_segment is True
       if video_segment.regenerate_video_segment:
@@ -188,13 +169,10 @@ class VideoGenerator:
             "DreamBoard - VIDEO_GENERATOR: Video generation ready for "
             "story id %s and video segment %s with operation name %s.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
             response.operation_name,
         )
         response.video_segment = video_segment
-        # TODO (ae) implement generate video frames
-        if video_segment.generate_video_frames:
-          pass
         video_generation_resps.append(response)
       else:
         logging.info(
@@ -202,10 +180,10 @@ class VideoGenerator:
             "story id %s and video segment %s since "
             "regenerate_video_segment=False.",
             story_id,
-            video_segment.segment_number,
+            video_segment.id,
         )
         video_generation_resps.append(
-            VideoGenerationResponse(
+            video_gen_models.VideoGenerationResponse(
                 done=False,
                 operation_name="regenerate_video_segment=False",
                 execution_message="Regenerate video was not checked.",
@@ -219,8 +197,8 @@ class VideoGenerator:
   def merge_videos(
       self,
       story_id: str,
-      video_generation: video_request_models.VideoGenerationRequest,
-  ) -> VideoGenerationResponse | None:
+      video_merge_request: video_request_models.VideoMergeRequest,
+  ) -> video_gen_models.VideoMergeResponse | None:
     """
     Merges generated video segments to create a single final video.
 
@@ -230,7 +208,7 @@ class VideoGenerator:
                           to be merged.
 
     Returns:
-        A `VideoGenerationResponse` object for the merged final video,
+        A `video_gen_models.VideoMergeResponse` object for the merged final video,
         or `None` if no videos were available for merging.
     """
     output_folder = utils.get_videos_gcs_fuse_path(story_id)
@@ -240,46 +218,14 @@ class VideoGenerator:
         story_id,
         output_folder,
     )
-
     # 1. Get video URIs and transitions from video segments
     videos = []
-    video_cut_specs = []
-    video_cut = 0
-    for vsg in video_generation.video_segments:
-      if vsg.selected_video:
-        videos.append(vsg.selected_video)
-
-        video_cut_specs.append({
-            "start_seconds": vsg.start_seconds if vsg.start_seconds else 0,
-            "start_frame": vsg.start_frame if vsg.start_frame else 1,
-            "end_seconds": vsg.end_seconds if vsg.end_seconds else 7,
-            "end_frame": vsg.end_frame if vsg.end_frame else vsg.frames_per_sec,
-            "cut_video": vsg.cut_video,
-            "fps": vsg.frames_per_sec,
-        })
-        if video_cut:
-          video_cut = 1
-        elif vsg.cut_video:
-          video_cut = 1
-        else:
-          video_cut = 0
+    for vsg in video_merge_request.video_segments:
+      if vsg.selected_video_for_merge:
+        videos.append(vsg.selected_video_for_merge)
 
     # Download to local/server folder.
     utils.download_videos(story_id, videos)
-
-    # 2. Cut any video segments into the specified size:
-    # a) Call cut_video_segment function.
-    # b) Goes to editing_service.py to cut a bunch of videos.
-    # c) Puts the videos in a new location.
-    for video, video_cut_spec in zip(videos, video_cut_specs):
-      # Get the new output URI for the shortened video.
-      if video_cut_spec["cut_video"]:
-        shortened_vid_uri = self.editing_service.cut_video_segment(
-            video, video_cut_spec
-        )
-
-        # Update the URI for each video.
-        video.gcs_fuse_path = shortened_vid_uri
 
     # 3. Generate final video.
     logging.info(
@@ -287,17 +233,11 @@ class VideoGenerator:
         "story id %s...",
         story_id,
     )
-    gcs_fuse_paths_to_merge = self.__get_videos_to_merge(videos)
+    video_paths_to_merge = self.__get_videos_to_merge(videos)
     video_transitions = []
-    for vsg in video_generation.video_segments:
-      if vsg.cut_video:
-        # Highest priority: If the video is to be cut, force the transition
-        # to CONCATENATE.
-        transition_value = (
-            video_request_models.VideoTransition.CONCATENATE.value
-        )
-      elif vsg.transition:
-        # Second priority: If a specific transition is provided, use its value.
+    for vsg in video_merge_request.video_segments:
+      if vsg.transition:
+        # If a specific transition is provided, use its value.
         transition_value = vsg.transition.value
       else:
         # Default: If no other conditions are met, use CONCATENATE as the
@@ -308,33 +248,32 @@ class VideoGenerator:
       video_transitions.append(transition_value)
 
     video_with_audio_merges = []
-    if len(gcs_fuse_paths_to_merge) > 1:
-      final_video_gcs_fuse_path, video_with_audio_merges = self.__merge(
-          output_folder, gcs_fuse_paths_to_merge, video_transitions
+    if len(video_paths_to_merge) > 1:
+      final_video_gcs_path, video_with_audio_merges = self.__merge(
+          output_folder, video_paths_to_merge, video_transitions
       )
-    elif len(gcs_fuse_paths_to_merge) == 1:
+    elif len(video_paths_to_merge) == 1:
       logging.info(
           "DreamBoard - VIDEO_GENERATOR: Skipping merge action since "
           "there is only 1 video segment."
       )
-      final_video_gcs_fuse_path = gcs_fuse_paths_to_merge[0]
+      final_video_gcs_path = video_paths_to_merge[0]
       video_with_audio_merges.append(True)
     else:
       return None
 
-    final_video_name = utils.get_file_name_from_uri(final_video_gcs_fuse_path)
-
+    final_video_name = utils.get_file_name_from_uri(final_video_gcs_path)
     # Override scene folder in dev since local paths are different.
     output_gcs_path = (
         f"{utils.get_videos_bucket_folder_path(story_id)}/{final_video_name}"
     )
     # Upload merged final video to GCS.
     storage_service.storage_service.upload_from_filename(
-        final_video_gcs_fuse_path, output_gcs_path
+        final_video_gcs_path, output_gcs_path
     )
-
+    # Get video duration
     try:
-      final_video_clip = editor.VideoFileClip(final_video_gcs_fuse_path)
+      final_video_clip = editor.VideoFileClip(final_video_gcs_path)
       final_video_duration = final_video_clip.duration
     except Exception as ex:
       logging.error(
@@ -354,9 +293,8 @@ class VideoGenerator:
 
     logging.info(
         "DreamBoard - VIDEO_GENERATOR: %s videos were merged successfully!",
-        len(gcs_fuse_paths_to_merge),
+        len(video_paths_to_merge),
     )
-
     # Check if audio was merged succesfully to show correct message to the user.
     if any(video_with_audio_merges):
       execution_message = (
@@ -368,40 +306,36 @@ class VideoGenerator:
           " The merged video might not contain audio."
       )
 
-    video_gen_response = VideoGenerationResponse(
-        video_segment=None,  # No specific segment for final video
-        done=True,
-        operation_name="final_video",
+    video_merge_response = video_gen_models.VideoMergeResponse(
         execution_message=execution_message,
         videos=[
-            Video(
+            video_gen_models.Video(
                 id=uuid.uuid4(),
                 name=final_video_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
-                gcs_fuse_path=final_video_gcs_fuse_path,
+                gcs_fuse_path=final_video_gcs_path,
                 mime_type="video/mp4",
                 duration=final_video_duration,
-                frames_uris=[],
             )
         ],
     )
 
-    return video_gen_response
+    return video_merge_response
 
   def apply_logo_overlay_to_video(
       self,
       story_id: str,
       gcs_video_path: str,
       logo_overlay: video_request_models.LogoOverlay,
-  ) -> VideoGenerationResponse:
+  ) -> video_gen_models.VideoGenerationResponse:
     """Applies a logo overlay to a video from GCS and saves the result.
     Args:
         story_id: The unique identifier for the story.
         gcs_video_path: The GCS URI of the input video.
         logo_overlay: The `LogoOverlay` to apply.
     Returns:
-        A `VideoGenerationResponse` object for the new video with logo overlay.
+        A `video_gen_models.VideoMergeResponse` object for the new video with logo overlay.
     """
     logging.info(
         "DreamBoard - VIDEO_GENERATOR: Applying logo overlay to video %s for"
@@ -457,7 +391,7 @@ class VideoGenerator:
     final_video_uri = (
         f"{utils.get_videos_bucket_base_path(story_id)}/{output_file_name}"
     )
-    return VideoGenerationResponse(
+    return video_gen_models.VideoGenerationResponse(
         video_segment=None,
         done=True,
         operation_name="logo_overlay_applied",
@@ -465,13 +399,12 @@ class VideoGenerator:
             f"Logo overlay applied successfully to {input_video_file_name}"
         ),
         videos=[
-            Video(
+            video_gen_models.Video(
                 name=output_file_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
                 gcs_fuse_path=output_fuse_path,
                 mime_type="video/mp4",
-                frames_uris=[],
             )
         ],
     )
@@ -482,7 +415,7 @@ class VideoGenerator:
       input_logo_path: str,
       output_path: str,
       logo_overlay: video_request_models.LogoOverlay,
-  ):
+  ) -> None:
     """
     Applies a logo overlay to a clip and writes it to a file.
     Args:
@@ -506,7 +439,7 @@ class VideoGenerator:
       output_folder: str,
       gcs_fuse_paths: list[str],
       video_transitions: list[video_request_models.VideoTransition],
-  ) -> str:
+  ) -> tuple[str, list[bool]]:
     """
     Generates the final video from all video segments by applying
     transitions and merging them.
@@ -562,7 +495,9 @@ class VideoGenerator:
 
     return final_video_path, video_with_audio_merges
 
-  def __get_videos_to_merge(self, videos: list[Video]):
+  def __get_videos_to_merge(
+      self, videos: list[video_gen_models.Video]
+  ) -> list[str]:
     """Builds a stack of reversed video GCS FUSE paths to merge.
 
     Args:
@@ -581,7 +516,7 @@ class VideoGenerator:
       story_id: str,
       gcs_video_path: str,
       text_overlays: list[video_request_models.TextOverlay],
-  ) -> VideoGenerationResponse:
+  ) -> video_gen_models.VideoGenerationResponse:
     """Applies one or more text overlays to a video from GCS and saves the result.
 
     Args:
@@ -591,7 +526,7 @@ class VideoGenerator:
                        overlay with text content and styling/timing options.
 
     Returns:
-        A `VideoGenerationResponse` object for the new video with text overlays.
+        A `video_gen_models.VideoMergeResponse` object for the new video with text overlays.
     """
     logging.info(
         "DreamBoard - VIDEO_GENERATOR: Applying text overlay(s) to video %s for"
@@ -632,7 +567,7 @@ class VideoGenerator:
     final_video_uri = (
         f"{utils.get_videos_bucket_base_path(story_id)}/{output_file_name}"
     )
-    return VideoGenerationResponse(
+    return video_gen_models.VideoGenerationResponse(
         video_segment=None,
         done=True,
         operation_name="text_overlay_applied",
@@ -640,13 +575,12 @@ class VideoGenerator:
             f"Text overlay applied successfully to {input_file_name}"
         ),
         videos=[
-            Video(
+            video_gen_models.Video(
                 name=output_file_name,
                 gcs_uri=final_video_uri,
                 signed_uri=utils.get_signed_uri_from_gcs_uri(final_video_uri),
                 gcs_fuse_path=output_fuse_path,
                 mime_type="video/mp4",
-                frames_uris=[],
             )
         ],
     )
@@ -657,7 +591,7 @@ class VideoGenerator:
       video_path1: str,
       video_path2: str,
       final_video_path: str,
-  ):
+  ) -> str:
     """
     Applies a specified transition between two video clips and
     writes the result to a new video file.
@@ -793,7 +727,7 @@ class VideoGenerator:
       clip: editor.VideoClip,
       final_video_path: str,
       text_overlays: list[video_request_models.TextOverlay],
-  ):
+  ) -> None:
     """
     Applies one or more text overlays to a clip and writes it to a file.
 
@@ -819,14 +753,14 @@ class VideoGenerator:
     final_clip.write_videofile(f"{final_video_path}", fps=24)
 
   def process_multiple_videos(
-      self, video_gen_responses: list[VideoGenerationResponse]
+      self, video_gen_responses: list[video_gen_models.VideoMergeResponse]
   ) -> bool:
     """
     Checks if the generator should proceed with processing multiple videos
     (e.g., for merging).
 
     Args:
-        video_gen_responses: A list of `VideoGenerationResponse` objects.
+        video_gen_responses: A list of `video_gen_models.VideoMergeResponse` objects.
 
     Returns:
         `True` if there is more than one video generation response,

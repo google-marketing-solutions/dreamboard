@@ -30,7 +30,10 @@ import { VideoScene } from './models/scene-models';
 import { getNewImageSettings } from './image-utils';
 import { v4 as uuidv4 } from 'uuid';
 
-export const VIDEO_MODEL_NAME = 'veo-2.0-generate-001';
+export const VEO_3_1_MODEL_NAME = `veo-3.1-generate-001`;
+export const VEO_3_1_FAST_MODEL_NAME = `veo-3.1-fast-generate-001`;
+export const VEO_3_MODEL_NAME = `veo-3.0-generate-001`;
+export const VEO_3_FAST_MODEL_NAME = `veo-3.0-fast-generate-001`;
 export const VIDEO_MODEL_MAX_LENGTH = 8;
 
 export function getNewVideoScene(existingScenesLen: number) {
@@ -46,11 +49,13 @@ export function getNewVideoScene(existingScenesLen: number) {
 
 export function getNewVideoSettings(): VideoGenerationSettings {
   const newVideoGenSettings: VideoGenerationSettings = {
+    videoModel: VEO_3_1_MODEL_NAME,
+    videoGenTask: 'text-to-video',
     prompt: '',
     durationInSecs: 4,
     aspectRatio: '16:9',
     framesPerSec: 24,
-    personGeneration: 'allow_adult',
+    personGeneration: 'allow_all',
     outputResolution: '1080p',
     sampleCount: 2,
     seed: 0,
@@ -66,7 +71,8 @@ export function getNewVideoSettings(): VideoGenerationSettings {
     endSeconds: 7,
     endFrame: 23,
     generatedVideos: [], // empty for new scene
-    selectedVideo: undefined,
+    selectedVideoForMerge: undefined,
+    selectedVideosForExtension: [], // empty for new scene
   };
 
   return newVideoGenSettings;
@@ -88,12 +94,16 @@ export function getAspectRatios() {
 export function getPersonGenerationOptions() {
   return [
     {
-      displayName: 'Disallow',
-      value: 'disallow',
+      displayName: 'Allow All',
+      value: 'allow_all',
     },
     {
       displayName: 'Allow Adult',
       value: 'allow_adult',
+    },
+    {
+      displayName: 'Disallow',
+      value: 'disallow',
     },
   ] as SelectItem[];
 }
@@ -120,21 +130,169 @@ export function getOutputResolutionOptions() {
   ] as SelectItem[];
 }
 
+export function getDurationInSecsOptionsByModelNameAndVideoGenTask(
+  modelName: string,
+  videoGenTask: string,
+): SelectItem[] {
+  let durationInSecsOptions: SelectItem[] = [];
+  if (
+    modelName === VEO_3_1_MODEL_NAME ||
+    modelName === VEO_3_1_FAST_MODEL_NAME
+  ) {
+    if (videoGenTask === 'text-to-video' || videoGenTask === 'image-to-video') {
+      durationInSecsOptions = [
+        {
+          displayName: '4 ',
+          value: '4',
+        },
+        {
+          displayName: '6 ',
+          value: '6',
+        },
+        {
+          displayName: '8 ',
+          value: '8',
+        },
+      ];
+    }
+    if (videoGenTask === 'reference-to-video') {
+      durationInSecsOptions = [
+        {
+          displayName: '8 ',
+          value: '8',
+        },
+      ];
+    }
+    if (videoGenTask === 'video-extension') {
+      durationInSecsOptions = [
+        {
+          displayName: '7 ',
+          value: '7',
+        },
+      ];
+    }
+  }
+
+  if (modelName === VEO_3_MODEL_NAME || modelName === VEO_3_FAST_MODEL_NAME) {
+    if (videoGenTask === 'text-to-video' || videoGenTask === 'image-to-video') {
+      durationInSecsOptions = [
+        {
+          displayName: '4 ',
+          value: '4',
+        },
+        {
+          displayName: '6 ',
+          value: '6',
+        },
+        {
+          displayName: '8 ',
+          value: '8',
+        },
+      ];
+    }
+  }
+
+  return durationInSecsOptions;
+}
+
+export function getVideoModels() {
+  const veoModels: SelectItem[] = [
+    {
+      displayName: 'Veo 3.1',
+      value: VEO_3_1_MODEL_NAME,
+    },
+    {
+      displayName: 'Veo 3.1 Fast',
+      value: VEO_3_1_FAST_MODEL_NAME,
+    },
+    {
+      displayName: 'Veo 3',
+      value: VEO_3_MODEL_NAME,
+    },
+    {
+      displayName: 'Veo 3 Fast',
+      value: VEO_3_FAST_MODEL_NAME,
+    },
+  ];
+
+  return veoModels;
+}
+
+export function getVideoGenTasksByModelName(modelName: string): SelectItem[] {
+  const videoGenTasks: { [key: string]: SelectItem[] } = {
+    [VEO_3_1_MODEL_NAME]: [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+      {
+        displayName: 'Reference to Video',
+        value: 'reference-to-video',
+      },
+      {
+        displayName: 'Video Extension',
+        value: 'video-extension',
+      },
+    ],
+    [VEO_3_1_FAST_MODEL_NAME]: [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+      {
+        displayName: 'Reference to Video',
+        value: 'reference-to-video',
+      },
+      {
+        displayName: 'Video Extension',
+        value: 'video-extension',
+      },
+    ],
+    [VEO_3_MODEL_NAME]: [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+    ],
+    [VEO_3_FAST_MODEL_NAME]: [
+      {
+        displayName: 'Text to Video',
+        value: 'text-to-video',
+      },
+      {
+        displayName: 'Image to Video',
+        value: 'image-to-video',
+      },
+    ],
+  };
+
+  return videoGenTasks[modelName];
+}
+
 export function findSceneResponse(
   resps: VideoGenerationResponse[],
-  scene: VideoScene
+  scene: VideoScene,
 ) {
   return resps.filter((resp: VideoGenerationResponse) => {
-    return (
-      resp.video_segment.scene_id === scene.id &&
-      resp.video_segment.segment_number === scene.number
-    );
+    return resp.video_segment.id === scene.id;
   });
 }
 
 export function updateScenesWithGeneratedVideos(
   resps: VideoGenerationResponse[],
-  scenes: VideoScene[]
+  scenes: VideoScene[],
 ) {
   let executionStatus = {
     succeded: false,
@@ -161,32 +319,29 @@ export function updateScenesWithGeneratedVideos(
             signedUri: video.signed_uri,
             gcsFusePath: video.gcs_fuse_path,
             mimeType: video.mime_type,
-            duration: video.duration
+            duration: video.duration,
           };
           return vid;
         });
         // Add new videos
         scene.videoGenerationSettings.generatedVideos.push.apply(
           scene.videoGenerationSettings.generatedVideos,
-          genVideos
+          genVideos,
         );
-        // Select first generated video as selected image for video
+        // Select first generated video as selected video for merge
         if (genVideos.length > 0) {
-          scene.videoGenerationSettings.selectedVideo = genVideos[0];
+          scene.videoGenerationSettings.selectedVideoForMerge = genVideos[0];
         }
         executionStatus['succeded'] = true;
-        executionStatus[
-          'execution_message'
-        ] += `Videos for scene ${scene.number} generated successfully! \n`;
+        executionStatus['execution_message'] +=
+          `Videos for scene ${scene.number} generated successfully! \n`;
       } else {
-        executionStatus[
-          'execution_message'
-        ] += `Video for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
+        executionStatus['execution_message'] +=
+          `Video for scene: ${scene.number} was not generated. ${response.execution_message} \n`;
       }
     } else {
-      executionStatus[
-        'execution_message'
-      ] += `Video for scene ${scene.number} not processed. 'The 'Regenerate video in bulk generation' option might be disabled. \n`;
+      executionStatus['execution_message'] +=
+        `Video for scene ${scene.number} not processed. 'The 'Regenerate video in bulk generation' option might be disabled. \n`;
     }
   });
 
@@ -275,4 +430,62 @@ export function getVideoFormats() {
       field1: 6, // length of the format
     },
   ];
+}
+
+export function getMaxAllowedSelectedAssetsForSelection(
+  videoModel: string,
+  videoGenTask: string,
+) {
+  if (
+    videoModel === VEO_3_1_MODEL_NAME ||
+    videoModel === VEO_3_1_FAST_MODEL_NAME
+  ) {
+    if (videoGenTask === 'image-to-video') {
+      return 2;
+    }
+    if (videoGenTask === 'reference-to-video') {
+      return 3;
+    }
+    if (videoGenTask === 'video-extension') {
+      return 1;
+    }
+  }
+
+  if (videoModel === VEO_3_MODEL_NAME || videoModel === VEO_3_FAST_MODEL_NAME) {
+    if (videoGenTask === 'image-to-video') {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+export function invalidNumberOfAssetsForVideoGenTask(
+  videoModel: string,
+  videoGenTask: string,
+  scene: VideoScene,
+) {
+  if (
+    videoGenTask === 'image-to-video' &&
+    (scene.imageGenerationSettings.selectedImagesForVideo.length === 0 ||
+      scene.imageGenerationSettings.selectedImagesForVideo.length >
+        getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask))
+  ) {
+    return true;
+  } else if (
+    videoGenTask === 'reference-to-video' &&
+    (scene.imageGenerationSettings.selectedImagesForVideo.length === 0 ||
+      scene.imageGenerationSettings.selectedImagesForVideo.length >
+        getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask))
+  ) {
+    return true;
+  } else if (
+    videoGenTask === 'video-extension' &&
+    scene.videoGenerationSettings.selectedVideosForExtension.length !==
+      getMaxAllowedSelectedAssetsForSelection(videoModel, videoGenTask)
+  ) {
+    return true;
+  }
+
+  return false;
 }
