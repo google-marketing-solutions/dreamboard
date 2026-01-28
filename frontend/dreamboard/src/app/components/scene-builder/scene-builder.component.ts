@@ -119,7 +119,7 @@ export class SceneBuilderComponent {
       SceneSettingsDialogComponent,
       {
         minWidth: '98%',
-        minHeight: '98%',
+        minHeight: '98vh',
         data: {
           storyId: this.story.id,
           sceneId: sceneId,
