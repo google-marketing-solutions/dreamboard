@@ -1,0 +1,113 @@
+<div class="stories-container">
+  @if (stories.length === 0) {
+    <div class="no-stories">
+      <mat-icon>subject</mat-icon> Your stories will show here.
+    </div>
+  }
+  <form [formGroup]="storiesForm">
+    <mat-tab-group
+      mat-stretch-tabs="true"
+      mat-align-tabs="start"
+      dynamicHeight
+      [(selectedIndex)]="selectedTabIndex"
+      (selectedTabChange)="onTabChanged($event)"
+    >
+      @for (story of stories; track story.id; let i = $index) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>subject</mat-icon>&nbsp; Story {{ i + 1 }}
+          </ng-template>
+
+          <h2>{{ story.title }}</h2>
+          <div class="element-id">
+            <span>Id: {{ story.id }}</span>
+          </div>
+          <p>
+            {{ story.description }}
+          </p>
+
+          <h3>Scene Breakdown</h3>
+          <div class="scenes-container">
+            @for (
+              scene of selectedStory.scenes;
+              track scene.id;
+              let i = $index
+            ) {
+              <mat-card appearance="outlined" [id]="scene.id">
+                <mat-card-header>
+                  <mat-card-title>Scene {{ i + 1 }}</mat-card-title>
+                  <mat-icon (click)="removeSceneById($event)">delete</mat-icon>
+                  <mat-card-subtitle></mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="element-id">
+                    <span>Id: {{ scene.id }}</span>
+                  </div>
+                  <mat-form-field>
+                    <mat-label>Description</mat-label>
+                    <textarea
+                      matInput
+                      placeholder=""
+                      rows="3"
+                      [formControlName]="'description@' + scene.id"
+                    ></textarea>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Image Prompt</mat-label>
+                    <textarea
+                      matInput
+                      placeholder=""
+                      rows="3"
+                      [formControlName]="'imagePrompt@' + scene.id"
+                    ></textarea>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Video Prompt</mat-label>
+                    <textarea
+                      matInput
+                      placeholder=""
+                      rows="3"
+                      [formControlName]="'videoPrompt@' + scene.id"
+                    ></textarea>
+                  </mat-form-field>
+                </mat-card-content>
+
+                @if (scene.characters.length > 0) {
+                  <div class="characters-container">
+                    <h4>Characters</h4>
+                    <div class="characters">
+                      @for (
+                        character of scene.characters;
+                        track character.id;
+                        let i = $index
+                      ) {
+                        <img
+                          [src]="character.image.signedUri"
+                          [alt]="character.name"
+                        />
+                      }
+                    </div>
+                  </div>
+                }
+              </mat-card>
+            }
+          </div>
+          <h3>Brand Guidelines Alignment</h3>
+          <p>{{ story.brandGuidelinesAdherence }}</p>
+          <h3>ABCD Alignment</h3>
+          <p>{{ story.abcdAdherence }}</p>
+        </mat-tab>
+      }
+    </mat-tab-group>
+    @if (stories.length > 0) {
+      <div class="selection-buttons">
+        <button mat-flat-button (click)="onSelectStory()">
+          <mat-icon>arrow_circle_right</mat-icon> Select Story
+        </button>
+        <button mat-flat-button (click)="onCreateYourOwnStory()">
+          <mat-icon>arrow_circle_right</mat-icon> Create Your Own Story
+        </button>
+      </div>
+    }
+  </form>
+</div>

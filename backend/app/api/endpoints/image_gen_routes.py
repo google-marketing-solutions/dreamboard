@@ -103,112 +103,31 @@ def generate_image(
       raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
-@image_gen_router.post("/download_image")
-async def download_image(image_uri: str):
-  """
-  Downloads an image from a given Google Cloud Storage (GCS) URI.
+@image_gen_router.post("/generate_images_from_scenes_gemini_editor/{story_id}")
+def generate_images_from_scenes_gemini_editor(
+    story_id: str,
+    image_generation_request: image_request_models.ImageGenerationRequest,
+    image_generator: ImageServiceDep,
+) -> list[ImageGenerationResponse]:
 
-  Args:
-      image_uri: The GCS URI of the image to be downloaded.
-
-  Returns:
-      A JSON response containing the downloaded image data or a status.
-
-  Raises:
-      HTTPException (500): If an error occurs during the image download
-                           process.
-  """
   try:
-    logging.info("Received download request for URI: %s", image_uri)
-    response = storage_service.storage_service.download_file(image_uri)
-
-    return JSONResponse(content=response)
-  except Exception as ex:
-    logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES-download_image: - ERROR: %s", str(ex)
-    )
-    if os.getenv("USE_AUTH_MIDDLEWARE"):
-      error_response = {
-          "status_code": 500,
-          "error_message": str(ex),
-      }
-      # Workaround to send the actual error message to NodeJS middleware request handler
-      return JSONResponse(content=error_response)
-    else:
-      raise HTTPException(status_code=500, detail=str(ex)) from ex
-
-
-@image_gen_router.post("/upload_image")
-async def upload_image(
-    storage_folder_name: str, image_file: UploadFile = File(...)
-):
-  """
-  Uploads an image file to a specified GCS bucket folder.
-
-  The image is renamed with a timestamp for uniqueness.
-
-  Args:
-      storage_folder_name: The name of the folder within the GCS bucket
-                           where the image will be stored.
-      image_file: The `UploadFile` object representing the image file
-                  sent in the request.
-
-  Returns:
-      A dictionary containing the GCS URI, public URL, and a success
-      message for the uploaded image.
-
-  Raises:
-      HTTPException (500): If an error occurs during the image upload
-                           process.
-  """
-  try:
-    # Initialize StorageService with the target folder name.
-    image_storage = storage_service.StorageService(
-        storage_folder_name=storage_folder_name
-    )
-
-    # Generate a unique filename using a timestamp for high uniqueness.
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    file_extension = (
-        image_file.filename.split(".")[-1] if "." in image_file.filename else ""
-    )
-    new_filename = (
-        f"{timestamp}.{file_extension}" if file_extension else timestamp
-    )
-
-    image_mime_type = image_file.content_type
-    # Read the file content as bytes.
-    image_data = await image_file.read()
-
     logging.info(
-        "Uploading image to GCS bucket: %s, folder: %s, output_file: %s",
-        image_storage.bucket_name,
-        storage_folder_name,
-        new_filename,
+        (
+            "DreamBoard - IMAGE_GEN_ROUTES-generate_images_from_scenes:"
+            " Starting image generation for story %s..."
+        ),
+        story_id,
+    )
+    image_gen_resps = image_generator.generate_images_from_scenes_gemini_editor(
+        story_id, image_generation_request
     )
 
-    # Save the image to the specified GCS bucket and folder.
-    url = image_storage.save_image_to_folder(
-        new_filename, image_data, image_mime_type
-    )
-
-    logging.info("Uploaded image to Cloud Storage: %s.", url)
-
-    # Return details of the uploaded image.
-    return {
-        "image_uri": (
-            f"gs://{image_storage.bucket_name}/"
-            f"{storage_folder_name}/{new_filename}"
-        ),
-        "public_url": url,
-        "message": (
-            f"Image '{image_file.filename}' successfully uploaded to '{url}'"
-        ),
-    }
-
+    return image_gen_resps
   except Exception as ex:
     logging.error(
-        "DreamBoard - IMAGE_GEN_ROUTES-upload_image: - ERROR: %s", str(ex)
+        "DreamBoard - IMAGE_GEN_ROUTES-generate_images_from_scenes: -"
+        " ERROR: %s",
+        str(ex),
     )
     if os.getenv("USE_AUTH_MIDDLEWARE"):
       error_response = {

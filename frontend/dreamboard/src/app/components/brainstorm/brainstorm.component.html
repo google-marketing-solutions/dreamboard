@@ -79,6 +79,11 @@
           ></app-file-uploader>
         </div>
 
+        <div class="">
+          <mat-checkbox formControlName="extractCharacters"
+            >Automatically extract characters and generate images</mat-checkbox
+          >
+        </div>
         <div class="generate-images-check">
           <mat-checkbox formControlName="generateInitialImageForScenes"
             >Generate initial scene images on story selection</mat-checkbox
@@ -94,11 +99,11 @@
           </button>
         </div>
       </div>
-      <div class="stories">
-        <app-stories
+      <div class="recommended-stories">
+        <app-recommended-stories
           [stories]="stories"
           (onSelectStoryEvent)="onSelectStoryEvent($event)"
-        ></app-stories>
+        ></app-recommended-stories>
       </div>
     </div>
   </form>

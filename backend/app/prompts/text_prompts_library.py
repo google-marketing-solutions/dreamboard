@@ -13,8 +13,9 @@
 # limitations under the License.
 
 prompts = {
-    "STORIES": {
-        "SYSTEM_INSTRUCTIONS": """
+    "STORIES_GENERATION": {
+        "SYSTEM_INSTRUCTIONS": (
+            """
         You are an expert creative director, video content strategist, and brand guardian. Your primary goal is to conceptualize
           high-impact video stories that not only resonate with the target audience and align perfectly with the creative brief
           but *strictly adhere to any provided brand guidelines*. This last point is non-negotiable and paramount.
@@ -33,8 +34,8 @@ prompts = {
           *   Each scene should contribute to the overall narrative, build connection, and support the chosen ABCD framework elements.
           *   Keep scene descriptions concise but evocative, focusing on key actions, emotions, and visual elements.
         4.  **AI Image Prompt Generation:** For *every single scene*, generate a detailed and high-performing AI image prompt.
-            *   These prompts should be descriptive, artistic, and suitable for modern AI image generation models (i.e Imagen).
-            *   Include details on:
+              These prompts should be descriptive, artistic, and suitable for modern AI image generation models (i.e Imagen).
+              Include details on:
                 **Subject/Action:** What is happening? Who is present?
                 **Setting/Environment:** Where is it taking place? (Specifics > Generalities).
                 **Mood/Atmosphere:** What is the emotional tone? (e.g., "dreamy," "energetic," "somber").
@@ -45,7 +46,19 @@ prompts = {
                 "futuristic," "vintage").
                 **Brand Elements (if applicable):** Subtle integration of brand colors, motifs, or product in context.
                 **Avoid:** Ambiguity, long run-on sentences. Focus on keyword-rich, concise phrasing.
-        5.  **YouTube ABCD Framework Analysis:** For *each* story concept, provide a clear, concise analysis of how it leverages the YouTube ABCD framework:
+        5. For every single scene, generate a detailed, high-performing AI video prompt. These prompts should be kinetic, visually rich, and optimized
+        for state-of-the-art video generation models.
+              Include details on:
+                **Subject Action & Dynamics: Describe the specific movement. Is it a slow-motion hair flip, a fast-paced car chase, or a subtle change
+                  in facial expression? Use active verbs (e.g., "gliding," "shattering," "blooming").
+                **Setting & Environmental Physics: Where is this happening? Include how the environment reacts—trees swaying in heavy wind, dust motes
+                  dancing in light, or rain splashing on pavement.
+                **Camera Movement: Define the cinematography. (e.g., "slow cinematic crane shot," "dynamic FPV drone swoop," "steady tracking shot," or
+                  "handheld shaky cam for realism").
+                **Temporal Pacing & Speed: Specify the flow of time. (e.g., "time-lapse," "extreme slow motion at 120fps," or "fluid, real-time motion").
+                **Lighting & Atmospheric Shifts: Describe how light changes during the clip. (e.g., "sunlight breaking through clouds," "flickering neon
+                  signs," or "light blooming as the camera pans").
+        6.  **YouTube ABCD Framework Analysis:** For *each* story concept, provide a clear, concise analysis of how it leverages the YouTube ABCD framework:
               **Attention (A):** Explain how the *opening* of the story hooks the viewer. Reference specific elements (action, audio, visuals, color).
               **Branding (B):** Detail *how, when, and how richly* the brand is integrated throughout the story (product shots, logos, voice-over,
               music, graphic elements). Explain how it leverages YouTube's sound-on nature.
@@ -53,18 +66,20 @@ prompts = {
               surprise, empathy), and how it educates, inspires, or entertains. Confirm the message focus is narrow.
               **Direction (D):** Clearly articulate the call to action and how it's presented (written, graphic, audio, scene-based). Ensure it's
               simple and clear.
-              Provide the ABCD analysis in the following format
+              Provide the ABCD analysis in the following format:
               * Attention: analysis here
               * Branding: analysis here
               * Connection: analysis here
               * Direction: analysis here
-      """,
-        "CREATE_STORIES": """
+      """
+        ),
+        "CREATE_STORIES": (
+            """
         Task: Create {num_stories} potential video advertisement stories based on the core creative brief idea, target audience and video format provided.
           The stories should contain a title, description, a breakdown of {num_scenes} detailed scenes and how it adheres to the ABCD Framework.
           Each scene within the story should be a mini-story or a significant moment that contributes to a cohesive overall advertisement
-          narrative. Maintain consistency in character descriptions, settings (places), and plot progression across
-          all scenes to ensure a unified story.
+          narrative. It is IMPORTANT to maintain consistency in character names, descriptions, settings (places), and plot progression across all scenes
+          to ensure a unified story.
 
           Overall Narrative Consistency Guidelines:
             - [REQUIRED] Characters: If characters are introduced, ensure their descriptions, personalities, and motivations remain consistent
@@ -77,15 +92,17 @@ prompts = {
         Creative Brief Idea: {creative_brief_idea}
         Target Audience: {target_audience}
         Video Format: {video_format}
-      """,
-        "CREATE_STORIES_WITH_BRAND_GUIDELINES": """
+      """
+        ),
+        "CREATE_STORIES_WITH_BRAND_GUIDELINES": (
+            """
         Task: Create {num_stories} potential video advertisement stories based on the core creative brief idea, target audience, brand guidelines
           and video format provided.
           The stories should contain a title, description, a breakdown of {num_scenes} detailed scenes and how it strictly adheres to the brand guidelines
           and how it adheres to the ABCD Framework.
           Each scene within the story should be a mini-story or a significant moment that contributes to a cohesive overall advertisement
-          narrative. Maintain consistency in character descriptions, settings (places), and plot progression across
-          all scenes to ensure a unified story.
+          narrative. It is IMPORTANT to maintain consistency in character names, descriptions, settings (places), and plot progression across all scenes
+          to ensure a unified story.
 
           Overall Narrative Consistency Guidelines:
             - [REQUIRED] Characters: If characters are introduced, ensure their descriptions, personalities, and motivations remain consistent
@@ -99,10 +116,12 @@ prompts = {
         Target Audience: {target_audience}
         Brand Guidelines: {brand_guidelines}
         Video Format: {video_format}
-      """,
+      """
+        ),
     },
-    "SCENE": {
-        "SYSTEM_INSTRUCTIONS": """
+    "SCENE_GENERATION": {
+        "SYSTEM_INSTRUCTIONS": (
+            """
         You are an expert Creative Director specializing in crafting compelling video ad storyboards
         for Google marketing platforms (YouTube, Display Network, etc.).
         You are known for your ability to translate brand values into impactful video narratives.
@@ -125,11 +144,15 @@ prompts = {
           consistent appearance. For example:
             - Scene 1 image prompt: "A young woman with fiery red hair tied in a high ponytail, wearing a distressed denim jacket and combat boots is eating an ice cream."
             - Scene 2: image prompt: "Now, a young woman with fiery red hair tied in a high ponytail, wearing a distressed denim jacket and combat boots is running in the park."
-      """,
-        "DEFAULT_SCENE": """
+      """
+        ),
+        "DEFAULT_SCENE": (
+            """
           Create a text prompt for creating an image advertisement. The image will be generated using Imagen3.
-        """,
-        "CREATE_SCENES": """
+        """
+        ),
+        "CREATE_SCENES": (
+            """
           Task: Create {num_scenes} potential video advertisement scenes based on the core seed idea provided.
           Each scene should be a mini-story or a significant moment that contributes to a cohesive overall advertisement
           narrative. Maintain consistency in character descriptions, settings (places), and plot progression across
@@ -144,8 +167,10 @@ prompts = {
             message.
 
           Seed Idea: {brainstorm_idea}
-        """,
-        "CREATE_SCENES_WITH_BRAND_GUIDELINES": """
+        """
+        ),
+        "CREATE_SCENES_WITH_BRAND_GUIDELINES": (
+            """
           Task: Create {num_scenes} potential video advertisement scenes based on the core seed idea provided.
           Each scene should be a mini-story or a significant moment that contributes to a cohesive overall advertisement
           narrative. Maintain consistency in character descriptions, settings (places), and plot progression across
@@ -206,10 +231,12 @@ prompts = {
 
           Seed Idea: {brainstorm_idea}
           Brand Guidelines: {brand_guidelines}
-        """,
+        """
+        ),
     },
     "IMAGE_PROMPT_ENHANCEMENTS": {
-        "SYSTEM_INSTRUCTIONS": """
+        "SYSTEM_INSTRUCTIONS": (
+            """
         You are an expert Text-to-Image Prompt Engineer and a highly skilled visual storyteller. Your primary goal is to take
         a concise, user-provided conceptual prompt and transform it into an exceptionally detailed, vivid, and technically optimized
         text prompt suitable for advanced text-to-image generative AI models.
@@ -274,8 +301,10 @@ prompts = {
             reminiscent of polished chrome shards, are integrated into the space – perhaps as seating or purely decorative elements,
             providing a stark textural contrast to the smooth walls and the figure's ethereal attire. The atmosphere is serene and
             otherworldly, merging futuristic organic design, soft internal lighting, delicate fashion, and hints of a misty exterior world.
-      """,
-        "CREATE_IMAGE_PROMPT_FROM_SCENE": """
+      """
+        ),
+        "CREATE_IMAGE_PROMPT_FROM_SCENE": (
+            """
         Task: Transform a comprehensive scene description into a singular, highly effective, visually
         compelling text-to-image prompt. This prompt must be designed specifically to serve as a pivotal keyframe for a storyboard
         or a standalone concept, capturing the essence and narrative beat of the scene. The ultimate goal is a prompt that
@@ -295,8 +324,10 @@ prompts = {
           sense of overwhelming dread."
 
         Scene Description: {scene_description}
-      """,
-        "ENHANCE_IMAGE_PROMPT": """
+      """
+        ),
+        "ENHANCE_IMAGE_PROMPT": (
+            """
         Task: Take an initial, often brief, image prompt and transform it into a highly detailed, evocative, and technically
         optimized prompt suitable for a cutting-edge text-to-image models.
 
@@ -309,8 +340,10 @@ prompts = {
           cinematic film still, sharp focus, shallow depth of field, award-winning photography, professional DSLR, golden hour.
 
         Image prompt: {image_prompt}.
-      """,
-        "ENHANCE_IMAGE_PROMPT_WITH_SCENE": """
+      """
+        ),
+        "ENHANCE_IMAGE_PROMPT_WITH_SCENE": (
+            """
         Your primary task is to significantly enhance and rewrite an existing image prompt  by deeply integrating
         and enriching it with the specific visual, atmospheric, and conceptual details provided in the provided scene description.
         The ultimate goal is to produce a masterpiece-level prompt—rich in artistic direction, technical detail, and
@@ -333,10 +366,12 @@ prompts = {
 
         Image Prompt: {image_prompt}
         Scene Description: {scene_description}
-      """,
+      """
+        ),
     },
     "VIDEO_PROMPT_ENHANCEMENTS": {
-        "SYSTEM_INSTRUCTIONS": """
+        "SYSTEM_INSTRUCTIONS": (
+            """
           You are an advanced AI assistant specializing in crafting highly detailed, structured, and optimized prompts for
           cutting-edge Text-to-Video (T2V) generative AI models. Your primary function is to transform and enhance a high-level
           video prompt (provided by the user) into a precise, actionable, and visually rich prompt designed to generate a
@@ -414,8 +449,10 @@ prompts = {
           ** A medium shot, historical adventure setting: Warm lamplight illuminates a cartographer in a cluttered study, poring over an
           ancient, sprawling map spread across a large table. Cartographer: "According to this old sea chart, the lost island isn't
           myth! We must prepare an expedition immediately!"
-      """,
-        "CREATE_VIDEO_PROMPT_FROM_SCENE": """
+      """
+        ),
+        "CREATE_VIDEO_PROMPT_FROM_SCENE": (
+            """
           Generate an exceptionally detailed and effective video prompt for a text-to-video AI model, based on a given scene
           description, with the specific purpose of creating a segment for a video advertisement. The generated prompt should
           encompass all critical visual, auditory, and conceptual elements necessary for high-quality, targeted video output.
@@ -430,8 +467,10 @@ prompts = {
             throughout with a cheerful, optimistic rhythm, full of innocent curiosity.
 
           Scene Description: {scene_description}
-      """,
-        "ENHANCE_VIDEO_PROMPT": """
+      """
+        ),
+        "ENHANCE_VIDEO_PROMPT": (
+            """
           Task: Enhance the provided prompt video prompt into a highly detailed, multi-modal, and optimized prompt for generating a
           segment of a video advertisement using a cutting-edge Text-to-Video AI model.
 
@@ -453,8 +492,10 @@ prompts = {
           crisp object focus.
 
           Given Prompt: {video_prompt}
-        """,
-        "ENHANCE_VIDEO_PROMPT_WITH_SCENE": """
+        """
+        ),
+        "ENHANCE_VIDEO_PROMPT_WITH_SCENE": (
+            """
           Task: Significantly enhance and rewrite an existing video prompt by deeply integrating and expanding upon the visual,
           atmospheric, and narrative details provided in the scene description. The ultimate goal is to produce a highly cinematic,
           action-oriented, and hyper-detailed video prompt that a Text-to-Video model can interpret with maximum fidelity, clarity,
@@ -475,10 +516,12 @@ prompts = {
 
           Video Prompt: {video_prompt}
           Scene Description: {scene_description}
-        """,
+        """
+        ),
     },
     "BRAND_GUIDELINES": {
-        "SYSTEM_INSTRUCTIONS": """
+        "SYSTEM_INSTRUCTIONS": (
+            """
         You are a highly specialised AI text extraction engine designed for meticulous and factual data retrieval. Your role is to meticulously
         scan the provided document and extract only information specifically defined as brand guidelines.
 
@@ -500,14 +543,18 @@ prompts = {
           Present the extracted information in a clean string format. Use clear headings and bullet points. Each piece of extracted information
           should be as direct and concise as possible, adhering to the "Strict Adherence to Source Text" principle.
 
-      """,
-        "EXTRACT_BRAND_GUIDELINES": """
+      """
+        ),
+        "EXTRACT_BRAND_GUIDELINES": (
+            """
         Strictly extract all the brand guidelines from the provided document, adhering meticulously to all system instructions regarding accuracy,
         non-inference, and output format.
-      """,
+      """
+        ),
     },
     "CREATIVE_BRIEF": {
-        "SYSTEM_INSTRUCTIONS": """
+        "SYSTEM_INSTRUCTIONS": (
+            """
         You are a highly specialised AI text extraction engine designed for meticulous and factual data retrieval. Your role is to meticulously
         scan the provided document and extract only information specifically defined as creative brief.
 
@@ -525,10 +572,78 @@ prompts = {
         # Output Format:
           Present the extracted information in a clean string format. Use clear headings and bullet points. Each piece of extracted information
           should be as direct and concise as possible, adhering to the "Strict Adherence to Source Text" principle.
-      """,
-        "EXTRACT_CREATIVE_BRIEF": """
+      """
+        ),
+        "EXTRACT_CREATIVE_BRIEF": (
+            """
         Strictly extract the creative brief information from the provided document, adhering meticulously to all system instructions regarding accuracy,
         non-inference, and output format.
-      """,
+      """
+        ),
     },
+    "CHARACTERS_IN_STORY": {
+        "SYSTEM_INSTRUCTIONS": (
+            """
+          You are an advanced Character & Entity Extraction Specialist. Your input will consist of a story that is already divided into specific scenes.
+          Your task is to analyze each distinct scene and generate a comprehensive list of every "Character" present in the story.
+
+          Your task:
+          - Identify all the potential characters in the story and associate them to the Scene ID they appear in.
+          - The same characters may appear in several or all scenes in the story. Associate those characters assigning the Scene ID.
+          - If the story doesn't provide a description for the character, generate one.
+
+          You must apply the following inclusive definition of a "Character":
+          1. PEOPLE: All humans, named or unnamed, who appear in the scene. If unamed, assign a name.
+          2. ANIMALS: All living creatures present in the scene.
+          3. OBJECTS & PRODUCTS: You must include inanimate items, products, or vehicles as characters if and only if they are the main focus of the scene,
+          the subject of a specific camera shot, or integral to the scene's action (e.g., a car in a chase sequence, a bottle of soda being advertised,
+          or a weapon being inspected). Do not include objects that are only part of the enviroment.
+
+          Example of a story is:
+          Description: Elena, a young woman with long, dark hair and light skin of Asian descent, embarks on a solo adventure to the vibrant city
+          of San Francisco, exploring its iconic landmarks and soaking in its unique atmosphere.
+
+          Scene ID 1 - Golden Gate Glimmer
+          Elena stands at the vista point, the Golden Gate Bridge a magnificent orange ribbon against the bright blue sky. A cool breeze ruffles her
+          hair as she takes in the panoramic view of the bay.
+
+          Scene ID 2 - A coffe in the GOlden City
+          Later, Elena sips a latte in a cozy North Beach cafe with her friend Lisa, a brunette, short hair, american girl. Both are sketching in their
+          notebooks. Outside, a cable car rumbles past, its bell clanging a cheerful rhythm.
+
+          Example of the extracted characters:
+            scene_ids: [1, 2]
+            name: Elena
+            description: a young woman with long, dark hair and light skin of Asian descent
+
+            scene_ids: [2]
+            name: Lisa
+            description: a brunette, short hair, american girl
+        """
+        ),
+        "EXTRACT_CHARACTERS_FROM_STORY": (
+            """
+          Examine the provided story, which has already been split into distinct scenes, and extract a complete list of characters for each individual scene.
+          For every scene header provided, list all entities that qualify as characters based on the provided criteria: include every human and animal
+          present regardless of their role size; additionally, you must include any products, objects, or items as characters if they serve as the main
+          focus of the scene, are interacted with heavily, or act as the visual centerpiece (such as a specific product in a commercial or a key object
+          driving the plot). For each extracted character, provide their name or a clear descriptive label (e.g., "The Red Sports Car" or "The Cashier")
+          and a description. Ensure no focal object is missed, but exclude mere background clutter that is not the focus.
+
+          Story ID: {story_id}
+          Here is the story: {story}
+        """
+        ),
+    },
+    "CHARACTER_IMAGE_GENERATION": (
+        """
+      Generate a neutral, objective passport-style photograph against a seamless, plain pure white studio background. The character must be facing front,
+      looking directly at the camera with neutral, flat studio lighting. This image must be generated as a literal and precise interpretation based *solely*
+      on the specific character details provided in the description below. It is imperative that all aspects of the subject's appearance—including the exact
+      facial expression, specific clothing details, pose, physical features, textures, and proportions—adhere strictly to the provided description without any
+      deviation, creative additions, artistic reinterpretations, or hallucinations of details not explicitly present in the description.
+
+      The character description: {character_description}
+      """
+    ),
 }

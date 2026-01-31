@@ -21,12 +21,16 @@ including brainstorming scenes and enhancing prompts.
 """
 
 import logging
-
-from models.text.text_gen_models import SceneItem, StoryItem
+import uuid
+from models.text import text_gen_models
 from models.text import text_request_models
+from models.image import image_gen_models
 from prompts import text_prompts_library
-
+from models import models
+import utils
 from services import gemini_service
+from services.image import image_generator
+from models.image import image_request_models
 from services.response_schemas import RESPONSE_SCHEMAS
 
 
@@ -43,16 +47,16 @@ class TextGenerator:
   def brainstorm_stories(
       self,
       stories_generation_request: text_request_models.StoriesGenerationRequest,
-  ) -> list[StoryItem]:
+  ) -> list[text_gen_models.StoryItem]:
     """Branstorms stories based on user inputs"""
     if stories_generation_request.creative_brief_idea is None:
       # TODO: use default prompt from prompt library instead.
       return "No Creative Brief idea."
 
     # Define LLM parameters, including the response schema.
-    llm_params = gemini_service.LLMParameters()
+    llm_params = models.LLMParameters()
     if stories_generation_request.brand_guidelines:
-      prompt_template = text_prompts_library.prompts["STORIES"]
+      prompt_template = text_prompts_library.prompts["STORIES_GENERATION"]
       prompt_args = {
           "num_stories": stories_generation_request.num_stories,
           "creative_brief_idea": stories_generation_request.creative_brief_idea,
@@ -69,7 +73,7 @@ class TextGenerator:
           "CREATE_STORIES_WITH_BRAND_GUIDELINES"
       ]
     else:
-      prompt_template = text_prompts_library.prompts["STORIES"]
+      prompt_template = text_prompts_library.prompts["STORIES_GENERATION"]
       prompt_args = {
           "num_stories": stories_generation_request.num_stories,
           "creative_brief_idea": stories_generation_request.creative_brief_idea,
@@ -84,24 +88,52 @@ class TextGenerator:
       ]
 
     # Execute the Gemini LLM call.
-    gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt, llm_params)
-    stories: list[StoryItem] = []
+    response = gemini_service.gemini_service.execute_gemini_with_genai(
+        prompt, llm_params
+    )
+    stories: list[text_gen_models.StoryItem] = []
     if response and response.parsed:
       # Parse the LLM's response into SceneItem objects.
       for story_data in response.parsed:
-        stories.append(
-            StoryItem(
-                id=story_data.get("id"),
-                title=story_data.get("title"),
-                description=story_data.get("description"),
-                brand_guidelines_adherence=story_data.get(
-                    "brand_guidelines_adherence"
-                ),
-                abcd_adherence=story_data.get("abcd_adherence"),
-                scenes=story_data.get("scenes"),
-            )
+        story_item = text_gen_models.StoryItem(
+            id=uuid.uuid4(),
+            title=story_data.get("title"),
+            description=story_data.get("description"),
+            brand_guidelines_adherence=story_data.get(
+                "brand_guidelines_adherence"
+            ),
+            abcd_adherence=story_data.get("abcd_adherence"),
+            scenes=[],
         )
+        # Process Scenes in story
+        for scene_data in story_data.get("scenes", []):
+          scene_item = text_gen_models.SceneItem(
+              id=uuid.uuid4(),
+              description=scene_data.get("description"),
+              image_prompt=scene_data.get("image_prompt"),
+              video_prompt=scene_data.get("video_prompt"),
+              characters=[],
+          )
+          # Process characters in story COMMENT THIS FOR NOW
+          for character_data in scene_data.get("characters", []):
+            character_item = text_gen_models.Character(
+                id=uuid.uuid4(),
+                name=character_data.get("name"),
+                description=character_data.get("description"),
+            )
+            scene_item.characters.append(character_item)
+
+          story_item.scenes.append(scene_item)
+
+        stories.append(story_item)
+
+      if stories_generation_request.extract_characters:
+        for story in stories:
+          unique_characters = self.extract_characters_from_story(story)
+          self.generate_character_images(
+              story.id, unique_characters, story.scenes
+          )
+
       logging.info(
           "DreamBoard - TEXT_GENERATOR: Generated stories: %s", stories
       )
@@ -113,9 +145,90 @@ class TextGenerator:
 
     return stories
 
+  def extract_characters_from_story(
+      self, story: text_gen_models.StoryItem
+  ) -> dict[str, text_gen_models.Character]:
+    """"""
+    # 1. Identify unique characters in story by name
+    unique_characters = {}
+    found_characters = {}
+    for scene in story.scenes:
+      for character in scene.characters:
+        if character.name not in found_characters:
+          # Generate a unique id for character using scene id
+          character.id = uuid.uuid4()
+          found_characters[character.name] = character
+          unique_characters[str(character.id)] = {
+              "character": character,
+              "found_in_scenes": [str(scene.id)],
+          }
+        else:
+          # Assign id of existing character
+          character.id = found_characters.get(character.name).id
+          unique_characters[str(character.id)]["found_in_scenes"].append(str(scene.id))
+
+    return unique_characters
+
+  def generate_character_images(
+      self,
+      story_id: str,
+      unique_characters: dict[str, text_gen_models.Character],
+      scenes: list[text_gen_models.SceneItem],
+  ) -> None:
+    """"""
+    image_gen_request = image_request_models.ImageGenerationRequest(
+        image_gen_operations=[]
+    )
+    # Build image generation operations
+    for name, character_info in unique_characters.items():
+      logging.info("Processing charater %s", name)
+      # To find each generated image by scene and character id later
+      prompt_template = text_prompts_library.prompts[
+          "CHARACTER_IMAGE_GENERATION"
+      ]
+      prompt_args = {"character_description": character_info.get("character").description}
+      prompt = prompt_template.format(**prompt_args)
+      image_gen_request.image_gen_operations.append(
+          image_request_models.ImageGenerationOperation(
+              # Set ID this way to store characters in story_id/images/characters in gcs
+              id=f"characters/{character_info.get("character").id}",
+              image_model=image_request_models.GEMINI_3_PRO_IMAGE_MODEL_NAME,
+              image_gen_task="text-to-image",
+              prompt=prompt,
+              aspect_ratio="16:9",
+              resolution="1K",
+              response_modalities=["IMAGE"],
+          )
+      )
+
+    # Image generator already handles task generation in parallel
+    responses: (
+        image_gen_models.GenericImageGenerationResponse
+    ) = image_generator.ImageGenerator().generate_images_from_scenes_gemini_editor(
+        story_id, image_gen_request
+    )
+
+    # Process responses from Image model
+    for response in responses:
+      character_id = response.id.split("/")[-1]  # id is in the last position
+      character = unique_characters[character_id]
+      # Process all the scenes where this character is found to add respective images
+      # for all characters
+      for scene_id in character.get("found_in_scenes", []):
+        # Update characters with their images for this scene
+        found_scene = utils.find_element_by_id(scene_id, scenes)
+        if found_scene:
+          found_character = utils.find_element_by_id(
+              character_id, found_scene.characters
+          )
+          if found_character:
+            found_character.image = (
+                response.images[0] if response.images else None
+            )
+
   def brainstorm_scenes(
       self, brainstorm_idea: str, brand_guidelines: str, num_scenes: int
-  ) -> list[SceneItem]:
+  ) -> list[text_gen_models.SceneItem]:
     """
     Brainstorms and generates a list of scenes using the Gemini LLM.
 
@@ -136,13 +249,15 @@ class TextGenerator:
       return "No scene description."
 
     # Define LLM parameters, including the response schema.
-    llm_params = gemini_service.LLMParameters()
+    llm_params = models.LLMParameters()
     if brand_guidelines:
       llm_params.generation_config["response_schema"] = RESPONSE_SCHEMAS[
           "CREATE_SCENES_WITH_BRAND_GUIDELINES"
       ]
       brand_guidelines = "CREATE_SCENES_WITH_BRAND_GUIDELINES"
-      prompts = text_prompts_library.prompts["SCENE"][brand_guidelines]
+      prompts = text_prompts_library.prompts["SCENE_GENERATION"][
+          brand_guidelines
+      ]
       prompt_args = {
           "brainstorm_idea": brainstorm_idea,
           "brand_guidelines": brand_guidelines,
@@ -154,19 +269,19 @@ class TextGenerator:
           "CREATE_SCENES"
       ]
       scene_key = "CREATE_SCENES"
-      prompt = text_prompts_library.prompts["SCENE"][scene_key].format(
-          brainstorm_idea=brainstorm_idea, num_scenes=num_scenes
-      )
+      prompt = text_prompts_library.prompts["SCENE_GENERATION"][
+          scene_key
+      ].format(brainstorm_idea=brainstorm_idea, num_scenes=num_scenes)
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
     response = gemini.execute_gemini_with_genai(prompt, llm_params)
-    scenes: list[SceneItem] = []
+    scenes: list[text_gen_models.SceneItem] = []
     if response and response.parsed:
       # Parse the LLM's response into SceneItem objects.
       for scene_data in response.parsed:
         scenes.append(
-            SceneItem(
+            text_gen_models.SceneItem(
                 number=scene_data.get("number"),
                 description=scene_data.get("description"),
                 brand_guidelines_alignment=scene_data.get(
@@ -199,9 +314,9 @@ class TextGenerator:
 
     # Format the prompt using the scene description.
     scene_prompt_key = "CREATE_IMAGE_PROMPT_FROM_SCENE"
-    prompt = text_prompts_library.prompts["SCENE"][scene_prompt_key].format(
-        scene_description=scene_description
-    )
+    prompt = text_prompts_library.prompts["SCENE_GENERATION"][
+        scene_prompt_key
+    ].format(scene_description=scene_description)
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
@@ -232,9 +347,9 @@ class TextGenerator:
 
     # Format the prompt using the scene description.
     scene_prompt_key = "CREATE_VIDEO_PROMPT_FROM_SCENE"
-    prompt = text_prompts_library.prompts["SCENE"][scene_prompt_key].format(
-        scene_description=scene_description
-    )
+    prompt = text_prompts_library.prompts["SCENE_GENERATION"][
+        scene_prompt_key
+    ].format(scene_description=scene_description)
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
     response = gemini.execute_gemini_with_genai(prompt)
@@ -446,7 +561,7 @@ class TextGenerator:
     prompt = prompt_template["EXTRACT_BRAND_GUIDELINES"]
 
     # Define params for the LLM
-    llm_params = gemini_service.LLMParameters()
+    llm_params = models.LLMParameters()
     llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
     # Set llm modality to document
     llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})
@@ -478,7 +593,7 @@ class TextGenerator:
     prompt = prompt_template["EXTRACT_CREATIVE_BRIEF"]
 
     # Define params for the LLM
-    llm_params = gemini_service.LLMParameters()
+    llm_params = models.LLMParameters()
     llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
     # Set llm modality to document
     llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})

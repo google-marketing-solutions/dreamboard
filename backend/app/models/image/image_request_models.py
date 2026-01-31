@@ -21,7 +21,11 @@ request payloads related to image generation via the API Router.
 """
 
 from models import request_models
+from models.image import image_gen_models
 from pydantic import BaseModel
+
+GEMINI_3_PRO_IMAGE_MODEL_NAME = "gemini-3-pro-image"
+GEMINI_3_PRO_IMAGE_MODEL_NAME_PREVIEW = "gemini-3-pro-image-preview"
 
 
 class ImageRequest(BaseModel):
@@ -37,3 +41,22 @@ class ImageRequest(BaseModel):
   """
 
   scenes: list[request_models.Scene]
+
+
+class ImageGenerationOperation(BaseModel):
+  """"""
+
+  id: str
+  image_model: str = GEMINI_3_PRO_IMAGE_MODEL_NAME
+  image_gen_task: str = "text-to-image" # text-to-image, image-to-image
+  prompt: str
+  aspect_ratio: str = "16:9"  # "1:1","2:3","3:2","3:4","4:3","4:5","5:4","9:16","16:9","21:9"
+  resolution: str = "1K"  # "1K", "2K", "4K"
+  response_modalities: list[str] = ["IMAGE"]
+  reference_images: list[image_gen_models.Image] | None = None
+
+
+class ImageGenerationRequest(BaseModel):
+  """"""
+
+  image_gen_operations: list[ImageGenerationOperation]

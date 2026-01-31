@@ -23,10 +23,11 @@ API calls, and the structuring of responses.
 import logging
 import uuid
 import utils
+import functools
 from models import request_models
 from models.image import image_request_models
 from models.image.image_gen_models import Image, ImageGenerationResponse
-from services.image.image_api_service import ImageService
+from services.image.image_api_service import ImageAPIService
 
 
 class ImageGenerator:
@@ -34,33 +35,13 @@ class ImageGenerator:
   Manages all image generation and editing tasks using the Imagen API.
 
   This class provides methods to process image requests, interact with the
-  Imagen API via `ImageService`, and structure the generated image data
+  Imagen API via `ImageAPIService`, and structure the generated image data
   into usable responses.
   """
 
   def __init__(self):
     """Initializes the ImageGenerator instance."""
-    self.image_service = ImageService()
-
-  def generate_images_from_scene(
-      self, story_id: str, segments: request_models.SceneSegments
-  ):
-    """
-    Processes each scene within a `SceneSegments` object for image
-    generation or editing.
-
-    This method iterates through the scenes and calls the `image_service`
-    to generate or edit images for each one.
-
-    Args:
-        story_id: The unique identifier for the story.
-        segments: A `SceneSegments` object containing the scenes to
-                  process.
-    """
-
-    for scene in segments.scenes:
-      logging.debug("\n%s\n", scene)  # Log the scene details.
-      self.image_service.generate_image(story_id, scene)
+    self.image_service = ImageAPIService()
 
   def generate_images_from_scenes(
       self, story_id: str, image_requests: image_request_models.ImageRequest
@@ -98,7 +79,9 @@ class ImageGenerator:
       )
 
     # Execute image generation for all scenes.
-    self.generate_images_from_scene(story_id, segments)
+    for scene in segments.scenes:
+      logging.debug("\n%s\n", scene)  # Log the scene details.
+      self.image_service.generate_image(story_id, scene)
 
     image_responses = []
     # Convert the generated scene data into `ImageGenerationResponse`
@@ -158,3 +141,44 @@ class ImageGenerator:
     )
 
     return image_responses
+
+  def generate_images_from_scenes_gemini_editor(
+      self,
+      story_id: str,
+      image_generation_request: image_request_models.ImageGenerationRequest,
+  ) -> list[ImageGenerationResponse]:
+    """ """
+    logging.info(
+        "DreamBoard - IMAGE_GENERATOR: Generating images for story %s",
+        story_id,
+    )
+
+    # 1. Generate image generation tasks to execute in parallel
+    image_gen_tasks = self.get_image_generation_tasks(
+        story_id,
+        image_generation_request.image_gen_operations,
+    )
+
+    # 2. Generate images using Nano Banana
+    image_gen_responses = utils.execute_tasks_in_parallel(image_gen_tasks)
+
+    return image_gen_responses
+
+  def get_image_generation_tasks(
+      self,
+      story_id: str,
+      image_generation_operations: image_request_models.ImageGenerationOperation,
+  ):
+    """ """
+    tasks = []
+    for image_gen_operation in image_generation_operations:
+      output_gcs_uri = f"{utils.get_images_bucket_folder_path(story_id)}/{image_gen_operation.id}"
+      tasks.append(
+          functools.partial(
+              self.image_service.generate_images_gemini_editor,
+              output_gcs_uri,
+              image_gen_operation,
+          )
+      )
+
+    return tasks

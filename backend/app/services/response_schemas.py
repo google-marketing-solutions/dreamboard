@@ -38,26 +38,39 @@ RESPONSE_SCHEMAS = {
                                 "type": "integer",  # Scene number
                             },
                             "description": {
-                                "type": (
-                                    "string"
-                                ),  # Textual description of the scene
+                                "type": ("string"),  # Textual description of the scene
                             },
                             "image_prompt": {
-                                "type": (
-                                    "string"
-                                ),  # Prompt for generating an image
+                                "type": ("string"),  # Prompt for generating an image
                             },
                             "video_prompt": {
-                                "type": (
-                                    "string"
-                                ),  # Prompt for generating a video
+                                "type": ("string"),  # Prompt for generating a video
+                            },
+                            "characters": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "required": [
+                                        "name",
+                                        "description",
+                                    ],
+                                },
                             },
                         },
                         # Required fields for each scene object
                         "required": [
-                            "number",
                             "description",
                             "image_prompt",
+                            "video_prompt",
+                            "characters",
                         ],
                     },
                 },
@@ -96,19 +109,31 @@ RESPONSE_SCHEMAS = {
                                 "type": "integer",  # Scene number
                             },
                             "description": {
-                                "type": (
-                                    "string"
-                                ),  # Textual description of the scene
+                                "type": ("string"),  # Textual description of the scene
                             },
                             "image_prompt": {
-                                "type": (
-                                    "string"
-                                ),  # Prompt for generating an image
+                                "type": ("string"),  # Prompt for generating an image
                             },
                             "video_prompt": {
-                                "type": (
-                                    "string"
-                                ),  # Prompt for generating a video
+                                "type": ("string"),  # Prompt for generating a video
+                            },
+                            "characters": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "required": [
+                                        "name",
+                                        "description",
+                                    ],
+                                },
                             },
                         },
                         # Required fields for each scene object
@@ -116,6 +141,8 @@ RESPONSE_SCHEMAS = {
                             "number",
                             "description",
                             "image_prompt",
+                            "video_prompt",
+                            "characters",
                         ],
                     },
                 },
@@ -147,6 +174,24 @@ RESPONSE_SCHEMAS = {
                 "video_prompt": {
                     "type": "string",  # Prompt for generating a video
                 },
+                "characters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                            },
+                            "description": {
+                                "type": "string",
+                            },
+                        },
+                        "required": [
+                            "name",
+                            "description",
+                        ],
+                    },
+                },
             },
             # Required fields for each scene object
             "required": [
@@ -154,6 +199,7 @@ RESPONSE_SCHEMAS = {
                 "description",
                 "image_prompt",
                 "video_prompt",
+                "characters",
             ],
         },
     },
@@ -169,22 +215,74 @@ RESPONSE_SCHEMAS = {
                 "description": {
                     "type": "string",  # Textual description of the scene
                 },
-                "brand_guidelines_alignment": {
-                    "type": "string",  # How scene aligns with brand guidelines
-                },
                 "image_prompt": {
                     "type": "string",  # Prompt for generating an image
+                },
+                "video_prompt": {
+                    "type": "string",  # Prompt for generating a video
+                },
+                "characters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                            },
+                            "description": {
+                                "type": "string",
+                            },
+                        },
+                        "required": [
+                            "name",
+                            "description",
+                        ],
+                    },
                 },
             },
             # Required fields for each scene object with brand guidelines
             "required": [
                 "number",
                 "description",
-                "brand_guidelines_alignment",
                 "image_prompt",
+                "video_prompt",
+                "characters",
             ],
         },
     },
     # Schema for a simple text response
     "JUST_TEXT": {"type": "string"},
+    # Schema to extract characters from stories
+    "CHARACTERS_IN_STORY": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "scene_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "scene_id": {
+                                "type": "string",
+                            },
+                        },
+                        "required": ["scene_id"],
+                    },
+                },
+                "character_name": {
+                    "type": "string",
+                },
+                "character_description": {
+                    "type": "string",
+                },
+            },
+        },
+        # Required fields for each scene object with brand guidelines
+        "required": [
+            "scene_ids",
+            "character_name",
+            "character_description",
+        ],
+    },
 }

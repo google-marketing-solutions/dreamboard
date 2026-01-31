@@ -26,7 +26,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from models.text import text_request_models
-from models.text.text_gen_models import SceneItem
+from models.text.text_gen_models import SceneItem, StoryItem, Character
 from models.text.text_request_models import ExtractTextRequest
 from services.text.text_generator import TextGenerator
 
