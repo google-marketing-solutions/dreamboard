@@ -36,6 +36,21 @@
         margin-left: 85%;
       }
     }
+
+    .characters-container {
+      padding: 15px;
+
+      .characters {
+        display: flex;
+        justify-content: flex-start;
+
+        img {
+          max-width: 150px;
+          max-height: 150;
+          margin-right: 10px;
+        }
+      }
+    }
   }
 
   .selection-buttons {

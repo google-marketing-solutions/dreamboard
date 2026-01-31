@@ -16,8 +16,7 @@
 
 import os
 import time
-from dataclasses import dataclass, field
-
+from models import models
 import vertexai
 from google import genai
 from google.api_core.exceptions import ResourceExhausted
@@ -26,43 +25,7 @@ from vertexai import generative_models
 from vertexai.preview.generative_models import HarmBlockThreshold, HarmCategory
 
 
-@dataclass
-class LLMParameters:
-  """
-  Class that represents the required params to make a prediction to the LLM.
-  """
-
-  model_name: str = "gemini-2.5-flash"
-  location: str = os.getenv("LOCATION")
-  modality: dict = field(default_factory=lambda: {"type": "TEXT"})
-  response_modalities: dict = field(default_factory=lambda: {"type": "TEXT"})
-  system_instructions: str = ""
-  generation_config: dict = field(
-      default_factory=lambda: {
-          "max_output_tokens": 65535,
-          "temperature": 1,
-          "top_p": 0.95,
-          "response_schema": {"type": "string"},
-      }
-  )
-
-  def set_modality(self, modality: dict) -> None:
-    """Sets the modal to use in the LLM
-    The modality object changes depending on the type.
-    For DOCUMENT:
-    {
-        "type": "DOCUMENT", # prompt is handled separately
-        "gcs_uri": ""
-    }
-    For TEXT:
-    {
-        "type": "TEXT" # prompt is handled separately
-    }
-    """
-    self.modality = modality
-
-
-DEFAULT_CONFIG = LLMParameters()
+DEFAULT_CONFIG = models.LLMParameters()
 
 
 class GeminiService:
@@ -81,7 +44,7 @@ class GeminiService:
     self.project_id = project_id
 
   def execute_gemini_with_genai(
-      self, prompt: str, llm_params: LLMParameters | None = None
+      self, prompt: str, llm_params: models.LLMParameters | None = None
   ):
     """
     Executes Gemini using the GenAI library.
@@ -186,7 +149,7 @@ class GeminiService:
           raise
 
   def execute_gemini(
-      self, prompt: str, llm_params: LLMParameters | None = None
+      self, prompt: str, llm_params: models.LLMParameters | None = None
   ) -> str:
     """
     Makes a request to Gemini to get a response based on the provided prompt

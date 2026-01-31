@@ -59,6 +59,7 @@ export interface StoriesGenerationRequest {
   brand_guidelines?: string;
   video_format: string;
   num_scenes: number;
+  extract_characters: boolean
 }
 
 export interface StoryItem {

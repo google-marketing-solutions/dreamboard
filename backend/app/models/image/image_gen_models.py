@@ -126,3 +126,23 @@ class ImageGenerationResponse:
   operation_name: str
   execution_message: str
   images: list[Image]
+
+
+
+@dataclass
+class GenericImageGenerationResponse:
+  """
+  Represents the structured response received after an image generation or
+  editing request to the Imagen API.
+
+  Attributes:
+      id: The ID of the generation.
+      done: A boolean flag indicating if the operation is complete.
+      operation_name: The name of the asynchronous operation (e.g., for
+                      polling its status).
+      execution_message: Any message or status detail about the execution.
+      images: A list of `Image` objects representing the generated images.
+  """
+
+  id: str
+  images: list[Image]

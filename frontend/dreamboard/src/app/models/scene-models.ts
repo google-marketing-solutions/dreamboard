@@ -21,19 +21,29 @@
 
 import { ImageGenerationSettings } from './image-gen-models';
 import { VideoGenerationSettings } from './video-gen-models';
+import { Image } from './image-gen-models';
 
 export interface Scene {
   id: string;
-  number: number;
   description: string;
   imagePrompt: string;
+  videoPrompt: string;
+  characters: Character[];
 }
 
 export interface SceneItem {
   id: string;
-  number: number;
   description: string;
   image_prompt: string;
+  video_prompt: string;
+  characters: Character[];
+}
+
+export interface Character {
+  id: string;
+  name: string;
+  description: string;
+  image: Image;
 }
 
 export interface VideoScene {

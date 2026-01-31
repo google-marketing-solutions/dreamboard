@@ -21,7 +21,15 @@ items and the structured responses from text generation APIs.
 """
 
 from dataclasses import dataclass
+from models.image import image_gen_models
 
+@dataclass
+class Character:
+  """"""
+  id: str
+  name: str
+  description: str
+  image: image_gen_models.Image | None = None
 
 @dataclass
 class SceneItem:
@@ -30,7 +38,7 @@ class SceneItem:
   generation model.
 
   Attributes:
-      number: The sequential number of the scene.
+      id: The ID of the scene.
       description: A textual description of the scene's content.
       brand_guidelines_alignment: An optional field indicating how well
                                   the scene aligns with specified brand
@@ -39,10 +47,11 @@ class SceneItem:
                     description.
   """
 
-  number: int
+  id: str
   description: str
-  brand_guidelines_alignment: str | None = None
-  image_prompt: str | None = None
+  image_prompt: str
+  video_prompt: str
+  characters: list[Character]
 
 
 @dataclass

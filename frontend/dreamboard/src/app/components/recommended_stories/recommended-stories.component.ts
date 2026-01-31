@@ -45,7 +45,7 @@ import { SelectItem } from '../../models/settings-models';
 import { ComponentsCommunicationService } from '../../services/components-communication.service';
 
 @Component({
-  selector: 'app-stories',
+  selector: 'app-recommended-stories',
   imports: [
     MatTabsModule,
     MatInputModule,
@@ -56,10 +56,10 @@ import { ComponentsCommunicationService } from '../../services/components-commun
     FormsModule,
     ReactiveFormsModule,
   ],
-  templateUrl: './stories.component.html',
-  styleUrl: './stories.component.css',
+  templateUrl: './recommended-stories.component.html',
+  styleUrl: './recommended-stories.component.css',
 })
-export class StoriesComponent {
+export class RecommendedStoriesComponent {
   @Input() stories: Story[] = [];
   @Output() onSelectStoryEvent = new EventEmitter<Story>();
 
@@ -103,6 +103,11 @@ export class StoriesComponent {
         this.storiesForm.addControl(
           `imagePrompt@${scene.id}`,
           new FormControl(scene.imagePrompt)
+        );
+        // Add Video Prompt form control
+        this.storiesForm.addControl(
+          `videoPrompt@${scene.id}`,
+          new FormControl(scene.videoPrompt)
         );
       });
     });
@@ -152,6 +157,9 @@ export class StoriesComponent {
       )?.value;
       scene.imagePrompt = this.storiesForm.get(
         `imagePrompt@${scene.id}`
+      )?.value;
+      scene.videoPrompt = this.storiesForm.get(
+        `videoPrompt@${scene.id}`
       )?.value;
     });
     this.onSelectStoryEvent.emit(this.selectedStory);
