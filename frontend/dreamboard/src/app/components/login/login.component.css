@@ -26,11 +26,19 @@
   border: 1px dotted rgb(206, 201, 201);
   border-radius: 16px;
 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
   .center-div {
     width: 200px;
-    margin: 15% auto;
   }
 
+  /* .center-div {
+    width: 200px;
+    margin: 15% auto;
+  } */
+/* 
   .or {
     text-align: center;
     margin: 16px;
@@ -38,9 +46,9 @@
 
   .guest-button {
     margin-left: 11px;
-  }
+  } */
 }
 
-mat-icon {
+/* mat-icon {
   font-size: 16px;
-}
+} */
