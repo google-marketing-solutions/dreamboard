@@ -37,14 +37,16 @@ export const VEO_3_FAST_MODEL_NAME = `veo-3.0-fast-generate-001`;
 export const VIDEO_MODEL_MAX_LENGTH = 8;
 
 export function getNewVideoScene(existingScenesLen: number) {
-  return {
+  const videoScene: VideoScene = {
     id: uuidv4(),
     number: existingScenesLen + 1,
     description: `Your scene description goes here.`,
     imageGenerationSettings: getNewImageSettings(),
     videoGenerationSettings: getNewVideoSettings(),
-    transition: undefined,
-  } as VideoScene;
+    characters: [],
+  };
+
+  return videoScene;
 }
 
 export function getNewVideoSettings(): VideoGenerationSettings {

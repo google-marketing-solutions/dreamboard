@@ -56,7 +56,7 @@ import {
   Image,
   ImageReference,
   ImageCreativeDirection,
-  ImageGenerationRequest,
+  ImageRequest,
   ImageGenerationResponse,
   ImageReferenceItem,
   ReferenceImageCard,
@@ -80,8 +80,9 @@ import {
   getImageReferenceTypes,
 } from '../../image-utils';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
+import { FileUploaderNewComponent } from '../file-uploader-new/file-uploader-new.component';
 import { FrameExtractionComponent } from '../frame-extraction/frame-extraction.component';
-import { ComponentsCommunicationService } from '../../services/components-communication.service';
+import { AssetsSelectionTableComponent } from '../assets-selection-table/assets-selection-table.component';
 import { v4 as uuidv4 } from 'uuid';
 
 @Component({
@@ -97,7 +98,9 @@ import { v4 as uuidv4 } from 'uuid';
     ReactiveFormsModule,
     MatExpansionModule,
     FileUploaderComponent,
+    FileUploaderNewComponent,
     FrameExtractionComponent,
+    AssetsSelectionTableComponent,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
@@ -109,6 +112,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   @Output() sceneImageSettingsUpdatedEvent = new EventEmitter<VideoScene>();
   @ViewChild(FileUploaderComponent)
   fileUploaderComponent!: FileUploaderComponent;
+  @ViewChild(AssetsSelectionTableComponent)
+  assetsSelectionTableComponent!: AssetsSelectionTableComponent;
   // Form selects
   aspectRatios: SelectItem[] = getAspectRatiosByModelName(IMAGE_MODEL_NAME);
   outputMimeTypes: SelectItem[] = getOutputMimeTypes();
@@ -116,7 +121,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   safetyFilterLevels: SelectItem[] = getSafetyFilterLevels();
   personGenerationOptions: SelectItem[] =
     getPersonGenerationOptionsByModelName(IMAGE_MODEL_NAME);
-  currentGeneratedImageIndex: number = 0;
   imageReferenceTypes = getImageReferenceTypes();
   referenceImageCards: ReferenceImageCard[] = [];
   fileReader = new FileReader();
@@ -126,7 +130,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
 
   imageSettingsForm = new FormGroup({
     prompt: new FormControl('', [Validators.required]),
-    numImages: new FormControl(4, [Validators.required]),
+    numImages: new FormControl(2, [Validators.required]),
     aspectRatio: new FormControl('', []),
     outputMimeType: new FormControl('', []),
     compressionQuality: new FormControl(75, []),
@@ -135,7 +139,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     personGeneration: new FormControl('', []),
     /*seed: new FormControl(-1, []),*/
     negativePrompt: new FormControl('', []),
-    selectedImageUri: new FormControl(''),
+    selectedImageId: new FormControl(''),
     referenceType: new FormControl('subject-SUBJECT_TYPE_DEFAULT', []),
     imageReferenceDescription: new FormControl('', []),
     withSceneDescription: new FormControl(true, []),
@@ -144,7 +148,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   constructor(
     private imageGenerationService: ImageGenerationService,
     private textGenerationService: TextGenerationService,
-    private componentsCommunicationService: ComponentsCommunicationService,
   ) {}
 
   /**
@@ -157,10 +160,27 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.initImageSettingsForm();
   }
 
+  /**
+   * Retrieves all generated videos from all scenes in the story.
+   * This aggregates the `generatedVideos` from the `videoGenerationSettings` of each scene.
+   * @returns {Video[]} An array of all generated videos across all scenes.
+   */
   getAllVideos() {
     return this.scenes.flatMap(
       (scene) => scene.videoGenerationSettings.generatedVideos,
     );
+  }
+
+  /**
+   * Retrieves the assets associated with the current scene based on the configured asset type.
+   * @returns An array of `Image` objects representing the generated assets.
+   */
+  getAssetsByType(type: string): Image[] {
+    if (type === 'images') {
+      return this.scene.imageGenerationSettings.generatedImages;
+    }
+
+    return [];
   }
 
   /**
@@ -219,12 +239,19 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     if (file.type === UploadedFileType.UserProvidedImage) {
       // Add all user provided images to generated images to show in the carrousel
       this.scene.imageGenerationSettings.generatedImages.push(uploadedImage);
-      const updateForm = true;
-      /*this.updateSelectedImage(uploadedImage.gcsUri, updateForm);*/
-      this.setCurrentGeneratedImageIndex(uploadedImage.gcsUri);
     }
+    // Refresh child component table with newly uploaded image
+    // since @Input changes are not automatically triggered.
+    const triggerDetectChanges = false;
+    this.assetsSelectionTableComponent.refreshTable(triggerDetectChanges);
   }
 
+  /**
+   * Determines whether the "Add Reference" button should be disabled.
+   * It checks if the last added reference card has an associated image uploaded
+   * and if the maximum limit of reference images (4) has been reached.
+   * @returns {boolean} `true` if the button should be disabled, `false` otherwise.
+   */
   disableAddReferenceButton() {
     if (this.referenceImageCards.length === 0) {
       return false;
@@ -246,6 +273,36 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     }
 
     return false;
+  }
+
+  /**
+   * Handles the event when a generated image is deleted.
+   * It removes the specified image from the scene's `generatedImages` array.
+   * @param {Image} deletedImage - The image object that was deleted.
+   */
+  onGeneratedImageDeleted(deletedImage: Image) {
+    // Delete deletedImage from generatedImages array
+    const delGenImgIndex =
+      this.scene.imageGenerationSettings.generatedImages.findIndex(
+        (genImage: Image) => genImage.id === deletedImage.id,
+      );
+    if (delGenImgIndex > -1) {
+      this.scene.imageGenerationSettings.generatedImages.splice(
+        delGenImgIndex,
+        1,
+      );
+    }
+  }
+
+  /**
+   * Handles the event when an asset is deleted from the file uploader.
+   * Currently, this method is a placeholder as the file uploader component
+   * handles the deletion from its own internal list.
+   * @param {Image} deletedImage - The image asset that was deleted.
+   */
+  onAssetDeleted(deletedImage: Image) {
+    // Don't do anything hjere when users click on delete from the file uploader.
+    // The file uploader component will delete it from the fileItems array in the same component
   }
 
   /**
@@ -289,13 +346,13 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     // On edit
     if (this.scene.imageGenerationSettings.generatedImages.length > 0) {
       // Select the last generated image
-      this.imageSettingsForm.controls['selectedImageUri'].setValue(
+      this.imageSettingsForm.controls['selectedImageId'].setValue(
         this.scene.imageGenerationSettings.generatedImages[
           this.scene.imageGenerationSettings.generatedImages.length - 1
-        ].gcsUri,
+        ].id,
       );
     } else {
-      this.imageSettingsForm.controls['selectedImageUri'].setValue('no-image');
+      this.imageSettingsForm.controls['selectedImageId'].setValue('no-image');
     }
 
     // Reference Type is set in initReferenceImageCards
@@ -305,7 +362,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   /**
    * Updates the `scene.imageGenerationSettings` object with the current values from the `imageSettingsForm`.
    * This method ensures that changes made in the UI form are reflected in the underlying scene data model.
-   * It also sets the `selectedImageForVideo` based on the `currentGeneratedImageIndex`.
    * @returns {void}
    */
   setImageSettings(): void {
@@ -403,66 +459,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   }
 
   /**
-   * Navigates to the previous generated image in the `generatedImages` array.
-   * It updates `currentGeneratedImageIndex` and sets the `selectedImageUri` in the form
-   * and `selectedImageForVideo` in the scene to the previous image.
-   * It loops back to the last image if currently at the first image.
-   * @returns {void}
-   */
-  onPrev(): void {
-    const previousImageIndex = this.currentGeneratedImageIndex - 1;
-    this.currentGeneratedImageIndex =
-      previousImageIndex < 0
-        ? this.scene.imageGenerationSettings.generatedImages.length - 1
-        : previousImageIndex;
-    const generatedImage =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.currentGeneratedImageIndex
-      ];
-    // Set selected generated image in form
-    this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.gcsUri,
-    );
-  }
-
-  /**
-   * Navigates to the next generated image in the `generatedImages` array.
-   * It updates `currentGeneratedImageIndex` and sets the `selectedImageUri` in the form
-   * and `selectedImageForVideo` in the scene to the next image.
-   * It loops back to the first image if currently at the last image.
-   * @returns {void}
-   */
-  onNext(): void {
-    const nextImageIndex = this.currentGeneratedImageIndex + 1;
-    this.currentGeneratedImageIndex =
-      nextImageIndex ===
-      this.scene.imageGenerationSettings.generatedImages.length
-        ? 0
-        : nextImageIndex;
-    const generatedImage =
-      this.scene.imageGenerationSettings.generatedImages[
-        this.currentGeneratedImageIndex
-      ];
-    // Set selected generated image in form
-    this.imageSettingsForm.controls['selectedImageUri'].setValue(
-      generatedImage.gcsUri,
-    );
-  }
-
-  /**
-   * Handles the selection of an image from a dropdown or similar control.
-   * It updates `currentGeneratedImageIndex` based on the selected image's URI
-   * and sets the `selectedImageForVideo` in the scene.
-   * @param {MatSelectChange} event - The change event from the MatSelect component,
-   * containing the URI of the selected image in `event.value`.
-   * @returns {void}
-   */
-  onImageSelected(event: MatSelectChange): void {
-    const imageUri = event.value;
-    this.setCurrentGeneratedImageIndex(imageUri);
-  }
-
-  /**
    * Handles the change event when the reference type is selected from a MatSelect.
    * Updates the `referenceType` and `referenceSubType` for all existing
    * reference images within the current scene's image generation settings.
@@ -523,23 +519,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   }
 
   /**
-   * Sets the `currentGeneratedImageIndex` to the index of the image with the given URI
-   * within the `generatedImages` array of the current scene.
-   * @param {string} imageUri - The URI of the image to find.
-   * @returns {void}
-   */
-  setCurrentGeneratedImageIndex(gcsUri: string): void {
-    const index = this.scene.imageGenerationSettings.generatedImages.findIndex(
-      (image) => image.gcsUri === gcsUri,
-    );
-    this.currentGeneratedImageIndex = index;
-  }
-
-  setImageIndex(index: number) {
-    this.currentGeneratedImageIndex = index;
-  }
-
-  /**
    * Rewrites the image prompt for the current scene using the `TextGenerationService`.
    * It sends the current prompt and scene description to the text generation API,
    * and updates the form and scene with the enhanced prompt upon success.
@@ -587,7 +566,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
 
   /**
    * Initiates the image generation process for the current scene.
-   * It displays a loading snackbar, constructs an `ImageGenerationRequest` from the current scene's settings,
+   * It displays a loading snackbar, constructs an `ImageRequest` from the current scene's settings,
    * sends it to the `ImageGenerationService`, and handles the API response.
    * Upon successful generation, it updates the scene's `generatedImages` and provides feedback via snackbar.
    * @returns {void}
@@ -598,7 +577,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       `Generating image for scene ${this.scene.number}. This might take some time...`,
     );
 
-    const imageGeneration: ImageGenerationRequest = {
+    const imageGeneration: ImageRequest = {
       scenes: [this.buildImageSegment()],
     };
 
@@ -619,8 +598,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
             this.scene.imageGenerationSettings.generatedImages[
               this.scene.imageGenerationSettings.generatedImages.length - 1
             ];
-          const updateForm = true;
-          this.updateSelectedImage(lastGenImage.gcsUri, updateForm);
+          // Refresh child component table with newly uploaded image
+          // since @Input changes are not automatically triggered.
+          const triggerDetectChanges = false;
+          this.assetsSelectionTableComponent.refreshTable(triggerDetectChanges);
         },
         (error: any) => {
           let errorMessage;
@@ -636,23 +617,6 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           );
         },
       );
-  }
-
-  /**
-   * Updates the selected image in the component's state and optionally in the form.
-   * This function sets the image URI, finds the full image object from the list of
-   * generated images, and designates it as the selected image for video generation.
-   *
-   * @param {string} gcsUri The GCS URI of the image to be selected.
-   * @param {boolean} updateForm A flag to determine whether to update the reactive form with the new image URI.
-   */
-  updateSelectedImage(gcsUri: string, updateForm: boolean) {
-    if (updateForm) {
-      // Update selected image in form
-      this.imageSettingsForm.controls['selectedImageUri'].setValue(gcsUri);
-    }
-    // Find image index in array
-    this.setCurrentGeneratedImageIndex(gcsUri);
   }
 
   /**
@@ -854,8 +818,10 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
         this.scene.imageGenerationSettings.generatedImages.length - 1
       ];
     if (lastImage) {
-      /*this.updateSelectedImage(lastImage.gcsUri, true);*/
-      this.setCurrentGeneratedImageIndex(lastImage.gcsUri);
+      // Refresh child component table with newly uploaded image
+      // since @Input changes are not automatically triggered.
+      const triggerDetectChanges = false;
+      this.assetsSelectionTableComponent.refreshTable(triggerDetectChanges);
     }
   }
 }

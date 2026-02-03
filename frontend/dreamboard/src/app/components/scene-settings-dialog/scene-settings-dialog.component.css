@@ -46,3 +46,7 @@
   margin-top: 10px;
   float: right;
 }
+
+mat-dialog-content {
+  max-height: 600px;
+}

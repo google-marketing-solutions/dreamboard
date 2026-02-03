@@ -32,8 +32,37 @@
         font-size: 10px;
       }
 
-      mat-icon {
+      mat-icon.remove-scene {
         margin-left: 85%;
+      }
+    }
+
+    .characters-container {
+      padding: 15px;
+
+      .characters {
+        display: flex;
+        justify-content: flex-start;
+        width: 100%;
+
+        .character {
+          border: 1px gray;
+          margin-right: 10px;
+          width: 20%;
+
+          img {
+            max-width: 150px;
+            max-height: 150;
+            margin-right: 20px;
+          }
+
+          span.name {
+            font-size: 12px;
+          }
+          span.description {
+            font-size: 10px;
+          }
+        }
       }
     }
   }
@@ -65,4 +94,8 @@ h3 {
 .element-id {
   margin-top: 8px;
   font-size: 10px;
+}
+
+.generate-images-check {
+  margin-top: 16px;
 }

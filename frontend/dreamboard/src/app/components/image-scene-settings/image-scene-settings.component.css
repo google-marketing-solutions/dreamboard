@@ -19,48 +19,13 @@
  *
  ***************************************************************************/
 
-.images-container {
+.upload-reference-image {
   display: flex;
-  justify-content: center;
-  margin: 32px 0px;
-
-  .images {
-    width: 500px;
-    height: 400px;
-    background-color: white;
-    border: 1px dotted gray;
-    margin: auto 8px;
-
-    .image-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: 8px;
-
-      button {
-        margin-right: 8px;
-      }
-    }
-  }
-
-  .reference-image {
-    width: 300px;
-    height: 300px;
-    margin: auto 8px;
-
-    img {
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    .file-input {
-      display: none;
-    }
-  }
-
-  p {
-    margin-top: 190px;
-    text-align: center;
-  }
+  justify-content: flex-start;
+  padding: 0px 10px 15px 10px;
+  margin: 10px 0px 30px 0px;
+  border: 1px dotted #ba005c;
+  width: 14%;
 }
 
 .item-container {

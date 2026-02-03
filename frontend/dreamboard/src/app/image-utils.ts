@@ -24,6 +24,7 @@ import {
   ImageItem,
   ImageGenerationResponse,
   ImageGenerationSettings,
+  GenericImageGenerationResponse,
 } from './models/image-gen-models';
 import { SelectItem } from './models/settings-models';
 import { VideoScene } from './models/scene-models';
@@ -33,7 +34,7 @@ export const IMAGE_MODEL_NAME = 'imagen-3.0-generate-001';
 export function getNewImageSettings(): ImageGenerationSettings {
   const imageGenSettings = {
     prompt: '',
-    numImages: 4,
+    numImages: 2,
     aspectRatio: '16:9',
     outputMimeType: 'image/png',
     compressionQuality: 75,
@@ -177,16 +178,23 @@ export function getImageReferenceTypes(): SelectItem[] {
 }
 
 export function findSceneResponse(
-  resps: ImageGenerationResponse[],
+  resps: ImageGenerationResponse[] | GenericImageGenerationResponse[],
   scene: VideoScene,
 ) {
-  return resps.filter((resp: ImageGenerationResponse) => {
-    return resp.scene_id === scene.id;
-  });
+  return resps.filter(
+    (resp: ImageGenerationResponse | GenericImageGenerationResponse) => {
+      if ('scene_id' in resp) {
+        // ImageGenerationResponse has scene_id
+        return resp.scene_id === scene.id;
+      } else {
+        return resp.id === scene.id;
+      }
+    },
+  );
 }
 
 export function updateScenesWithGeneratedImages(
-  resps: ImageGenerationResponse[],
+  resps: ImageGenerationResponse[] | GenericImageGenerationResponse[],
   scenes: VideoScene[],
 ) {
   let executionStatus = {
@@ -196,7 +204,7 @@ export function updateScenesWithGeneratedImages(
   scenes.forEach((scene: VideoScene) => {
     const respsFound = findSceneResponse(resps, scene);
     // Update scenes with generated images.
-    if (respsFound.length) {
+    if (respsFound.length > 0) {
       const response = respsFound[0];
       if (response.done) {
         // Setup the images used.

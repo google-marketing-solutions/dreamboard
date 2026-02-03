@@ -69,6 +69,7 @@ if confirm "Do you wish to proceed?"; then
     echo "${bold}${text_green}──────────────────────────────────────────${reset}"
     echo "${bold}${text_green}Project ID: ${GOOGLE_CLOUD_PROJECT}${reset}"
     echo "${bold}${text_green}Frontend Cloud Run Service Name: ${FRONTEND_CLOUD_RUN_SERVICE_NAME}${reset}"
+    echo "${bold}${text_green}Service Account: ${SERVICE_ACCOUNT}${reset}"
     echo "${bold}${text_green}Backend Cloud Run Service URL: ${BACKEND_CLOUD_RUN_SERVICE_URL}${reset}"
     echo "${bold}${text_green}Location: ${LOCATION}${reset}"
     echo

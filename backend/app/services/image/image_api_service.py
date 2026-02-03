@@ -22,21 +22,22 @@ from the Imagen API.
 import logging
 import os
 import time
+import uuid
 from typing import List
-import traceback
-
 from google import genai
 from google.genai import types
 from models import request_models
-from models.image.image_gen_models import IMAGE_REFERENCE_TYPES, ImageReference
-from utils import get_images_bucket_path
+from models.image import image_request_models
+from models.image import image_gen_models
+import utils
+from google.api_core.exceptions import ResourceExhausted
+from services.storage_service import storage_service
 
-from google.genai.types import GenerateImagesResponse
 
 EDITING_MODEL_NAME = "imagen-3.0-capability-001"
 
 
-class ImageService:
+class ImageAPIService:
   """
   Handles interactions with the Imagen API for image generation and editing.
 
@@ -48,7 +49,7 @@ class ImageService:
 
   def __init__(self):
     """
-    Initializes the ImageService by setting up the Google Generative AI
+    Initializes the ImageAPIService by setting up the Google Generative AI
     client.
 
     The client is configured to use Vertex AI and retrieves project ID and
@@ -60,7 +61,9 @@ class ImageService:
         location=os.getenv("LOCATION"),
     )
 
-  def _create_reference_objects(self, reference_images: List[ImageReference]):
+  def _create_reference_objects(
+      self, reference_images: List[image_gen_models.ImageReference]
+  ):
     """
     Converts a list of custom ImageReference objects into Imagen
     API-compatible reference image objects.
@@ -97,11 +100,11 @@ class ImageService:
       # Map the custom reference type to the corresponding Imagen API
       # reference object.
       match ref.reference_type:
-        case IMAGE_REFERENCE_TYPES.RAW.value:
+        case image_gen_models.IMAGE_REFERENCE_TYPES.RAW.value:
           current_reference = types.RawReferenceImage(
               reference_id=ref.reference_id, reference_image=ref_image
           )
-        case IMAGE_REFERENCE_TYPES.MASK.value:
+        case image_gen_models.IMAGE_REFERENCE_TYPES.MASK.value:
           current_reference = types.MaskReferenceImage(
               reference_id=ref.reference_id,
               reference_image=ref_image,
@@ -111,7 +114,7 @@ class ImageService:
                   segmentation_classes=ref.segmentation_classes,
               ),
           )
-        case IMAGE_REFERENCE_TYPES.STYLE.value:
+        case image_gen_models.IMAGE_REFERENCE_TYPES.STYLE.value:
           current_reference = types.StyleReferenceImage(
               reference_id=ref.reference_id,
               config=types.StyleReferenceConfig(
@@ -119,7 +122,7 @@ class ImageService:
               ),
               reference_image=ref_image,
           )
-        case IMAGE_REFERENCE_TYPES.CONTROLLED.value:
+        case image_gen_models.IMAGE_REFERENCE_TYPES.CONTROLLED.value:
           current_reference = types.ControlReferenceImage(
               reference_id=ref.reference_id,
               config=types.ControlReferenceConfig(
@@ -128,7 +131,7 @@ class ImageService:
               ),
               reference_image=ref_image,
           )
-        case IMAGE_REFERENCE_TYPES.SUBJECT.value:
+        case image_gen_models.IMAGE_REFERENCE_TYPES.SUBJECT.value:
           current_reference = types.SubjectReferenceImage(
               reference_id=ref.reference_id,
               # reference_type=ref.reference_subtype,
@@ -164,13 +167,19 @@ class ImageService:
         scene: A `Scene` object containing all necessary details for image
             generation or editing, including prompts, configuration, and
             potential reference image information.
+
+    Raises:
+        ValueError: If the image generation is filtered due to Responsible AI
+            reasons.
     """
 
     # Determine the Cloud Storage URI for output images.
     if generation_id is None or generation_id == "":
       output_gcs_uri = scene.creative_dir.output_gcs_uri
     else:
-      output_gcs_uri = f"{get_images_bucket_path(generation_id)}/{scene.id}"
+      output_gcs_uri = (
+          f"{utils.get_images_bucket_path(generation_id)}/{scene.id}"
+      )
 
     logging.info("Starting image generation for folder %s...", output_gcs_uri)
 
@@ -252,57 +261,122 @@ class ImageService:
       scene.image_content_type = part.mime_type
       logging.debug("Scene Id: %s, image uri: %s", scene.id, part.gcs_uri)
 
-  def generate_images_for_agent(
-      self, scene: request_models.Scene, output_gcs_uri: str | None = None
-  ) -> GenerateImagesResponse | None:
+  def generate_images_gemini_editor(
+      self,
+      output_gcs_uri: str,
+      image_gen_operation: image_request_models.ImageGenerationOperation,
+  ) -> image_gen_models.GenericImageGenerationResponse:
     """
-    Generates images based on a text prompt using Imagen.
+    Generates images using the Gemini editor based on the provided operation details.
 
     Args:
-
+        output_gcs_uri: The Google Cloud Storage URI where the generated images
+            will be stored.
+        image_gen_operation: An `ImageGenerationOperation` object containing
+            parameters for the image generation task, including the prompt and
+            model configuration.
 
     Returns:
-        A list of image bytes (PNG format) if successful, None otherwise.
+        A `GenericImageGenerationResponse` object detailing the status of the
+        operation and containing the generated images if successful.
     """
-    try:
-      print(
-          f"Generating {scene.creative_dir.number_of_images} image(s) for"
-          f" prompt: '{scene.img_prompt[:100]}...'"
+    client = genai.Client(
+        vertexai=True,
+        project=os.getenv("PROJECT_ID"),
+        location=os.getenv(
+            "GEMINI_IMAGE_MODEL_LOCATION"
+        ),  # Nano Banana region is different...
+    )
+    # Use preview models until release
+    if os.getenv("USE_PREVIEW_GEMINI_IMAGE_MODEL") == "True":
+      image_gen_operation.image_model = (
+          image_request_models.GEMINI_3_PRO_IMAGE_MODEL_NAME_PREVIEW
       )
 
-      # Full list of possible params here:
-      # https://github.com/googleapis/python-aiplatform/blob/667b66587021d37f765ba12aad0b244a00537089/vertexai/vision_models/_vision_models.py#L648
-      # TODO: add ability to do product placement, masks, etc.
-      generate_config_params = {
-          "number_of_images": scene.creative_dir.number_of_images,
-          "output_mime_type": scene.creative_dir.output_mime_type,
-          "person_generation": scene.creative_dir.person_generation,
-          "aspect_ratio": scene.creative_dir.aspect_ratio,
-          "safety_filter_level": scene.creative_dir.safety_filter_level,
-          "output_gcs_uri": output_gcs_uri,
-          "negative_prompt": scene.creative_dir.negative_prompt,
-          "language": scene.creative_dir.language,
-          "output_compression_quality": (
-              scene.creative_dir.output_compression_quality
+    contents = [image_gen_operation.prompt]
+    # Add reference images if any
+    if image_gen_operation.reference_images:
+      for ref_image_obj in image_gen_operation.reference_images:
+        ref_image = types.Part.from_uri(
+            file_uri=ref_image_obj.gcs_uri, mime_type=ref_image_obj.mime_type
+        )
+        contents.append(ref_image)
+
+    retries = 3
+    error = ""
+    response = None
+    for this_retry in range(retries):
+      try:
+        # Call Nano Banana API
+        response = client.models.generate_content(
+            model=image_gen_operation.image_model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_modalities=image_gen_operation.response_modalities,
+                image_config=types.ImageConfig(
+                    aspect_ratio=image_gen_operation.aspect_ratio,
+                    image_size=image_gen_operation.resolution,
+                ),
+                tools=[{"google_search": {}}],
+            ),
+        )
+        break
+      except ResourceExhausted as ex:
+        error = str(ex)
+        logging.error(
+            "QUOTA RETRY for generate_images_gemini_editor: %s. ERROR %s ...",
+            (this_retry + 1),
+            error,
+        )
+        wait = 10 * 2**this_retry
+        time.sleep(wait)
+
+    if not response:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=False,
+          execution_message=(
+              f"The model was not able to generate images: {error}. Please try"
+              " again."
           ),
-          "enhance_prompt": scene.creative_dir.enhance_prompt,
-          "include_rai_reason": False,
-      }
-
-      image_responses = self.client.models.generate_images(
-          model=scene.creative_dir.model,
-          prompt=scene.img_prompt,
-          config=types.GenerateImagesConfig(**generate_config_params),
+          images=[],
       )
 
-      if not image_responses:
-        print("Image generation returned no images.")
-        return None
+    # Process generated images
+    images: list[image_gen_models.Image] = []
+    for part in response.parts:
+      if part.text is not None:
+        print(part.text)
+      elif image := part.as_image():
+        # Since automatic storage is not supported, upload it to GCS
+        format = image.mime_type.split("/")[1]
+        image_name = f"{int(time.time())}.{format}"  # unique image name
+        final_output_gcs_uri = f"{output_gcs_uri}/{image_name}"
+        blob = storage_service.upload_from_bytes(
+            final_output_gcs_uri, image.image_bytes, image.mime_type
+        )
+        gcs_uri = f"{utils.get_images_bucket()}/{blob.name}"
+        img = image_gen_models.Image(
+            id=uuid.uuid4(),
+            name=image_name,
+            gcs_uri=gcs_uri,
+            signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
+            gcs_fuse_path="",
+            mime_type=image.mime_type,
+        )
+        images.append(img)
 
-      # image_bytes_list = [img._image_bytes for img in images_response]
-      # print(f"Successfully generated {len(image_bytes_list)} image(s).")
-      return image_responses
-    except Exception as e:
-      print(f"Error generating image: {str(e)}")
-      traceback.print_exc()
-      return None
+    if images:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=True,
+          execution_message="Images generated successfully!",
+          images=images,
+      )
+    else:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=False,
+          execution_message="Images were not generated. Please try again.",
+          images=[],
+      )

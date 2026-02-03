@@ -49,7 +49,6 @@ import {
 } from '../../models/settings-models';
 import { v4 as uuidv4 } from 'uuid';
 import { deleteElementFromArray } from '../../utils';
-import { ComponentsCommunicationService } from '../../services/components-communication.service';
 import { FilesManagerService } from '../../services/files-manager.service';
 
 @Component({

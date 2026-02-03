@@ -38,21 +38,12 @@ import {
   FormGroup,
   ReactiveFormsModule,
   Validators,
-  AbstractControl,
-  ValidationErrors,
-  ValidatorFn,
 } from '@angular/forms';
-import { Scene, SceneItem } from '../../models/scene-models';
-import { SelectItem } from '../../models/settings-models';
 import {
   getNewVideoScene,
   getVideoFormats,
   VIDEO_MODEL_MAX_LENGTH,
 } from '../../video-utils';
-import { ComponentsCommunicationService } from '../../services/components-communication.service';
-import { openSnackBar } from '../../utils';
-import { TextGenerationService } from '../../services/text-generation.service';
-import { StoriesComponent } from '../stories/stories.component';
 import {
   Story,
   VideoStory,
@@ -60,12 +51,26 @@ import {
   StoriesGenerationRequest,
   ExportStory,
   ExtractTextItem,
+  ExportRecommendedStory,
 } from '../../models/story-models';
-import { UploadedFile, UploadedFileType } from '../../models/settings-models';
-import { VideoScene } from '../../models/scene-models';
-import { v4 as uuidv4 } from 'uuid';
+import { openSnackBar } from '../../utils';
+import { mapCharactersToVideoScene } from '../../story-utils';
+import {
+  Scene,
+  SceneItem,
+  Character,
+  VideoScene,
+} from '../../models/scene-models';
+import { Image } from '../../models/image-gen-models';
+import {
+  SelectItem,
+  UploadedFile,
+  UploadedFileType,
+} from '../../models/settings-models';
 import { FileUploaderComponent } from '../file-uploader/file-uploader.component';
-
+import { ComponentsCommunicationService } from '../../services/components-communication.service';
+import { TextGenerationService } from '../../services/text-generation.service';
+import { RecommendedStoriesComponent } from '../recommended_stories/recommended-stories.component';
 @Component({
   selector: 'app-brainstorm',
   imports: [
@@ -75,7 +80,7 @@ import { FileUploaderComponent } from '../file-uploader/file-uploader.component'
     MatCheckboxModule,
     MatIconModule,
     ReactiveFormsModule,
-    StoriesComponent,
+    RecommendedStoriesComponent,
     FileUploaderComponent,
   ],
   templateUrl: './brainstorm.component.html',
@@ -88,17 +93,18 @@ export class BrainstormComponent implements AfterViewInit {
   private _snackBar = inject(MatSnackBar);
 
   storiesSettingsForm = new FormGroup({
+    numStories: new FormControl(1, [Validators.required]),
     creativeBriefIdea: new FormControl('', [Validators.required]),
     targetAudience: new FormControl('', [Validators.required]),
     brandGuidelines: new FormControl('', []),
     videoFormat: new FormControl('', [Validators.required]),
     numScenes: new FormControl(1, [Validators.required]),
-    generateInitialImageForScenes: new FormControl(false, []),
+    extractCharacters: new FormControl(false, []),
   });
 
   constructor(
     private componentsCommunicationService: ComponentsCommunicationService,
-    private textGenerationService: TextGenerationService
+    private textGenerationService: TextGenerationService,
   ) {}
 
   /**
@@ -108,9 +114,19 @@ export class BrainstormComponent implements AfterViewInit {
    */
   ngAfterViewInit() {}
 
-  onSelectStoryEvent(story: Story): void {
-    this.selectedStory = story;
-    this.exportStory();
+  /**
+   * Handles the selection of a recommended story.
+   * It updates the selected story and triggers the export process.
+   * @param {ExportRecommendedStory} exportRecommendedStory - The selected story and export options.
+   */
+  onSelectStoryEvent(exportRecommendedStory: ExportRecommendedStory): void {
+    this.selectedStory = exportRecommendedStory.story;
+    const useGeminiEditorModel: boolean =
+      this.storiesSettingsForm.get('extractCharacters')?.value!;
+    this.exportStory(
+      exportRecommendedStory.generateInitialImageForScenes,
+      useGeminiEditorModel,
+    );
   }
 
   /**
@@ -129,6 +145,12 @@ export class BrainstormComponent implements AfterViewInit {
     return UploadedFileType.None;
   }
 
+  /**
+   * Handles the file upload event.
+   * It extracts text from the uploaded file (Creative Brief or Brand Guidelines)
+   * and populates the corresponding form fields with the extracted data.
+   * @param {UploadedFile} file - The uploaded file object.
+   */
   addUploadedFile(file: UploadedFile) {
     openSnackBar(this._snackBar, `Extracting file information...`);
 
@@ -145,16 +167,16 @@ export class BrainstormComponent implements AfterViewInit {
             openSnackBar(
               this._snackBar,
               `File information extracted successfully!`,
-              10
+              10,
             );
             if (file.type === UploadedFileType.CreativeBrief) {
               this.storiesSettingsForm.controls['creativeBriefIdea'].setValue(
-                extractedText.data
+                extractedText.data,
               );
             }
             if (file.type === UploadedFileType.BrandGuidelines) {
               this.storiesSettingsForm.controls['brandGuidelines'].setValue(
-                extractedText.data
+                extractedText.data,
               );
             }
           }
@@ -169,9 +191,9 @@ export class BrainstormComponent implements AfterViewInit {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
@@ -183,19 +205,24 @@ export class BrainstormComponent implements AfterViewInit {
    * to switch to the Scene Builder tab.
    * @returns {void}
    */
-  exportStory(): void {
-    const generateImages = this.storiesSettingsForm.get(
-      'generateInitialImageForScenes'
-    )?.value!;
-
+  exportStory(generateImages: boolean, useGeminiEditorModel: boolean): void {
     if (generateImages) {
       openSnackBar(
         this._snackBar,
-        'Exporting story and generating initial images for scenes... Please wait.'
+        'Exporting story and generating initial images for scenes... Please wait.',
       );
     } else {
       openSnackBar(this._snackBar, 'Exporting story... Please wait.');
     }
+
+    // Not used for now
+    const allCharacterImages: Image[] = this.selectedStory.allCharacters
+      .map((character: Character) => {
+        return character.image;
+      })
+      .filter((image: Image | undefined) => {
+        return image !== undefined;
+      });
 
     // Convert suggested scenes to video scenes for Scene Builder
     const videoScenes: VideoScene[] = this.selectedStory.scenes.map(
@@ -205,8 +232,38 @@ export class BrainstormComponent implements AfterViewInit {
         videoScene.id = scene.id;
         videoScene.description = scene.description;
         videoScene.imageGenerationSettings.prompt = scene.imagePrompt;
+        videoScene.videoGenerationSettings.prompt = scene.videoPrompt;
+        videoScene.characters = scene.characters;
+
+        // Add all character images to image library for each scene
+        // so users can use them to improve story consistency
+        const sceneCharacterImages = scene.characters
+          .map((character: Character) => {
+            // Create new image reference to avoid images for all scenes to change at the same time
+            // in scene builder
+            let newImage: Image | undefined = undefined;
+            if (character.image) {
+              newImage = {
+                id: character.image.id,
+                name: character.image.name,
+                gcsUri: character.image.gcsUri,
+                signedUri: character.image.signedUri,
+                gcsFusePath: character.image.gcsFusePath,
+                mimeType: character.image.mimeType,
+              };
+            }
+            return newImage;
+          })
+          .filter((image: Image | undefined) => {
+            return image !== undefined;
+          });
+        // Add all character images to image library for each scene
+        videoScene.imageGenerationSettings.generatedImages.push(
+          ...sceneCharacterImages,
+        );
+
         return videoScene;
-      }
+      },
     );
 
     const exportedStory: VideoStory = {
@@ -218,6 +275,8 @@ export class BrainstormComponent implements AfterViewInit {
       scenes: videoScenes,
       generatedVideos: [],
       owner: localStorage.getItem('user')!,
+      created_at: '', // Will be added in the backend,
+      updated_at: '', // Will be added in the backend,
       shareWith: [],
     };
 
@@ -225,12 +284,19 @@ export class BrainstormComponent implements AfterViewInit {
       story: exportedStory,
       replaceExistingStoryOnExport: true,
       generateInitialImageForScenes: generateImages,
+      useGeminiEditorModel: useGeminiEditorModel,
     };
 
     this.componentsCommunicationService.storyExported(exportStory);
     this.componentsCommunicationService.tabChanged(2);
   }
 
+  /**
+   * Initiates the story generation process.
+   * It gathers parameters from the form, calls the text generation service,
+   * and updates the list of stories with the generated results.
+   * @returns {void}
+   */
   generateStories(): void {
     openSnackBar(this._snackBar, 'Generating stories... Please wait.');
 
@@ -240,26 +306,40 @@ export class BrainstormComponent implements AfterViewInit {
         openSnackBar(
           this._snackBar,
           `Recommended stories generated successfully!`,
-          15
+          15,
         );
-        this.stories = generatedStories.map((genStory: StoryItem) => {
+        this.stories = generatedStories.map((generatedStory: StoryItem) => {
           const story: Story = {
-            id: uuidv4(),
-            title: genStory.title,
-            description: genStory.description,
-            brandGuidelinesAdherence: genStory.brand_guidelines_adherence,
-            abcdAdherence: genStory.abcd_adherence,
+            id: generatedStory.id,
+            title: generatedStory.title,
+            description: generatedStory.description,
+            brandGuidelinesAdherence: generatedStory.brand_guidelines_adherence,
+            abcdAdherence: generatedStory.abcd_adherence,
+            allCharacters: [],
             scenes: [],
           };
-          story.scenes = genStory.scenes.map((genScene: SceneItem) => {
-            const scene: Scene = {
-              id: uuidv4(),
-              number: genScene.number,
-              description: genScene.description,
-              imagePrompt: genScene.image_prompt,
-            };
-            return scene;
-          });
+
+          story.allCharacters = mapCharactersToVideoScene(
+            generatedStory.all_characters,
+          );
+
+          // Add scenes
+          story.scenes = generatedStory.scenes.map(
+            (generatedScene: SceneItem) => {
+              const scene: Scene = {
+                id: generatedScene.id,
+                description: generatedScene.description,
+                imagePrompt: generatedScene.image_prompt,
+                videoPrompt: generatedScene.video_prompt,
+                characters: [],
+              };
+              // Add characters
+              scene.characters = mapCharactersToVideoScene(
+                generatedScene.characters,
+              );
+              return scene;
+            },
+          );
           return story;
         });
       },
@@ -273,31 +353,43 @@ export class BrainstormComponent implements AfterViewInit {
         console.error(errorMessage);
         openSnackBar(
           this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
+          `ERROR: ${errorMessage}. Please try again.`,
         );
-      }
+      },
     );
   }
 
+  /**
+   * Constructs the `StoriesGenerationRequest` object based on the current form values.
+   * @returns {StoriesGenerationRequest} The request object for story generation.
+   */
   getStoriesGenerationParams(): StoriesGenerationRequest {
     const videoFormat = this.storiesSettingsForm.get('videoFormat')?.value!;
     const storiesGenerationRequest: StoriesGenerationRequest = {
-      num_stories: 3, // Default to 3 for now
+      num_stories: this.storiesSettingsForm.get('numStories')?.value!,
       creative_brief_idea:
         this.storiesSettingsForm.get('creativeBriefIdea')?.value!,
       target_audience: this.storiesSettingsForm.get('targetAudience')?.value!,
       brand_guidelines: this.storiesSettingsForm.get('brandGuidelines')?.value!,
       video_format: videoFormat,
       num_scenes: this.calculateNumScenesByVideoFormatType(videoFormat),
+      extract_characters:
+        this.storiesSettingsForm.get('extractCharacters')?.value!,
     };
 
     return storiesGenerationRequest;
   }
 
+  /**
+   * Calculates the number of scenes based on the selected video format.
+   * If the format is 'other', it uses the user-specified number of scenes.
+   * @param {string} formatType - The selected video format type.
+   * @returns {number} The calculated number of scenes.
+   */
   calculateNumScenesByVideoFormatType(formatType: string): number {
     // Return custom numScenes if 'Other' video format was selected
-    if(this.storiesSettingsForm.get('videoFormat')?.value === 'other') {
-      return this.storiesSettingsForm.get('numScenes')?.value!
+    if (this.storiesSettingsForm.get('videoFormat')?.value === 'other') {
+      return this.storiesSettingsForm.get('numScenes')?.value!;
     }
 
     const videoFormat = this.videoFormats.filter((format: SelectItem) => {
@@ -306,7 +398,7 @@ export class BrainstormComponent implements AfterViewInit {
     // Calculate num of scenes based on video format length
     if (videoFormat.length > 0) {
       const numScenes = Math.round(
-        videoFormat[0].field1 / VIDEO_MODEL_MAX_LENGTH
+        videoFormat[0].field1 / VIDEO_MODEL_MAX_LENGTH,
       );
       return numScenes;
     }
@@ -323,12 +415,15 @@ export class BrainstormComponent implements AfterViewInit {
     return !this.storiesSettingsForm.valid;
   }
 
+  /**
+   * Handles the change event for the video format selection.
+   * Resets the number of scenes if the format is not 'other'.
+   * @param {MatSelectChange} event - The selection change event.
+   */
   onVideoFormatChange(event: MatSelectChange) {
     if (event.value !== 'other') {
       // Reset numScenes form control to 1 on change
-      this.storiesSettingsForm.controls['numScenes'].setValue(
-        1
-      );
+      this.storiesSettingsForm.controls['numScenes'].setValue(1);
     }
   }
 }
