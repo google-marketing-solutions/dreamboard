@@ -26,7 +26,7 @@ import utils
 import functools
 from models import request_models
 from models.image import image_request_models
-from models.image.image_gen_models import Image, ImageGenerationResponse
+from models.image import image_gen_models
 from services.image.image_api_service import ImageAPIService
 
 
@@ -45,14 +45,14 @@ class ImageGenerator:
 
   def generate_images_from_scenes(
       self, story_id: str, image_requests: image_request_models.ImageRequest
-  ) -> list[ImageGenerationResponse]:
+  ) -> list[image_gen_models.ImageGenerationResponse]:
     """
     Generates images based on the provided request parameters for multiple
     scenes.
 
     This is the main entry point for batch image generation or editing.
     It prepares scenes, calls the image generation service, and then
-    formats the results into a list of `ImageGenerationResponse` objects.
+    formats the results into a list of `image_gen_models.ImageGenerationResponse` objects.
 
     Args:
         story_id: The unique identifier for the story.
@@ -60,7 +60,7 @@ class ImageGenerator:
                         all scenes to be processed.
 
     Returns:
-        A list of `ImageGenerationResponse` objects, each detailing the
+        A list of `image_gen_models.ImageGenerationResponse` objects, each detailing the
         outcome of image generation for a scene.
     """
 
@@ -84,14 +84,14 @@ class ImageGenerator:
       self.image_service.generate_image(story_id, scene)
 
     image_responses = []
-    # Convert the generated scene data into `ImageGenerationResponse`
+    # Convert the generated scene data into `image_gen_models.ImageGenerationResponse`
     # format.
     for scene in segments.scenes:
       final_images = []
       if len(scene.image_uris) < 1:
         # Handle cases where no images were generated for a scene.
         image_responses.append(
-            ImageGenerationResponse(
+            image_gen_models.ImageGenerationResponse(
                 scene_id=scene.id,
                 done=False,
                 operation_name="Generate Images",
@@ -102,7 +102,7 @@ class ImageGenerator:
             )
         )
       else:
-        # Collect `ImageGenerationResponse` for each successfully
+        # Collect `image_gen_models.ImageGenerationResponse` for each successfully
         # generated image.
         for image_uri in scene.image_uris:
           # Construct GCS Fuse path for the image.
@@ -114,7 +114,7 @@ class ImageGenerator:
           gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
 
           # Create an `Image` object with all relevant details.
-          current_image = Image(
+          current_image = image_gen_models.Image(
               id=uuid.uuid4(),
               name=f"{scene_folder_part}/{image_name}",
               gcs_uri=image_uri,
@@ -126,7 +126,7 @@ class ImageGenerator:
 
         # Append the full response for the scene.
         image_responses.append(
-            ImageGenerationResponse(
+            image_gen_models.ImageGenerationResponse(
                 scene_id=scene.id,
                 done=True,
                 operation_name="Generate Images",
@@ -146,8 +146,18 @@ class ImageGenerator:
       self,
       story_id: str,
       image_generation_request: image_request_models.ImageGenerationRequest,
-  ) -> list[ImageGenerationResponse]:
-    """ """
+  ) -> list[image_gen_models.GenericImageGenerationResponse]:
+    """
+    Generates images from scenes using the Gemini editor.
+
+    Args:
+        story_id: The unique identifier for the story.
+        image_generation_request: An `ImageGenerationRequest` object containing
+            parameters for image generation.
+
+    Returns:
+        A list of `GenericImageGenerationResponse` objects detailing the results.
+    """
     logging.info(
         "DreamBoard - IMAGE_GENERATOR: Generating images for story %s",
         story_id,
@@ -169,7 +179,17 @@ class ImageGenerator:
       story_id: str,
       image_generation_operations: image_request_models.ImageGenerationOperation,
   ):
-    """ """
+    """
+    Creates a list of partial functions for image generation tasks.
+
+    Args:
+        story_id: The unique identifier for the story.
+        image_generation_operations: A list of `ImageGenerationOperation` objects
+            defining the individual image generation tasks.
+
+    Returns:
+        A list of partial functions, each representing a ready-to-execute task.
+    """
     tasks = []
     for image_gen_operation in image_generation_operations:
       output_gcs_uri = f"{utils.get_images_bucket_folder_path(story_id)}/{image_gen_operation.id}"

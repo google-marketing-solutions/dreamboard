@@ -19,6 +19,8 @@
  *
  ***************************************************************************/
 
+export const GEMINI_3_PRO_IMAGE_MODEL_NAME = 'gemini-3-pro-image';
+
 export interface Image {
   id: string;
   name: string;
@@ -57,7 +59,7 @@ export interface ImageGenerationSettings {
   editMode?: string;
 }
 
-/* Models for backend interactions */
+/** Models for backend interactions */
 
 export interface ImageCreativeDirection {
   aspect_ratio: string;
@@ -79,8 +81,6 @@ export interface ReferenceImageCard {
   id: string;
 }
 
-/* Models for backend interactions */
-
 export interface ImageItem {
   id: string;
   name: string;
@@ -90,6 +90,7 @@ export interface ImageItem {
   mime_type: string;
 }
 
+/** Models to interact with the Imagen model */
 export interface ImageReferenceItem extends ImageItem {
   reference_id: number;
   reference_type: string; // Image reference flag.
@@ -105,7 +106,6 @@ export interface ImageSceneRequest {
   id: string;
   img_prompt: string;
   image_uri?: string[];
-  /*scene_id?: string[];*/
   creative_dir?: ImageCreativeDirection;
   image_content_type?: string;
   reference_images?: ImageReferenceItem[];
@@ -131,7 +131,7 @@ export interface ImageSceneSegments {
   scenes: ImageSceneRequest[];
 }
 
-export interface ImageGenerationRequest {
+export interface ImageRequest {
   scenes: ImageSceneRequest[];
 }
 
@@ -139,6 +139,30 @@ export interface ImageGenerationResponse {
   scene_id: string;
   done: boolean;
   operation_name: string;
+  execution_message: string;
+  images: ImageItem[];
+}
+
+/** Models to interact with the Gemini Image Editor model (Nano Banana) */
+
+export interface ImageGenerationOperation {
+  id: string;
+  image_model: string;
+  image_gen_task: string; // text-to-image, image-to-image
+  prompt: string;
+  aspect_ratio: string; // "1:1","2:3","3:2","3:4","4:3","4:5","5:4","9:16","16:9","21:9"
+  resolution: string; // "1K", "2K", "4K"
+  response_modalities: string[]; // ["IMAGE", "TEXT"]
+  reference_images: ImageItem[];
+}
+
+export interface ImageGenerationRequest {
+  image_gen_operations: ImageGenerationOperation[];
+}
+
+export interface GenericImageGenerationResponse {
+  id: string;
+  done: boolean;
   execution_message: string;
   images: ImageItem[];
 }

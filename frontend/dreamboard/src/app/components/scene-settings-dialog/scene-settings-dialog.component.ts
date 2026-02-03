@@ -67,8 +67,6 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   sceneId: string = this.dialogData.sceneId;
   scene: VideoScene = this.dialogData.scene;
   scenes: VideoScene[] = this.dialogData.scenes;
-  currentGeneratedImageIndex: number =
-    this.dialogData.currentGeneratedImageIndex;
   @ViewChild(ImageSceneSettingsComponent)
   imageSceneSettingsComponent!: ImageSceneSettingsComponent;
   @ViewChild(VideoSceneSettingsComponent)
@@ -77,8 +75,11 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     sceneDescription: new FormControl('', []),
   });
 
-  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {
-  }
+  /**
+   * Initializes the component with the dialog reference.
+   * @param {MatDialogRef<SceneSettingsDialogComponent>} dialogRef - The reference to the dialog.
+   */
+  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {}
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -90,11 +91,14 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     this.sceneSettingsForm.controls['sceneDescription'].setValue(
       this.scene.description,
     );
-    if (this.imageSceneSettingsComponent) {
-      this.imageSceneSettingsComponent.setImageIndex(this.currentGeneratedImageIndex);
-    }
   }
 
+  /**
+   * Handles the step change event in the stepper.
+   * It ensures that settings from the previous step are saved to the scene object
+   * and initializes the form for the selected step.
+   * @param {StepperSelectionEvent} event - The event object containing the selected index.
+   */
   onStepChange(event: StepperSelectionEvent): void {
     // If moving to image settings index === 0 save video settings
     if (event.selectedIndex === 0) {
@@ -138,12 +142,7 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   save(): void {
     this.updateSceneImageSettings(false);
     this.updateSceneVideoSettings(false);
-    // Send currently selected image and video
-    const data: any = {
-      currentGeneratedImageIndex:
-        this.imageSceneSettingsComponent.currentGeneratedImageIndex,
-    };
-    this.dialogRef.close(data);
+    this.dialogRef.close('closed!');
   }
 
   /**

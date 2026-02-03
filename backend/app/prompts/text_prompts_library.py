@@ -637,11 +637,12 @@ prompts = {
     },
     "CHARACTER_IMAGE_GENERATION": (
         """
-      Generate a neutral, objective passport-style photograph against a seamless, plain pure white studio background. The character must be facing front,
+      Generate a neutral, passport-style photograph against a seamless, plain pure white studio background. The character must be facing front,
       looking directly at the camera with neutral, flat studio lighting. This image must be generated as a literal and precise interpretation based *solely*
       on the specific character details provided in the description below. It is imperative that all aspects of the subject's appearance—including the exact
       facial expression, specific clothing details, pose, physical features, textures, and proportions—adhere strictly to the provided description without any
       deviation, creative additions, artistic reinterpretations, or hallucinations of details not explicitly present in the description.
+      The image background ALWAYS has to be white, no other effects (shadows, boxes, colors) for the image background are stricktly forbidden.
 
       The character description: {character_description}
       """

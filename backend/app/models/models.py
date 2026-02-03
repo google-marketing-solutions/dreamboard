@@ -20,14 +20,25 @@ GEMINI_3_FLASH_MODEL_NAME = "gemini-3-flash"
 GEMINI_3_FLASH_MODEL_NAME_PREVIEW = "gemini-3-flash-preview"
 GEMINI_2_5_FLASH_MODEL_NAME = "gemini-2.5-flash"
 
+
 @dataclass
 class LLMParameters:
   """
-  Class that represents the required params to make a prediction to the LLM.
+  Represents the configuration parameters required to make a prediction request to the LLM.
+
+  Attributes:
+      model_name: The name of the Gemini model to use.
+      location: The Google Cloud location (region) for the model.
+      modality: A dictionary defining the input modality (e.g., text, document).
+      response_modalities: A dictionary defining the expected output modality.
+      system_instructions: System instructions to guide the model's behavior.
+      generation_config: Configuration parameters for generation (temperature, tokens, etc.).
   """
 
-  model_name: str = GEMINI_2_5_FLASH_MODEL_NAME
-  location: str = os.getenv("LOCATION") # for versions <= gemini-2.5-flash, override for >= gemini 3
+  model_name: str = GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+  location: str = os.getenv(
+      "LOCATION"
+  )  # for versions <= gemini-2.5-flash, override for >= gemini 3
   modality: dict = field(default_factory=lambda: {"type": "TEXT"})
   response_modalities: dict = field(default_factory=lambda: {"type": "TEXT"})
   system_instructions: str = ""
@@ -41,7 +52,9 @@ class LLMParameters:
   )
 
   def set_modality(self, modality: dict) -> None:
-    """Sets the modal to use in the LLM
+    """
+    Sets the modality to use in the LLM.
+
     The modality object changes depending on the type.
     For DOCUMENT:
     {
@@ -52,6 +65,8 @@ class LLMParameters:
     {
         "type": "TEXT" # prompt is handled separately
     }
+
+    Args:
+        modality: A dictionary specifying the modality type and associated data.
     """
     self.modality = modality
-

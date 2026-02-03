@@ -37,7 +37,9 @@ def get_template_by_id(id: str):
       found.
   """
 
-  templates = {"default_prompt_generation": """
+  templates = {
+      "default_prompt_generation": (
+          """
             You are a prompt engineer who is an expert at creating prompts
             for text to video models. Your job is to create a high performing
             prompt for the Veo model to generate a video using the provided
@@ -115,6 +117,8 @@ def get_template_by_id(id: str):
             - Example text-to-video prompt: "Silhouette of a man walking in
             collage of cityscapes Glitch camera effect, close up of woman’s
             face speaking, neon colors"
-        """}
+        """
+      )
+  }
 
   return templates.get(id)

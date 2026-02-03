@@ -27,9 +27,21 @@ from pydantic import BaseModel
 
 
 class StoriesGenerationRequest(BaseModel):
-  """Represents a request to generate stories"""
+  """
+  Represents a request to generate stories based on a creative brief.
 
-  num_stories: int = 1  # Default to 3 for now
+  Attributes:
+      num_stories: The number of stories to generate (default is 1).
+      creative_brief_idea: The core idea or concept for the stories.
+      target_audience: The intended audience for the stories.
+      brand_guidelines: Optional text describing brand guidelines to follow.
+      video_format: The desired format for the video (e.g., "16:9", "Shorts").
+      num_scenes: The number of scenes to generate per story.
+      extract_characters: A boolean indicating whether to extract and generate
+                          character details and images (default is False).
+  """
+
+  num_stories: int = 1  # Default to 1 for now
   creative_brief_idea: str
   target_audience: str
   brand_guidelines: str | None = None

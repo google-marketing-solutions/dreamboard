@@ -23,13 +23,24 @@ items and the structured responses from text generation APIs.
 from dataclasses import dataclass
 from models.image import image_gen_models
 
+
 @dataclass
 class Character:
-  """"""
+  """
+  Represents a character in a story or scene.
+
+  Attributes:
+      id: The unique identifier for the character.
+      name: The name of the character.
+      description: A textual description of the character.
+      image: An optional `Image` object representing the character's visual appearance.
+  """
+
   id: str
   name: str
   description: str
   image: image_gen_models.Image | None = None
+
 
 @dataclass
 class SceneItem:
@@ -38,13 +49,11 @@ class SceneItem:
   generation model.
 
   Attributes:
-      id: The ID of the scene.
+      id: The unique identifier for the scene.
       description: A textual description of the scene's content.
-      brand_guidelines_alignment: An optional field indicating how well
-                                  the scene aligns with specified brand
-                                  guidelines.
-      image_prompt: An optional image prompt derived from the scene
-                    description.
+      image_prompt: An optional image prompt derived from the scene description.
+      video_prompt: An optional video prompt derived from the scene description.
+      characters: A list of `Character` objects appearing in the scene.
   """
 
   id: str
@@ -56,13 +65,25 @@ class SceneItem:
 
 @dataclass
 class StoryItem:
-  """Represents a story"""
+  """
+  Represents a generated story containing multiple scenes and characters.
+
+  Attributes:
+      id: The unique identifier for the story.
+      title: The title of the story.
+      description: A brief summary or description of the story.
+      brand_guidelines_adherence: A text explaining how the story adheres to brand guidelines.
+      abcd_adherence: A text explaining how the story adheres to ABCD guidelines.
+      all_characters: A list of all unique `Character` objects in the story.
+      scenes: A list of `SceneItem` objects that make up the story.
+  """
 
   id: str
   title: str
   description: str
   brand_guidelines_adherence: str
   abcd_adherence: str
+  all_characters: list[Character]
   scenes: list[SceneItem]
 
 

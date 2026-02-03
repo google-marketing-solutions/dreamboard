@@ -22,6 +22,7 @@ including brainstorming scenes and enhancing prompts.
 
 import logging
 import uuid
+import os
 from models.text import text_gen_models
 from models.text import text_request_models
 from models.image import image_gen_models
@@ -48,13 +49,34 @@ class TextGenerator:
       self,
       stories_generation_request: text_request_models.StoriesGenerationRequest,
   ) -> list[text_gen_models.StoryItem]:
-    """Branstorms stories based on user inputs"""
+    """
+    Brainstorms stories based on user inputs.
+
+    Args:
+        stories_generation_request: A `StoriesGenerationRequest` object containing
+            parameters for story generation, including the creative brief idea,
+            target audience, and optional brand guidelines.
+
+    Returns:
+        A list of `text_gen_models.StoryItem` objects, each representing a generated story.
+    """
     if stories_generation_request.creative_brief_idea is None:
       # TODO: use default prompt from prompt library instead.
       return "No Creative Brief idea."
 
     # Define LLM parameters, including the response schema.
     llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     if stories_generation_request.brand_guidelines:
       prompt_template = text_prompts_library.prompts["STORIES_GENERATION"]
       prompt_args = {
@@ -103,6 +125,7 @@ class TextGenerator:
                 "brand_guidelines_adherence"
             ),
             abcd_adherence=story_data.get("abcd_adherence"),
+            all_characters=[],
             scenes=[],
         )
         # Process Scenes in story
@@ -114,10 +137,10 @@ class TextGenerator:
               video_prompt=scene_data.get("video_prompt"),
               characters=[],
           )
-          # Process characters in story COMMENT THIS FOR NOW
+          # Process characters in story
           for character_data in scene_data.get("characters", []):
             character_item = text_gen_models.Character(
-                id=uuid.uuid4(),
+                id="",  # empty here, will be filled out later with unique character id
                 name=character_data.get("name"),
                 description=character_data.get("description"),
             )
@@ -127,11 +150,37 @@ class TextGenerator:
 
         stories.append(story_item)
 
+      # Extract characters, generate images and update scenes
       if stories_generation_request.extract_characters:
         for story in stories:
-          unique_characters = self.extract_characters_from_story(story)
-          self.generate_character_images(
-              story.id, unique_characters, story.scenes
+          # 1. Identify unique characters, generate ids for each
+          unique_characters = self.extract_unique_characters_from_story(story)
+          # NOTE: This array is not used for now
+          story.all_characters = [
+              unique_characters.get(c_name).get("character")
+              for c_name in unique_characters
+          ]
+          # 2. Generate images for unique characters
+          responses: list[image_gen_models.GenericImageGenerationResponse] = (
+              self.generate_character_images(
+                  story.id,
+                  unique_characters,
+              )
+          )
+          # 3. Update character ids in each scene with unique scene ids + prev gen character ids
+          self.update_character_ids_with_unique_scene_character_ids(
+              story, unique_characters
+          )
+          # 4. Find characters in scene and update them with generated unique character images
+          self.process_and_assign_generated_images_for_characters(
+              responses, unique_characters, story.scenes
+          )
+      else:
+        # Still update character IDs
+        for story in stories:
+          unique_characters = self.extract_unique_characters_from_story(story)
+          self.update_character_ids_with_unique_scene_character_ids(
+              story, unique_characters
           )
 
       logging.info(
@@ -145,10 +194,47 @@ class TextGenerator:
 
     return stories
 
-  def extract_characters_from_story(
+  def update_character_ids_with_unique_scene_character_ids(
+      self,
+      story: text_gen_models.StoryItem,
+      unique_characters: dict[str, text_gen_models.Character],
+  ):
+    """
+    Updates character IDs within scenes to be unique per scene.
+
+    This ensures that if a character appears in multiple scenes, they have a
+    distinct ID for that specific scene occurrence, formatted as
+    "{scene_id}@{character_id}".
+
+    Args:
+        story: The `StoryItem` object containing the scenes and characters.
+        unique_characters: A dictionary of unique characters found in the story.
+    """
+    for scene in story.scenes:
+      for character in scene.characters:
+        if str(character.id) in unique_characters:
+          # Generate unique id for each character in scene
+          # using scene id + character id
+          scene_character_id = f"{scene.id}@{character.id}"
+          character.id = scene_character_id
+
+  def extract_unique_characters_from_story(
       self, story: text_gen_models.StoryItem
   ) -> dict[str, text_gen_models.Character]:
-    """"""
+    """
+    Identifies and extracts unique characters from a story based on their names.
+
+    Iterates through all scenes in the story to find unique characters. It assigns
+    a new UUID to the first occurrence of a character and reuses it for subsequent
+    occurrences.
+
+    Args:
+        story: The `StoryItem` object to extract characters from.
+
+    Returns:
+        A dictionary where keys are character IDs (str) and values are dictionaries
+        containing the `Character` object and a list of scene IDs where they appear.
+    """
     # 1. Identify unique characters in story by name
     unique_characters = {}
     found_characters = {}
@@ -165,7 +251,9 @@ class TextGenerator:
         else:
           # Assign id of existing character
           character.id = found_characters.get(character.name).id
-          unique_characters[str(character.id)]["found_in_scenes"].append(str(scene.id))
+          unique_characters[str(character.id)]["found_in_scenes"].append(
+              str(scene.id)
+          )
 
     return unique_characters
 
@@ -173,9 +261,20 @@ class TextGenerator:
       self,
       story_id: str,
       unique_characters: dict[str, text_gen_models.Character],
-      scenes: list[text_gen_models.SceneItem],
-  ) -> None:
-    """"""
+  ) -> list[image_gen_models.GenericImageGenerationResponse]:
+    """
+    Generates images for unique characters in the story.
+
+    Constructs image generation requests for each unique character based on their
+    description and sends them to the image generator.
+
+    Args:
+        story_id: The unique identifier for the story.
+        unique_characters: A dictionary of unique characters to generate images for.
+
+    Returns:
+        A list of `GenericImageGenerationResponse` objects containing the results.
+    """
     image_gen_request = image_request_models.ImageGenerationRequest(
         image_gen_operations=[]
     )
@@ -186,7 +285,9 @@ class TextGenerator:
       prompt_template = text_prompts_library.prompts[
           "CHARACTER_IMAGE_GENERATION"
       ]
-      prompt_args = {"character_description": character_info.get("character").description}
+      prompt_args = {
+          "character_description": character_info.get("character").description
+      }
       prompt = prompt_template.format(**prompt_args)
       image_gen_request.image_gen_operations.append(
           image_request_models.ImageGenerationOperation(
@@ -208,6 +309,25 @@ class TextGenerator:
         story_id, image_gen_request
     )
 
+    return responses
+
+  def process_and_assign_generated_images_for_characters(
+      self,
+      responses: list[image_gen_models.GenericImageGenerationResponse],
+      unique_characters: dict[str, text_gen_models.Character],
+      scenes: list[text_gen_models.SceneItem],
+  ):
+    """
+    Processes generated character images and assigns them to characters in scenes.
+
+    Iterates through the image generation responses, retrieves the generated image,
+    and assigns it to the corresponding character in every scene where they appear.
+
+    Args:
+        responses: A list of `GenericImageGenerationResponse` objects.
+        unique_characters: A dictionary of unique characters.
+        scenes: A list of `SceneItem` objects where the characters appear.
+    """
     # Process responses from Image model
     for response in responses:
       character_id = response.id.split("/")[-1]  # id is in the last position
@@ -218,13 +338,18 @@ class TextGenerator:
         # Update characters with their images for this scene
         found_scene = utils.find_element_by_id(scene_id, scenes)
         if found_scene:
+          # Use scene id + character id since this was updated in
+          # update_character_ids_from_scenes_with_unique_character_ids
+          scene_character_id = f"{scene_id}@{character_id}"
           found_character = utils.find_element_by_id(
-              character_id, found_scene.characters
+              scene_character_id, found_scene.characters
           )
           if found_character:
-            found_character.image = (
-                response.images[0] if response.images else None
-            )
+            image = response.images[0] if response.images else None
+            if image:
+              # Need to make this unique per scene, per character for the frontend
+              image.id = f"{scene_character_id}@{image.id}"
+              found_character.image = image
 
   def brainstorm_scenes(
       self, brainstorm_idea: str, brand_guidelines: str, num_scenes: int
@@ -250,6 +375,17 @@ class TextGenerator:
 
     # Define LLM parameters, including the response schema.
     llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     if brand_guidelines:
       llm_params.generation_config["response_schema"] = RESPONSE_SCHEMAS[
           "CREATE_SCENES_WITH_BRAND_GUIDELINES"
@@ -312,6 +448,19 @@ class TextGenerator:
     if scene_description is None:
       return "No image prompt"
 
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     # Format the prompt using the scene description.
     scene_prompt_key = "CREATE_IMAGE_PROMPT_FROM_SCENE"
     prompt = text_prompts_library.prompts["SCENE_GENERATION"][
@@ -320,7 +469,7 @@ class TextGenerator:
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -343,7 +492,20 @@ class TextGenerator:
         A string representing the generated video prompt.
     """
     if scene_description is None:
-      return "No image prompt"
+      return "No video prompt"
+
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
 
     # Format the prompt using the scene description.
     scene_prompt_key = "CREATE_VIDEO_PROMPT_FROM_SCENE"
@@ -352,7 +514,7 @@ class TextGenerator:
     ].format(scene_description=scene_description)
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -377,15 +539,28 @@ class TextGenerator:
     if image_prompt is None:
       return "No image prompt"
 
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     # Format the prompt for enhancement.
-    image_prompt_key = "IMAGE_PROMPT_ENHANCEMENTS"
-    scene_prompts = text_prompts_library.prompts[image_prompt_key]
-    scene_prompt_key = "ENHANCE_IMAGE_PROMPT"
-    prompt = scene_prompts[scene_prompt_key].format(image_prompt=image_prompt)
+    scene_prompts = text_prompts_library.prompts["IMAGE_PROMPT_ENHANCEMENTS"]
+    prompt = scene_prompts["ENHANCE_IMAGE_PROMPT"].format(
+        image_prompt=image_prompt
+    )
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -410,15 +585,27 @@ class TextGenerator:
     if video_prompt is None:
       return "No video prompt"
 
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     # Format the prompt for enhancement.
-    image_prompt_key = "IMAGE_PROMPT_ENHANCEMENTS"
-    scene_prompts = text_prompts_library.prompts[image_prompt_key]
+    scene_prompts = text_prompts_library.prompts["VIDEO_PROMPT_ENHANCEMENTS"]
     scene_prompt_with_key = scene_prompts["ENHANCE_VIDEO_PROMPT"]
     prompt = scene_prompt_with_key.format(video_prompt=video_prompt)
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -446,10 +633,22 @@ class TextGenerator:
     if prompt is None or scene_description is None:
       return "No prompt or scene description"
 
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     # Format the prompt for enhancement with scene context.
-    scene_prompt_key = "ENHANCE_IMAGE_PROMPT_WITH_SCENE"
     image_prompt = text_prompts_library.prompts["IMAGE_PROMPT_ENHANCEMENTS"]
-    prompts = image_prompt[scene_prompt_key]
+    prompts = image_prompt["ENHANCE_IMAGE_PROMPT_WITH_SCENE"]
     prompt_args = {
         "image_prompt": prompt,
         "scene_description": scene_description,
@@ -458,7 +657,7 @@ class TextGenerator:
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -486,10 +685,22 @@ class TextGenerator:
     if prompt is None or scene_description is None:
       return "No prompt or scene description"
 
+    # Define LLM parameters, including the response schema.
+    llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     # Format the prompt for enhancement with scene context.
-    scene_prompt_key = "ENHANCE_VIDEO_PROMPT_WITH_SCENE"
     video_prompt = text_prompts_library.prompts["VIDEO_PROMPT_ENHANCEMENTS"]
-    prompts = video_prompt[scene_prompt_key]
+    prompts = video_prompt["ENHANCE_VIDEO_PROMPT_WITH_SCENE"]
     prompt_args = {
         "video_prompt": prompt,
         "scene_description": scene_description,
@@ -498,7 +709,7 @@ class TextGenerator:
 
     # Execute the Gemini LLM call.
     gemini = gemini_service.gemini_service
-    response = gemini.execute_gemini_with_genai(prompt)
+    response = gemini.execute_gemini_with_genai(prompt, llm_params)
 
     if response and response.parsed:
       return response.parsed
@@ -560,8 +771,19 @@ class TextGenerator:
     prompt_template = text_prompts_library.prompts["BRAND_GUIDELINES"]
     prompt = prompt_template["EXTRACT_BRAND_GUIDELINES"]
 
-    # Define params for the LLM
+    # Define LLM parameters, including the response schema.
     llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
     # Set llm modality to document
     llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})
@@ -592,8 +814,19 @@ class TextGenerator:
     prompt_template = text_prompts_library.prompts["CREATIVE_BRIEF"]
     prompt = prompt_template["EXTRACT_CREATIVE_BRIEF"]
 
-    # Define params for the LLM
+    # Define LLM parameters, including the response schema.
     llm_params = models.LLMParameters()
+
+    # Use preview models while full version is avaiable
+    if os.getenv("USE_PREVIEW_GEMINI_MODEL") == "True":
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME_PREVIEW
+    else:
+      llm_params.model_name = models.GEMINI_3_FLASH_MODEL_NAME
+
+    llm_params.location = os.getenv(
+        "GEMINI_MODEL_LOCATION"
+    )  # 'global' needed for Gemini >= 3
+
     llm_params.system_instructions = prompt_template["SYSTEM_INSTRUCTIONS"]
     # Set llm modality to document
     llm_params.set_modality({"type": "DOCUMENT", "gcs_uri": file_gcs_uri})

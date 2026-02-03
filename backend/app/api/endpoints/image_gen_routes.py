@@ -20,16 +20,14 @@ and storage services, including health checks, image creation, downloads,
 and uploads to Google Cloud Storage.
 """
 
-import datetime
 import logging
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from models.image import image_request_models
-from models.image.image_gen_models import ImageGenerationResponse
-from services import storage_service
+from models.image import image_gen_models
 from services.image.image_generator import ImageGenerator
 
 # Initialize the FastAPI router for image generation endpoints.
@@ -63,7 +61,7 @@ def generate_image(
     story_id: str,
     image_requests: image_request_models.ImageRequest,
     image_generator: ImageServiceDep,
-) -> list[ImageGenerationResponse]:
+) -> list[image_gen_models.ImageGenerationResponse]:
   """
   Generates images based on provided request parameters for a given story.
 
@@ -76,7 +74,7 @@ def generate_image(
                       image generation.
 
   Returns:
-      A list of `ImageGenerationResponse` objects detailing the status
+      A list of `image_gen_models.ImageGenerationResponse` objects detailing the status
       and results of the image generation.
 
   Raises:
@@ -108,7 +106,22 @@ def generate_images_from_scenes_gemini_editor(
     story_id: str,
     image_generation_request: image_request_models.ImageGenerationRequest,
     image_generator: ImageServiceDep,
-) -> list[ImageGenerationResponse]:
+) -> list[image_gen_models.GenericImageGenerationResponse]:
+  """
+  Generates images from scenes using the Gemini editor.
+
+  Args:
+      story_id: The unique identifier for the story.
+      image_generation_request: An `ImageGenerationRequest` object containing
+          parameters for image generation.
+
+  Returns:
+      A list of `image_gen_models.GenericImageGenerationResponse` objects
+      detailing the status and results of the image generation.
+
+  Raises:
+      HTTPException (500): If an unexpected error occurs during image generation.
+  """
 
   try:
     logging.info(

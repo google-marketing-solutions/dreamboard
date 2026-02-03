@@ -12,12 +12,14 @@
         #input
       />
     </mat-form-field>
-    <div>
-      <span
-        ><strong>Note: </strong>The assets will be sent to the video generation
-        model in the order you select them.</span
-      >
-    </div>
+    @if (isSelectionMode) {
+      <div>
+        <span
+          ><strong>Note: </strong>The assets will be sent to the video
+          generation model in the order you select them.</span
+        >
+      </div>
+    }
     <table mat-table [dataSource]="dataSource" matSort>
       <!-- Preview Column -->
       <ng-container matColumnDef="assetPreview">

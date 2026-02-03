@@ -129,13 +129,25 @@ class StorageService:
   def upload_from_bytes(
       self, destination_blob_name: str, contents: bytes, content_type: str
   ):
-    """ """
+    """
+    Uploads data from bytes to a GCS blob.
+
+    Args:
+        destination_blob_name: The name of the destination blob in the bucket.
+        contents: The raw bytes or string content to upload.
+        content_type: The MIME type of the content (e.g., 'image/jpeg').
+
+    Returns:
+        The uploaded GCS blob object.
+    """
     blob = self.bucket.blob(destination_blob_name)
     # Use upload_from_string for raw bytes or strings
     # The content_type argument helps ensure the file is served correctly
     # # in GCS (e.g., 'image/jpeg', 'application/pdf').
     blob.upload_from_string(contents, content_type=content_type)
-    logging.info("Contents successfully uploaded to %s !", destination_blob_name)
+    logging.info(
+        "Contents successfully uploaded to %s !", destination_blob_name
+    )
 
     return blob
 

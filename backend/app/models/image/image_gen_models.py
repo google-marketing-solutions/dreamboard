@@ -128,7 +128,6 @@ class ImageGenerationResponse:
   images: list[Image]
 
 
-
 @dataclass
 class GenericImageGenerationResponse:
   """
@@ -138,11 +137,11 @@ class GenericImageGenerationResponse:
   Attributes:
       id: The ID of the generation.
       done: A boolean flag indicating if the operation is complete.
-      operation_name: The name of the asynchronous operation (e.g., for
-                      polling its status).
       execution_message: Any message or status detail about the execution.
       images: A list of `Image` objects representing the generated images.
   """
 
   id: str
+  done: bool  # to comply with the expected frontend object
+  execution_message: str  # to comply with the expected frontend object
   images: list[Image]

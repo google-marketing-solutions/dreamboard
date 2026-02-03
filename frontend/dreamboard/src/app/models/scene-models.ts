@@ -19,7 +19,7 @@
  *
  ***************************************************************************/
 
-import { ImageGenerationSettings } from './image-gen-models';
+import { ImageGenerationSettings, ImageItem } from './image-gen-models';
 import { VideoGenerationSettings } from './video-gen-models';
 import { Image } from './image-gen-models';
 
@@ -31,25 +31,34 @@ export interface Scene {
   characters: Character[];
 }
 
+export interface Character {
+  id: string;
+  name: string;
+  description: string;
+  image?: Image;
+}
+
 export interface SceneItem {
   id: string;
   description: string;
   image_prompt: string;
   video_prompt: string;
-  characters: Character[];
+  characters: CharacterItem[];
 }
 
-export interface Character {
+export interface CharacterItem {
   id: string;
   name: string;
   description: string;
-  image: Image;
+  image?: ImageItem;
 }
+
 
 export interface VideoScene {
   id: string;
   number: number;
   description: string;
+  characters: Character[];
   imageGenerationSettings: ImageGenerationSettings;
   videoGenerationSettings: VideoGenerationSettings;
 }

@@ -16,34 +16,65 @@
 
 import os
 from google.cloud import firestore
+from datetime import datetime, date
 from typing import Dict, List, Optional
 
+
 class StoryService:
-    def __init__(self):
-        self.db = firestore.Client(project=os.getenv("GCP_PROJECT"), database=os.getenv("FIRESTORE_DB"))
 
-    def save_story(self, user_id: str, story: Dict) -> None:
-        """
-        Saves a story under the given user using its provided 'id'.
-        If the story already exists, it will be overwritten.
-        """
-        story_id = story.get("id")
-        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
-        doc_ref.set(story)
+  def __init__(self):
+    self.db = firestore.Client(
+        project=os.getenv("GCP_PROJECT"), database=os.getenv("FIRESTORE_DB")
+    )
 
-    def get_story(self, user_id: str, story_id: str) -> Optional[Dict]:
-        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            return None
-        data = doc.to_dict()
-        return data
+  def save_story(self, user_id: str, story: Dict) -> None:
+    """
+    Saves a story under the given user using its provided 'id'.
+    If the story already exists, it will be overwritten.
+    """
+    is_new = self.get_story(user_id, story.get("id")) is None
+    now = datetime.now()
+    story_date = now.strftime("%Y-%m-%d %H:%M:%S")
+    if is_new:
+      story["created_at"] = story_date
+      story["updated_at"] = story_date
+    else:
+      story["updated_at"] = story_date
 
-    def list_stories(self, user_id: str) -> List[Dict]:
-        stories_ref = self.db.collection("users").document(user_id).collection("stories")
-        docs = stories_ref.stream()
-        return [{**doc.to_dict(), "id": doc.id} for doc in docs]
+    story_id = story.get("id")
+    doc_ref = (
+        self.db.collection("users")
+        .document(user_id)
+        .collection("stories")
+        .document(story_id)
+    )
+    doc_ref.set(story)
 
-    def delete_story(self, user_id: str, story_id: str) -> None:
-        doc_ref = self.db.collection("users").document(user_id).collection("stories").document(story_id)
-        doc_ref.delete()
+  def get_story(self, user_id: str, story_id: str) -> Optional[Dict]:
+    doc_ref = (
+        self.db.collection("users")
+        .document(user_id)
+        .collection("stories")
+        .document(story_id)
+    )
+    doc = doc_ref.get()
+    if not doc.exists:
+      return None
+    data = doc.to_dict()
+    return data
+
+  def list_stories(self, user_id: str) -> List[Dict]:
+    stories_ref = (
+        self.db.collection("users").document(user_id).collection("stories")
+    )
+    docs = stories_ref.stream()
+    return [{**doc.to_dict(), "id": doc.id} for doc in docs]
+
+  def delete_story(self, user_id: str, story_id: str) -> None:
+    doc_ref = (
+        self.db.collection("users")
+        .document(user_id)
+        .collection("stories")
+        .document(story_id)
+    )
+    doc_ref.delete()

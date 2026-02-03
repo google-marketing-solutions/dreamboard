@@ -95,8 +95,6 @@ class Scene(BaseModel):
                           "image/png".
       creative_dir: An optional `CreativeDirection` object specifying image
                     generation parameters.
-      video_prompt: An optional text prompt for video generation (if
-                    applicable to the scene type).
       reference_images: An optional list of `ImageReference` objects used
                         for image editing operations.
       use_reference_image_for_image: A flag indicating if reference images
@@ -152,7 +150,7 @@ class SceneSegments:
     Adds an image scene to the collection.
 
     Args:
-        scene_num: The scene number for the new scene.
+        scene_id: The unique identifier for the new scene.
         img_prompt: The image prompt for the new scene.
         scene_type: The type of the scene (e.g., IMAGE, VIDEO).
         creative_dir: Optional creative direction for image generation.

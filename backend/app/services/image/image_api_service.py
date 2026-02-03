@@ -30,7 +30,9 @@ from models import request_models
 from models.image import image_request_models
 from models.image import image_gen_models
 import utils
+from google.api_core.exceptions import ResourceExhausted
 from services.storage_service import storage_service
+
 
 EDITING_MODEL_NAME = "imagen-3.0-capability-001"
 
@@ -165,6 +167,10 @@ class ImageAPIService:
         scene: A `Scene` object containing all necessary details for image
             generation or editing, including prompts, configuration, and
             potential reference image information.
+
+    Raises:
+        ValueError: If the image generation is filtered due to Responsible AI
+            reasons.
     """
 
     # Determine the Cloud Storage URI for output images.
@@ -260,11 +266,26 @@ class ImageAPIService:
       output_gcs_uri: str,
       image_gen_operation: image_request_models.ImageGenerationOperation,
   ) -> image_gen_models.GenericImageGenerationResponse:
-    """"""
+    """
+    Generates images using the Gemini editor based on the provided operation details.
+
+    Args:
+        output_gcs_uri: The Google Cloud Storage URI where the generated images
+            will be stored.
+        image_gen_operation: An `ImageGenerationOperation` object containing
+            parameters for the image generation task, including the prompt and
+            model configuration.
+
+    Returns:
+        A `GenericImageGenerationResponse` object detailing the status of the
+        operation and containing the generated images if successful.
+    """
     client = genai.Client(
         vertexai=True,
         project=os.getenv("PROJECT_ID"),
-        location="global",  # Nano Banana region is different...
+        location=os.getenv(
+            "GEMINI_IMAGE_MODEL_LOCATION"
+        ),  # Nano Banana region is different...
     )
     # Use preview models until release
     if os.getenv("USE_PREVIEW_GEMINI_IMAGE_MODEL") == "True":
@@ -281,19 +302,46 @@ class ImageAPIService:
         )
         contents.append(ref_image)
 
-    # Call Nano Banana API
-    response = client.models.generate_content(
-        model=image_gen_operation.image_model,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_modalities=image_gen_operation.response_modalities,
-            image_config=types.ImageConfig(
-                aspect_ratio=image_gen_operation.aspect_ratio,
-                image_size=image_gen_operation.resolution,
+    retries = 3
+    error = ""
+    response = None
+    for this_retry in range(retries):
+      try:
+        # Call Nano Banana API
+        response = client.models.generate_content(
+            model=image_gen_operation.image_model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_modalities=image_gen_operation.response_modalities,
+                image_config=types.ImageConfig(
+                    aspect_ratio=image_gen_operation.aspect_ratio,
+                    image_size=image_gen_operation.resolution,
+                ),
+                tools=[{"google_search": {}}],
             ),
-            tools=[{"google_search": {}}],
-        ),
-    )
+        )
+        break
+      except ResourceExhausted as ex:
+        error = str(ex)
+        logging.error(
+            "QUOTA RETRY for generate_images_gemini_editor: %s. ERROR %s ...",
+            (this_retry + 1),
+            error,
+        )
+        wait = 10 * 2**this_retry
+        time.sleep(wait)
+
+    if not response:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=False,
+          execution_message=(
+              f"The model was not able to generate images: {error}. Please try"
+              " again."
+          ),
+          images=[],
+      )
+
     # Process generated images
     images: list[image_gen_models.Image] = []
     for part in response.parts:
@@ -318,7 +366,17 @@ class ImageAPIService:
         )
         images.append(img)
 
-    return image_gen_models.GenericImageGenerationResponse(
-        id=image_gen_operation.id,
-        images=images,
-    )
+    if images:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=True,
+          execution_message="Images generated successfully!",
+          images=images,
+      )
+    else:
+      return image_gen_models.GenericImageGenerationResponse(
+          id=image_gen_operation.id,
+          done=False,
+          execution_message="Images were not generated. Please try again.",
+          images=[],
+      )

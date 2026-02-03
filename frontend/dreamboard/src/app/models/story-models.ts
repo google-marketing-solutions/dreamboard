@@ -19,7 +19,7 @@
  *
  ***************************************************************************/
 
-import { Scene, SceneItem } from './scene-models';
+import { Character, CharacterItem, Scene, SceneItem } from './scene-models';
 import { VideoScene } from './scene-models';
 import { Video } from './video-gen-models';
 
@@ -29,6 +29,7 @@ export interface Story {
   description: string;
   brandGuidelinesAdherence: string;
   abcdAdherence: string;
+  allCharacters: Character[] // List of all characters in the story, each scene has specific set of characters
   scenes: Scene[];
 }
 
@@ -41,12 +42,20 @@ export interface VideoStory {
   scenes: VideoScene[];
   generatedVideos: Video[];
   owner: string;
+  created_at: string // snake case to comply with the backend
+  updated_at: string // snake case to comply with the backend
   shareWith: string[];
 }
 
 export interface ExportStory {
   story: VideoStory;
   replaceExistingStoryOnExport: boolean;
+  generateInitialImageForScenes: boolean;
+  useGeminiEditorModel: boolean
+}
+
+export interface ExportRecommendedStory {
+  story: Story
   generateInitialImageForScenes: boolean;
 }
 
@@ -68,6 +77,7 @@ export interface StoryItem {
   description: string;
   brand_guidelines_adherence: string;
   abcd_adherence: string;
+  all_characters: CharacterItem[];
   scenes: SceneItem[];
 }
 
