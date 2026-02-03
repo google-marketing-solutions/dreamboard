@@ -21,12 +21,14 @@
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { Image } from './models/image-gen-models';
+import { Video } from './models/video-gen-models';
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 
 export function openSnackBar(
   snackBar: MatSnackBar,
   message: string,
-  duration?: number
+  duration?: number,
 ) {
   if (duration) {
     snackBar.open(message, 'X', {
@@ -46,7 +48,7 @@ export function confirmAction(
   width: string,
   message: string,
   param1: any,
-  func: any
+  func: any,
 ) {
   const dialogRef = confirmDialog.open(ConfirmDialogComponent, {
     width: width,
@@ -87,8 +89,23 @@ export function decodeJwtResponse(token: string) {
       .map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       })
-      .join('')
+      .join(''),
   );
 
   return JSON.parse(jsonPayload);
+}
+
+export function deleteElementFromArray(
+  assetId: string,
+  assets: Image[] | Video[],
+) {
+  let foundIndex = -1;
+  const assetFound = assets.find((asset: Image | Video, index: number) => {
+    foundIndex = index;
+    return asset.id === assetId;
+  });
+
+  if (assetFound && foundIndex !== -1) {
+    assets.splice(foundIndex, 1);
+  }
 }

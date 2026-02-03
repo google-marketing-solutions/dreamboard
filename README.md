@@ -18,6 +18,49 @@ DreamBoard is NOT an officially supported Google product.
 
 Copyright 2025 Google LLC. This solution, including any related sample code or data, is made available on an "as is", "as available", and "with all faults" basis, solely for illustrative purposes, and without warranty or representation of any kind. This solution is experimental, unsupported and provided solely for your convenience. Your use of it is subject to your agreements with Google, as applicable, and may constitute a beta feature as defined under those agreements. To the extent that you make any data available to Google in connection with your use of the solution, you represent and warrant that you have all necessary and appropriate rights, consents and permissions to permit Google to use and process that data. By using any portion of this solution, you acknowledge, assume and accept all risks, known and unknown, associated with its usage, including with respect to your deployment of any portion of this solution in your systems, or usage in connection with your business, if at all.
 
+
+# 🚀 Welcome to DreamBoard
+DreamBoard is evolving. We’ve listened to your feedback and integrated next-generation generative tools to give you unprecedented control over your visual storytelling. With the power of Veo 3.1 and Nano Banana, your creative workflow just got a massive upgrade.
+
+## 🌟 What’s New in Veo 3.1
+We are thrilled to roll out high-fidelity video capabilities that push the boundaries of AI cinematography. While we continue to fully support Veo 3 (including single-image referencing), Veo 3.1 introduces professional-grade tools for your videos.
+
+## 🎥 Extended Narratives
+Tired of the 8-second ceiling? You can now extend your videos up to 140 seconds. This allows for complex storytelling, cinematic pacing, and deep dives into your visual worlds without the constant need for cuts. You can check more details, including the limitations, in the official Veo documentation [here](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/extend-a-veo-video)
+
+## 🖼️ Multi-Image Referencing
+DreamBoard now supports up to 3 reference images to build a single video narrative.
+Combine up to 3 images of a product shot, a specific character, or any object and Veo will preserve consistency. 
+You can check more details, including the limitations, in the official Veo documentation [here](https://ai.google.dev/gemini-api/docs/video?example=dialogue)
+
+## 🔄 Visual Continuity (First/Last Frame)
+Maintain consistency across your shots. By defining both the First and Last Frames, you can guide Veo to showcase products from specific perspectives or ensure a camera movement lands exactly where you need it.
+You can check more details, including the limitations, in the official Veo documentation [here](https://ai.google.dev/gemini-api/docs/video?example=dialogue)
+
+## 🎭 Character Consistency (Powered by Nano Banana)
+One of the most requested features is now live within the BrainStorming tab. Creating a multi-scene story used to mean "rolling the dice" on whether your lead character looked the same in every shot. Not anymore.
+- How it Works:
+    - Gemini Intelligence: When Gemini suggests a story, the tool automatically identifies every character in the script.
+    - Nano Banana Integration: Our new engine generates a consistent visual profile for those characters.
+    - Scene Builder Sync: These consistent character assets are automatically funneled into the Scene Builder as initial images, ensuring your protagonist looks like themselves from the first frame to the last.
+
+## 🛠 Feature Comparison
+Veo 3.1
+ - Max Duration: Extend up to 140 Seconds
+ - Image Referencing: sUp to 3 Images
+ - Framing Control: First & Last Frame
+ - Character: Automatic (supported by Nano Banana)
+
+Veo 3
+ - Max Duration: 8 Seconds
+ - Image Referencing: 1 Image
+ - Framing Control: Single Frame
+ - Character Sync: Manual
+
+### Ready to start building?
+Head over to the Brainstorming tab to see your characters come to life, or jump straight into the Scene Builder to experiment with the new 140-second limit.
+
+
 # Overview
 
 ![DreamBoard Logo](./images/dreamboard_logo.png)

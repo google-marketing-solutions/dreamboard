@@ -1,7 +1,7 @@
 <div class="scene-builder-container">
   @if (story.scenes.length === 0) {
-  <div class="initial-add-scene">
-    <!--div> COMMENTED OUT FOR NOW
+    <div class="initial-add-scene">
+      <!--div> COMMENTED OUT FOR NOW
       <p>Get started by adding a scene!</p>
       <button
         mat-flat-button
@@ -13,100 +13,120 @@
         Add Scene
       </button>
     </div-->
-    <div>
-      <p>Get started by creating a Story!</p>
+      <div>
+        <p>Get started by creating a Story!</p>
+        <button
+          mat-flat-button
+          aria-label="Create Story"
+          (click)="createStory()"
+          [disabled]="exportingScenes"
+        >
+          <mat-icon>add</mat-icon>
+          Create Story
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="header-actions">
+      <button mat-flat-button aria-label="Save Story" (click)="saveStory()">
+        <mat-icon>save</mat-icon>
+        Save Story
+      </button>
+      <button mat-flat-button aria-label="Add Scene" (click)="addScene()">
+        <mat-icon>add</mat-icon>
+        Add Scene
+      </button>
       <button
         mat-flat-button
-        aria-label="Create Story"
-        (click)="createStory()"
-        [disabled]="exportingScenes"
+        aria-label="Generate Videos for All Scenes"
+        (click)="generateVideosFromScenes()"
       >
-        <mat-icon>add</mat-icon>
-        Create Story
+        <mat-icon>videocam</mat-icon>
+        Generate Videos
+      </button>
+      <button mat-flat-button aria-label="Merge" (click)="mergeVideos()">
+        <mat-icon>merge</mat-icon>
+        Merge Videos
       </button>
     </div>
-  </div>
-  } @else {
-  <div class="header-actions">
-    <button mat-flat-button aria-label="Save Story" (click)="saveStory()">
-      <mat-icon>save</mat-icon>
-      Save Story
-    </button>
-    <button mat-flat-button aria-label="Add Scene" (click)="addScene()">
-      <mat-icon>add</mat-icon>
-      Add Scene
-    </button>
-    <button
-      mat-flat-button
-      aria-label="Generate Videos for All Scenes"
-      (click)="generateVideosFromScenes()"
-    >
-      <mat-icon>videocam</mat-icon>
-      Generate Videos
-    </button>
-    <button mat-flat-button aria-label="Merge" (click)="mergeVideos()">
-      <mat-icon>merge</mat-icon>
-      Merge Videos
-    </button>
-  </div>
 
-  <p>Story Title: {{ story.title }}</p>
-  <p class="story-id">Story ID: {{ story.id }}</p>
-  <div class="scenes-container">
-    @for (scene of story.scenes; track scene.id; let i = $index) {
-    <mat-card class="scene-card" appearance="outlined" [id]="scene.id">
-      <mat-card-header>
-        <mat-icon (click)="removeScene($event)">delete</mat-icon>
-        <div mat-card-avatar class="header-image"></div>
-        <mat-card-title>Scene {{ scene.number }}</mat-card-title>
-        <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
-      </mat-card-header>
+    <p>Story Title: {{ story.title }}</p>
+    <p class="story-id">Story ID: {{ story.id }}</p>
+    <div class="scenes-container">
+      @for (scene of story.scenes; track scene.id; let i = $index) {
+        <mat-card class="scene-card" appearance="outlined" [id]="scene.id">
+          <mat-card-header>
+            <mat-icon (click)="removeScene($event)">delete</mat-icon>
+            <div mat-card-avatar class="header-image"></div>
+            <mat-card-title>Scene {{ scene.number }}</mat-card-title>
+            <mat-card-subtitle>Scene ID: {{ scene.id }}</mat-card-subtitle>
+          </mat-card-header>
 
-      @if (scene.imageGenerationSettings.selectedImageForVideo &&
-      !scene.videoGenerationSettings.selectedVideo) {
-      <div class="scene-image">
-        <img
-          mat-card-image
-          [src]="scene.imageGenerationSettings.selectedImageForVideo.signedUri"
-          [alt]="scene.imageGenerationSettings.selectedImageForVideo.name"
-          class="selected-image"
-        />
-      </div>
-      } @else if (!scene.imageGenerationSettings.selectedImageForVideo &&
-      !scene.videoGenerationSettings.selectedVideo) {
-      <div class="scene-image">
-        <p>
-          Edit the scene to upload images <br />
-          or generate them using AI <mat-icon>auto_fix_high</mat-icon>
-        </p>
-      </div>
-      }
+          @if (
+            !exportingScenes &&
+            scene.imageGenerationSettings.generatedImages.length > 0 &&
+            !scene.videoGenerationSettings.selectedVideoForMerge
+          ) {
+            <!-- Show the last one if the index is not correct on init -->
+            <div class="scene-image">
+              <img
+                mat-card-image
+                [src]="
+                  scene.imageGenerationSettings.generatedImages[
+                    scene.imageGenerationSettings.generatedImages.length - 1
+                  ].signedUri
+                "
+                [alt]="
+                  scene.imageGenerationSettings.generatedImages[
+                    scene.imageGenerationSettings.generatedImages.length - 1
+                  ].name
+                "
+                class="selected-image"
+              />
+            </div>
+          } @else if (
+            scene.imageGenerationSettings.generatedImages.length === 0 &&
+            !scene.videoGenerationSettings.selectedVideoForMerge
+          ) {
+            <div class="scene-image">
+              <p>
+                Edit the scene to upload images <br />
+                or generate them using AI <mat-icon>auto_fix_high</mat-icon>
+              </p>
+            </div>
+          }
 
-      <mat-card-content>
-        @if (scene.videoGenerationSettings.selectedVideo) {
-        <div class="gen-video-container">
-          <video controls [id]="'video@' + scene.id">
-            <source
-              [src]="scene.videoGenerationSettings.selectedVideo.signedUri"
-              type="video/mp4"
-            />
-          </video>
-        </div>
+          <mat-card-content>
+            @if (scene.videoGenerationSettings.selectedVideoForMerge) {
+              <div class="gen-video-container">
+                <video controls [id]="'video@' + scene.id">
+                  <source
+                    [src]="
+                      scene.videoGenerationSettings.selectedVideoForMerge
+                        .signedUri
+                    "
+                    type="video/mp4"
+                  />
+                </video>
+              </div>
+            }
+            <h3>Scene {{ scene.number }}</h3>
+            <p class="scene-description">
+              {{ scene.description }}
+            </p>
+          </mat-card-content>
+          <mat-card-actions class="actions">
+            <button mat-button (click)="editScene($event)">EDIT</button>
+          </mat-card-actions>
+        </mat-card>
+        @if (i + 1 < story.scenes.length) {
+          <mat-icon
+            class="transition"
+            (click)="openTransitionsSettingsDialog(i)"
+            >settings</mat-icon
+          >
         }
-        <h3>Scene {{ scene.number }}</h3>
-        <p class="scene-description">
-          {{ scene.description }}
-        </p>
-      </mat-card-content>
-      <mat-card-actions class="actions">
-        <button mat-button (click)="editScene($event)">EDIT</button>
-      </mat-card-actions>
-    </mat-card>
-    @if (i + 1 < story.scenes.length) {
-    <mat-icon class="transition" (click)="openTransitionsSettingsDialog(i)"
-      >settings</mat-icon
-    >
-    } }
-  </div>
+      }
+    </div>
   }
 </div>

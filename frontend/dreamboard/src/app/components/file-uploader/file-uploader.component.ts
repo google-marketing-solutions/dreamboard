@@ -185,7 +185,7 @@ export class FileUploaderComponent {
       this.fileItems = [fileItem]; // Just 1 file for now
       // Upload to server
       this.filesManagerService
-        .uploadFile(this.storyId, this.fileType, formData)
+        .uploadFile(this.storyId, this.sceneId, this.fileType, formData)
         .subscribe(
           (response: any) => {
             if (response.type == HttpEventType.Response) {

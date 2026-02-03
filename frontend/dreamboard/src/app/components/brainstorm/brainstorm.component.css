@@ -31,7 +31,7 @@
     border: 1px dotted rgb(196, 193, 193);
   }
 
-  .stories {
+  .recommended-stories {
     width: 70%;
     padding: 15px;
   }
@@ -53,10 +53,6 @@
     display: flex;
     justify-content: center;
     margin-top: 30px;
-  }
-
-  .generate-images-check {
-    margin-top: 16px;
   }
 }
 

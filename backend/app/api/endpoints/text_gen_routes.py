@@ -26,8 +26,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from models.text import text_request_models
-from models.text.text_gen_models import SceneItem
-from models.text.text_request_models import ExtractTextRequest
+from models.text import text_gen_models
 from services.text.text_generator import TextGenerator
 
 
@@ -59,7 +58,19 @@ def brainstorm_stories(
     brainstorm_stories_request: text_request_models.StoriesGenerationRequest,
     text_generator: TextServiceDep,
 ):
-  """Brainstorms and generates a list of story ideas based on user input."""
+  """
+  Brainstorms and generates a list of story ideas based on user input.
+
+  Args:
+      brainstorm_stories_request: A `StoriesGenerationRequest` object containing
+          parameters for story generation.
+
+  Returns:
+      A list of `text_gen_models.StoryItem` objects, each representing a generated story.
+
+  Raises:
+      HTTPException (500): If an error occurs during story generation.
+  """
   try:
     gen_status = text_generator.brainstorm_stories(brainstorm_stories_request)
   except Exception as ex:
@@ -83,7 +94,7 @@ def brainstorm_stories(
 def brainstorm_scenes(
     brainstorm_scenes_request: text_request_models.BrainstormScenesRequest,
     text_generator: TextServiceDep,
-) -> list[SceneItem]:
+) -> list[text_gen_models.SceneItem]:
   """
   Brainstorms and generates a list of scene ideas based on user input.
 
@@ -96,7 +107,7 @@ def brainstorm_scenes(
                                  and number of scenes.
 
   Returns:
-      A list of `SceneItem` objects, each representing a brainstormed scene.
+      A list of `text_gen_models.SceneItem` objects, each representing a brainstormed scene.
 
   Raises:
       HTTPException (500): If an error occurs during text generation.
@@ -299,7 +310,6 @@ def enhance_video_prompt(
       HTTPException (500): If an error occurs during text generation.
   """
   try:
-    text_generator = TextGenerator()
     gen_status = text_generator.enhance_image_prompt(text_requests.prompt)
   except Exception as ex:
     logging.error(
@@ -441,7 +451,8 @@ def generate_video_prompts_from_scenes(
 
 @text_gen_router.post("/extract_text_from_file")
 async def extract_text_from_file(
-    extract_text_request: ExtractTextRequest,
+    extract_text_request: text_request_models.ExtractTextRequest,
+    text_generator: TextServiceDep,
 ) -> str:
   """Extracts text content from a file located in Google Cloud Storage based on its type.
 
@@ -450,7 +461,7 @@ async def extract_text_from_file(
   extraction logic for each file type.
 
   Args:
-    extract_text_request: An instance of `ExtractTextRequest` containing
+    extract_text_request: An instance of `text_request_models.ExtractTextRequest` containing
       information about the file to be processed, including its type
       (`file_type`) and its GCS URI (`file_gcs_uri`).
 
@@ -463,8 +474,6 @@ async def extract_text_from_file(
       an HTTPException with a 500 status code and the error detail is raised.
   """
   try:
-    text_generator = TextGenerator()
-
     if extract_text_request.file_type == "CreativeBrief":
       creative_brief = text_generator.extract_creative_brief_from_file(
           extract_text_request.file_gcs_uri

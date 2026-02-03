@@ -74,7 +74,7 @@ export class NewStoryDialogComponent {
   constructor(
     private storiesStorageService: StoriesStorageService,
     public dialogRef: MatDialogRef<NewStoryDialogComponent>,
-    private componentsCommunicationService: ComponentsCommunicationService
+    private componentsCommunicationService: ComponentsCommunicationService,
   ) {}
 
   /**
@@ -89,7 +89,7 @@ export class NewStoryDialogComponent {
       this.isEdit = true;
       this.newStorySettingsForm.controls['title'].setValue(this.story.title);
       this.newStorySettingsForm.controls['description'].setValue(
-        this.story.description
+        this.story.description,
       );
     } else {
       this.isEdit = false;
@@ -112,7 +112,6 @@ export class NewStoryDialogComponent {
     const user = localStorage.getItem('user')!;
     this.storiesStorageService.addNewStory(user, story).subscribe(
       (response: string) => {
-        console.log(response);
         openSnackBar(this._snackBar, `Story saved succesfully!`, 15);
         this.dialogRef.close(story);
       },
@@ -126,9 +125,9 @@ export class NewStoryDialogComponent {
         console.error(errorMessage);
         openSnackBar(
           this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
+          `ERROR: ${errorMessage}. Please try again.`,
         );
-      }
+      },
     );
   }
 

@@ -1,0 +1,318 @@
+/***************************************************************************
+ *
+ *  Copyright 2025 Google Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Note that these code samples being shared are not official Google
+ *  products and are not formally supported.
+ *
+ ***************************************************************************/
+
+/**
+ * @fileoverview This component provides a file upload interface, allowing users
+ * to select or drag-and-drop files. It manages the upload process, displays progress
+ * and status, and communicates uploaded file information to other parts of the application.
+ */
+
+import {
+  Component,
+  ViewChild,
+  ElementRef,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subscription } from 'rxjs';
+import { HttpEventType } from '@angular/common/http';
+import { openSnackBar } from '../../utils';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import {
+  UploadedFile,
+  UploadedFileType,
+  UploadStatus,
+} from '../../models/settings-models';
+import { v4 as uuidv4 } from 'uuid';
+import { deleteElementFromArray } from '../../utils';
+import { FilesManagerService } from '../../services/files-manager.service';
+
+@Component({
+  selector: 'app-file-uploader-new',
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+  ],
+  templateUrl: './file-uploader-new.component.html',
+  styleUrl: './file-uploader-new.component.css',
+})
+export class FileUploaderNewComponent {
+  @ViewChild('fileUpload', { static: false }) fileUploadElementRef!: ElementRef;
+  id = uuidv4();
+  @Input() storyId!: string;
+  @Input() sceneId!: string;
+  @Input() fileType!: UploadedFileType;
+  @Input() enableMultipleFiles: boolean = false;
+  fileItems: UploadedFile[] = [];
+  statusIcon: string = '';
+  uploadInProgress: boolean = false;
+  uploadError: boolean = false;
+  uploadSub!: Subscription;
+  @Output() fileUploadedEventNew = new EventEmitter<UploadedFile>();
+  @Output() fileDeletedEventNew = new EventEmitter<UploadedFile>();
+  private _snackBar = inject(MatSnackBar);
+
+  /**
+   * Initializes the component with required services.
+   * @param filesManagerService - Service for handling file uploads.
+   */
+  constructor(private filesManagerService: FilesManagerService) {}
+
+  /**
+   * Sets the visual status of the file uploader based on the provided `UploadStatus`.
+   * It updates `uploadInProgress`, `uploadError`, and `statusIcon` accordingly.
+   * @param {string} status - The current status of the upload, defined by `UploadStatus` enum.
+   * @returns {void}
+   */
+  setUploadStatus(status: string): void {
+    this.uploadInProgress = false;
+    this.uploadError = false;
+    switch (status) {
+      case UploadStatus.InProgress:
+        this.uploadInProgress = true;
+        this.statusIcon = 'file_upload';
+        break;
+      case UploadStatus.Cancel:
+        this.statusIcon = 'cancel';
+        break;
+      case UploadStatus.Error:
+        this.uploadError = true;
+        this.statusIcon = 'error';
+        break;
+      case UploadStatus.Success:
+        this.statusIcon = 'check_circle';
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Triggers the hidden file input click event when the visible upload button is clicked.
+   * @param event - The click event from the button.
+   */
+  clickFileUpload(event: any) {
+    const buttonUploader = event.target.parentElement.parentElement;
+    const div = buttonUploader.parentElement;
+    const inputUploaderId = div.getElementsByTagName('input')[0].click();
+    document.getElementById(inputUploaderId)?.click();
+  }
+
+  /**
+   * Generates a unique ID for the element.
+   * @returns A unique UUID string.
+   */
+  getElementId() {
+    return uuidv4();
+  }
+
+  /**
+   * Retrieves the label for the upload button based on the configured file type.
+   * @returns The label string corresponding to the `fileType`.
+   */
+  getButtonTypeLabel(): string {
+    switch (this.fileType) {
+      case UploadedFileType.ReferenceImage:
+        return 'Reference Image';
+      case UploadedFileType.UserProvidedImage:
+        return 'Your Reference Image';
+      case UploadedFileType.CreativeBrief:
+        return 'Creative Brief';
+      case UploadedFileType.BrandGuidelines:
+        return 'Brand Guidelines';
+      case UploadedFileType.Video:
+        return 'Video';
+      default:
+        console.log(`No file type supported ${this.fileType}.`);
+        return UploadedFileType.None;
+    }
+  }
+
+  /**
+   * Handles files dropped onto the uploader area.
+   * It passes the files to `processFiles` for further handling and upload.
+   * @param {any} files - The file list object from the drop event.
+   * @returns {void}
+   */
+  onFileDropped(files: any): void {
+    this.processFiles(files);
+  }
+
+  /**
+   * Handles files selected via the native file input dialog.
+   * It extracts the selected files and passes them to `processFiles` for handling and upload.
+   * @param {any} event - The DOM event object from the file input change.
+   * @returns {void}
+   */
+  onFileSelected(event: any): void {
+    const files = event.target.files;
+    this.processFiles(files);
+  }
+
+  /**
+   * Handles the deletion of an uploaded file.
+   * Removes the file from the local list and emits an event.
+   * @param fileItem - The file item to be deleted.
+   */
+  onFileDeleted(fileItem: UploadedFile) {
+    deleteElementFromArray(fileItem.id, this.fileItems);
+    this.fileDeletedEventNew.next(fileItem);
+  }
+
+  /**
+   * Processes the selected or dropped files for upload.
+   * For each file, it prepares `FormData`, creates an `UploadedFile` item,
+   * and initiates the upload to the `filesManagerService`.
+   * It updates the upload status and communicates successful uploads.
+   * Currently, it only handles one file by replacing `fileItems`.
+   * @param {File[]} files - An array of `File` objects to be processed and uploaded.
+   * @returns {void}
+   */
+  processFiles(files: File[]): void {
+    this.setUploadStatus(UploadStatus.InProgress);
+    if (!this.enableMultipleFiles) {
+      // Reset files for single uploads
+      this.fileItems = [];
+    }
+    for (const file of files) {
+      // File uploader needs a FormData
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const fileItem: UploadedFile = {
+        sceneId: this.sceneId,
+        id: '', // Updated on upload to the server
+        name: file.name,
+        gcsUri: '', // Updated on upload to the server
+        signedUri: '', // Updated on upload to the server
+        gcsFusePath: '', // Updated on upload to the server
+        mimeType: file.type,
+        type: this.fileType,
+      };
+      openSnackBar(this._snackBar, `Uploading file ${fileItem.name}...`);
+
+      // Upload to server
+      this.filesManagerService
+        .uploadFile(this.storyId, this.sceneId, this.fileType, formData)
+        .subscribe(
+          (response: any) => {
+            if (response.type == HttpEventType.Response) {
+              this.setUploadStatus(UploadStatus.Success);
+              const uploadedFile = response.body;
+              console.log(`File uploaded to server ${uploadedFile.gcs_uri}`);
+              openSnackBar(
+                this._snackBar,
+                `File ${uploadedFile.name} uploaded successfully!`,
+                10,
+              );
+              fileItem.id = uploadedFile.id;
+              fileItem.gcsUri = uploadedFile.gcs_uri;
+              fileItem.signedUri = uploadedFile.signed_uri;
+              fileItem.gcsFusePath = uploadedFile.gcs_fuse_path;
+              this.fileItems.push(fileItem);
+              this.fileUploadedEventNew.emit(fileItem);
+            } else {
+              console.log('Uploading file...');
+            }
+          },
+          (error: any) => {
+            this.uploadInProgress = false;
+            let errorMessage;
+            if (error.error.hasOwnProperty('detail')) {
+              errorMessage = error.error.detail;
+            } else {
+              errorMessage = error.error.message;
+            }
+            console.error(errorMessage);
+            openSnackBar(
+              this._snackBar,
+              `ERROR: ${errorMessage}. Please try again.`,
+            );
+          },
+        );
+    }
+    this.fileUploadElementRef.nativeElement.value = '';
+  }
+
+  /**
+   * Returns the accepted file extensions string for the file input based on the file type.
+   * @returns A comma-separated string of file extensions (e.g., ".png,.jpeg,.jpg").
+   */
+  getAcceptOptions(): string {
+    switch (this.fileType) {
+      case UploadedFileType.ReferenceImage:
+      case UploadedFileType.UserProvidedImage:
+        return '.png,.jpeg,.jpg';
+      case UploadedFileType.CreativeBrief:
+      case UploadedFileType.BrandGuidelines:
+        return '.pdf,.txt';
+      case UploadedFileType.Video:
+        return '.mp4';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Determines whether the upload button should be disabled.
+   * @returns `true` if the button should be disabled, otherwise `false`.
+   */
+  disableUploadButton(): boolean {
+    return false;
+  }
+
+  /**
+   * Formats a given number of bytes into a human-readable file size string (e.g., "10.24 MB").
+   * @param {number} bytes - The number of bytes to format.
+   * @returns {string} The formatted file size string.
+   */
+  getSize(bytes: number): string {
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const size = Math.floor(Math.log(bytes) / Math.log(k));
+    return (
+      parseFloat((bytes / Math.pow(k, size)).toFixed(2)) + ' ' + sizes[size]
+    );
+  }
+
+  /**
+   * Angular lifecycle hook, called when the component is destroyed.
+   * It unsubscribes from the `uploadSub` observable to prevent memory leaks
+   * if an upload is in progress when the component is removed.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.uploadSub) {
+      this.uploadSub.unsubscribe();
+    }
+  }
+}

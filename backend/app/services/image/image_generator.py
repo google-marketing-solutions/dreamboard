@@ -21,146 +21,184 @@ API calls, and the structuring of responses.
 """
 
 import logging
-
+import uuid
 import utils
+import functools
 from models import request_models
 from models.image import image_request_models
-from models.image.image_gen_models import Image, ImageGenerationResponse
-from services.image.image_api_service import ImageService
+from models.image import image_gen_models
+from services.image.image_api_service import ImageAPIService
 
 
 class ImageGenerator:
+  """
+  Manages all image generation and editing tasks using the Imagen API.
+
+  This class provides methods to process image requests, interact with the
+  Imagen API via `ImageAPIService`, and structure the generated image data
+  into usable responses.
+  """
+
+  def __init__(self):
+    """Initializes the ImageGenerator instance."""
+    self.image_service = ImageAPIService()
+
+  def generate_images_from_scenes(
+      self, story_id: str, image_requests: image_request_models.ImageRequest
+  ) -> list[image_gen_models.ImageGenerationResponse]:
     """
-    Manages all image generation and editing tasks using the Imagen API.
+    Generates images based on the provided request parameters for multiple
+    scenes.
 
-    This class provides methods to process image requests, interact with the
-    Imagen API via `ImageService`, and structure the generated image data
-    into usable responses.
+    This is the main entry point for batch image generation or editing.
+    It prepares scenes, calls the image generation service, and then
+    formats the results into a list of `image_gen_models.ImageGenerationResponse` objects.
+
+    Args:
+        story_id: The unique identifier for the story.
+        image_requests: An `ImageRequest` object containing details for
+                        all scenes to be processed.
+
+    Returns:
+        A list of `image_gen_models.ImageGenerationResponse` objects, each detailing the
+        outcome of image generation for a scene.
     """
 
-    def __init__(self):
-        """Initializes the ImageGenerator instance."""
-        self.image_service = ImageService()
+    segments = request_models.SceneSegments()
 
-    def generate_images_from_scene(
-        self, story_id: str, segments: request_models.SceneSegments
-    ):
-        """
-        Processes each scene within a `SceneSegments` object for image
-        generation or editing.
+    # Add each image request scene to the `SceneSegments` collection.
+    for scene in image_requests.scenes:
+      segments.add_image_segment(
+          scene_id=scene.id,
+          scene_type=1,  # Assuming 1 represents an image scene.
+          img_prompt=scene.img_prompt,
+          creative_dir=scene.creative_dir,
+          reference_images=scene.reference_images,
+          use_reference_image_for_image=scene.use_reference_image_for_image,
+          edit_mode=scene.edit_mode,
+      )
 
-        This method iterates through the scenes and calls the `image_service`
-        to generate or edit images for each one.
+    # Execute image generation for all scenes.
+    for scene in segments.scenes:
+      logging.debug("\n%s\n", scene)  # Log the scene details.
+      self.image_service.generate_image(story_id, scene)
 
-        Args:
-            story_id: The unique identifier for the story.
-            segments: A `SceneSegments` object containing the scenes to
-                      process.
-        """
-
-        for scene in segments.get_scenes():
-            logging.debug("\n%s\n", scene)  # Log the scene details.
-            self.image_service.generate_image(story_id, scene)
-
-    def generate_images_from_scenes(
-        self, story_id: str, image_requests: image_request_models.ImageRequest
-    ) -> list[ImageGenerationResponse]:
-        """
-        Generates images based on the provided request parameters for multiple
-        scenes.
-
-        This is the main entry point for batch image generation or editing.
-        It prepares scenes, calls the image generation service, and then
-        formats the results into a list of `ImageGenerationResponse` objects.
-
-        Args:
-            story_id: The unique identifier for the story.
-            image_requests: An `ImageRequest` object containing details for
-                            all scenes to be processed.
-
-        Returns:
-            A list of `ImageGenerationResponse` objects, each detailing the
-            outcome of image generation for a scene.
-        """
-
-        segments = request_models.SceneSegments()
-
-        # Add each image request scene to the `SceneSegments` collection.
-        for image in image_requests.scenes:
-            segments.add_image_segment(
-                scene_num=image.scene_num,
-                scene_type=1,  # Assuming 1 represents an image scene.
-                img_prompt=image.img_prompt,
-                creative_dir=image.creative_dir,
-                reference_images=image.reference_images,
-                use_reference_image_for_image=image.use_reference_image_for_image,
-                edit_mode=image.edit_mode,
+    image_responses = []
+    # Convert the generated scene data into `image_gen_models.ImageGenerationResponse`
+    # format.
+    for scene in segments.scenes:
+      final_images = []
+      if len(scene.image_uris) < 1:
+        # Handle cases where no images were generated for a scene.
+        image_responses.append(
+            image_gen_models.ImageGenerationResponse(
+                scene_id=scene.id,
+                done=False,
+                operation_name="Generate Images",
+                execution_message=(
+                    "Error. No images generated. Please try again."
+                ),
+                images=[],
             )
+        )
+      else:
+        # Collect `image_gen_models.ImageGenerationResponse` for each successfully
+        # generated image.
+        for image_uri in scene.image_uris:
+          # Construct GCS Fuse path for the image.
+          gcs_fuse = utils.get_images_gcs_fuse_path(story_id)
+          scene_folder = utils.get_scene_folder_path_from_uri(uri=image_uri)
+          scene_folder_parts = scene_folder.split("/")
+          scene_folder_part = "".join(scene_folder_parts[1:])
+          image_name = utils.get_file_name_from_uri(image_uri)
+          gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
 
-        # Execute image generation for all scenes.
-        self.generate_images_from_scene(story_id, segments)
+          # Create an `Image` object with all relevant details.
+          current_image = image_gen_models.Image(
+              id=uuid.uuid4(),
+              name=f"{scene_folder_part}/{image_name}",
+              gcs_uri=image_uri,
+              signed_uri=utils.get_signed_uri_from_gcs_uri(image_uri),
+              gcs_fuse_path=gcs_fuse_path,
+              mime_type=scene.image_content_type,
+          )
+          final_images.append(current_image)
 
-        image_responses = []
-
-        # Convert the generated scene data into `ImageGenerationResponse`
-        # format.
-        for scene in segments.get_scenes():
-            final_images = []
-
-            if len(scene.scene_id) < 1:
-                # Handle cases where no images were generated for a scene.
-                image_responses.append(
-                    ImageGenerationResponse(
-                        scene_ids="",
-                        segment_number=scene.scene_num,
-                        done=False,
-                        operation_name="Generate Images",
-                        execution_message=(
-                            "Error. No images generated. Please try again."
-                        ),
-                        images=[],
-                    )
-                )
-            else:
-                # Collect `ImageGenerationResponse` for each successfully
-                # generated image.
-                for i, scene_name in enumerate(scene.scene_id):
-                    # Construct GCS Fuse path for the image.
-                    gcs_fuse = utils.get_images_gcs_fuse_path(story_id)
-                    scene_folder = utils.get_scene_folder_path_from_uri(
-                        uri=scene.image_uri[i]
-                    )
-                    image_name = utils.get_file_name_from_uri(scene.image_uri[i])
-                    gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
-
-                    # Create an `Image` object with all relevant details.
-                    current_image = Image(
-                        name=f"{scene_folder}/{image_name}",
-                        gcs_uri=scene.image_uri[i],
-                        signed_uri=utils.get_signed_uri_from_gcs_uri(
-                            scene.image_uri[i]
-                        ),
-                        gcs_fuse_path=gcs_fuse_path,
-                        mime_type=scene.image_content_type,
-                    )
-
-                    final_images.append(current_image)
-
-                # Append the full response for the scene.
-                image_responses.append(
-                    ImageGenerationResponse(
-                        scene_ids="|".join(id for id in scene.scene_id),
-                        segment_number=scene.scene_num,
-                        done=True,
-                        operation_name="Generate Images",
-                        execution_message="Image generated successfully.",
-                        images=final_images,
-                    )
-                )
-
-        logging.debug(
-            "\nPrinting resulting image generation responses: %s\n",
-            str(image_responses),
+        # Append the full response for the scene.
+        image_responses.append(
+            image_gen_models.ImageGenerationResponse(
+                scene_id=scene.id,
+                done=True,
+                operation_name="Generate Images",
+                execution_message="Image generated successfully.",
+                images=final_images,
+            )
         )
 
-        return image_responses
+    logging.debug(
+        "\nPrinting resulting image generation responses: %s\n",
+        str(image_responses),
+    )
+
+    return image_responses
+
+  def generate_images_from_scenes_gemini_editor(
+      self,
+      story_id: str,
+      image_generation_request: image_request_models.ImageGenerationRequest,
+  ) -> list[image_gen_models.GenericImageGenerationResponse]:
+    """
+    Generates images from scenes using the Gemini editor.
+
+    Args:
+        story_id: The unique identifier for the story.
+        image_generation_request: An `ImageGenerationRequest` object containing
+            parameters for image generation.
+
+    Returns:
+        A list of `GenericImageGenerationResponse` objects detailing the results.
+    """
+    logging.info(
+        "DreamBoard - IMAGE_GENERATOR: Generating images for story %s",
+        story_id,
+    )
+
+    # 1. Generate image generation tasks to execute in parallel
+    image_gen_tasks = self.get_image_generation_tasks(
+        story_id,
+        image_generation_request.image_gen_operations,
+    )
+
+    # 2. Generate images using Nano Banana
+    image_gen_responses = utils.execute_tasks_in_parallel(image_gen_tasks)
+
+    return image_gen_responses
+
+  def get_image_generation_tasks(
+      self,
+      story_id: str,
+      image_generation_operations: image_request_models.ImageGenerationOperation,
+  ):
+    """
+    Creates a list of partial functions for image generation tasks.
+
+    Args:
+        story_id: The unique identifier for the story.
+        image_generation_operations: A list of `ImageGenerationOperation` objects
+            defining the individual image generation tasks.
+
+    Returns:
+        A list of partial functions, each representing a ready-to-execute task.
+    """
+    tasks = []
+    for image_gen_operation in image_generation_operations:
+      output_gcs_uri = f"{utils.get_images_bucket_folder_path(story_id)}/{image_gen_operation.id}"
+      tasks.append(
+          functools.partial(
+              self.image_service.generate_images_gemini_editor,
+              output_gcs_uri,
+              image_gen_operation,
+          )
+      )
+
+    return tasks

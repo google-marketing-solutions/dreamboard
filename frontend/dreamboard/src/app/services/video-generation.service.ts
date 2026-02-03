@@ -24,6 +24,8 @@ import { HttpClient } from '@angular/common/http';
 import {
   VideoGenerationRequest,
   VideoGenerationResponse,
+  VideoMergeRequest,
+  VideoMergeResponse,
 } from '../models/video-gen-models';
 import { environment } from '../../environments/environment';
 
@@ -50,12 +52,12 @@ export class VideoGenerationService {
     );
   }
 
-  mergeVideos(story_id: string, videoGeneration: VideoGenerationRequest) {
+  mergeVideos(story_id: string, videoMergeRequest: VideoMergeRequest) {
     const requestBody = {
       url: `${this.BASE_URL}/merge_videos/${story_id}`,
-      options: { method: 'POST', data: videoGeneration },
+      options: { method: 'POST', data: videoMergeRequest },
     };
-    return this.http.post<VideoGenerationResponse>(
+    return this.http.post<VideoMergeResponse>(
       `${this.PROXY_URL}/api/handleRequest`,
       requestBody
     );

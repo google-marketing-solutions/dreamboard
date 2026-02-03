@@ -19,6 +19,13 @@
  *
  ***************************************************************************/
 
+import { Image } from './models/image-gen-models';
+import {
+  Character,
+  CharacterItem,
+  SceneItem,
+  VideoScene,
+} from './models/scene-models';
 import { VideoStory } from './models/story-models';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -32,8 +39,39 @@ export function getNewVideoStory() {
     scenes: [],
     generatedVideos: [],
     owner: localStorage.getItem('user')!,
+    created_at: '', // to comply with the backend
+    updated_at: '', // to comply with the backend
     shareWith: [],
   };
 
   return videoStory;
+}
+
+export function mapCharactersToVideoScene(
+  generatedCharacters: CharacterItem[],
+): Character[] {
+  const characters: Character[] = generatedCharacters.map(
+    (genCharacter: CharacterItem) => {
+      let image: Image | undefined = undefined;
+      if (genCharacter.image) {
+        image = {
+          id: genCharacter.image.id,
+          name: genCharacter.image.name,
+          gcsUri: genCharacter.image.gcs_uri,
+          signedUri: genCharacter.image.signed_uri,
+          gcsFusePath: genCharacter.image.gcs_fuse_path,
+          mimeType: genCharacter.image.mime_type,
+        };
+      }
+      const character: Character = {
+        id: genCharacter.id,
+        name: genCharacter.name,
+        description: genCharacter.description,
+        image: image,
+      };
+      return character;
+    },
+  );
+
+  return characters;
 }

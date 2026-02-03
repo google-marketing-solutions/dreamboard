@@ -21,10 +21,19 @@ payloads related to video generation, including video segments, creative
 direction, and transitions.
 """
 
+import os
 from enum import Enum
 from typing import Optional, Tuple, Union
 from models.image.image_gen_models import Image
 from pydantic import BaseModel, Field
+
+
+VEO_3_1_MODEL_NAME = "veo-3.1-generate-001"
+VEO_3_1_MODEL_NAME_PREVIEW = "veo-3.1-generate-preview"
+VEO_3_1_FAST_MODEL_NAME = "veo-3.1-fast-generate-001"
+VEO_3_1_FAST_MODEL_NAME_PREVIEW = "veo-3.1-fast-generate-preview"
+VEO_3_MODEL_NAME = "veo-3.0-generate-001"
+VEO_3_FAST_MODEL_NAME = "veo-3.0-fast-generate-001"
 
 
 class VideoTransition(Enum):
@@ -111,30 +120,19 @@ class VideoTransitionRequest(BaseModel):
   type: VideoTransition | None = "X_FADE"
 
 
-class VideoCreativeDirectionRequest(BaseModel):
-  """
-  Represents the overall creative direction for a video generation task.
-
-  Attributes:
-      transitions: A list of `VideoTransition` enums. The order in this
-                   list defines the sequence in which transitions will be
-                   applied between video segments. Defaults to an empty list.
-  """
-
-  transitions: list[VideoTransition] | None = []
-
-
 class VideoItem(BaseModel):
   """
   Represents a video asset, typically used as an input or selection.
 
   Attributes:
+      id: The unique identifier for the video.
       name: The name of the video file.
       gcs_uri: The Google Cloud Storage (GCS) URI of the video.
       signed_uri: A pre-signed URL for temporary public access to the video.
       gcs_fuse_path: The FUSE path if the GCS bucket is mounted locally.
       mime_type: The MIME type of the video (e.g., 'video/mp4').
-      duration: The duration of the generated video
+      frame_uris: List of URIs for extracted frames, if any.
+      duration: The duration of the generated video.
   """
 
   id: str
@@ -147,7 +145,18 @@ class VideoItem(BaseModel):
   duration: float
 
 
-class VideoSegmentRequest(BaseModel):
+class VideoGenTasks(Enum):
+  """
+  Defines the different types of video generation tasks.
+  """
+
+  TEXT_TO_VIDEO = "text-to-video"
+  IMAGE_TO_VIDEO = "image-to-video"
+  REFERENCE_TO_VIDEO = "reference-to-video"
+  VIDEO_EXTENSION = "video-extension"
+
+
+class VideoSegmentGenerationOperation(BaseModel):
   """
   Represents a single segment within a larger video generation request.
 
@@ -155,47 +164,35 @@ class VideoSegmentRequest(BaseModel):
   parameters.
 
   Attributes:
-      scene_id: The unique identifier for the scene associated with this
-                video segment.
-      segment_number: The sequential number of this video segment.
-      prompt: The text prompt for generating this video segment.
-      seed_image: An optional `Image` to be used as a visual starting
-                  point for this segment's generation.
-      regenerate_video_segment: A boolean flag indicating if this segment
-                                should be regenerated. Defaults to `False`.
-      duration_in_secs: The desired duration of the video segment in
-                        seconds. Defaults to 8.
-      aspect_ratio: The aspect ratio of the video segment (e.g., "16:9").
-                    Defaults to "16:9".
-      frames_per_sec: The desired frames per second for the video segment.
-                      Defaults to 24.
-      person_generation: Controls the generation of human figures
-                         (e.g., "allow_adult"). Defaults to "allow_adult".
-      output_resolution: The resolution of the generated video.
-      sample_count: The number of video samples to generate for this
-                    segment. Defaults to 1.
-      seed: An optional integer seed for reproducible video generation.
-      negative_prompt: An optional prompt specifying elements to avoid in
-                       the generated video.
-      transition: An optional `VideoTransition` type to apply before
-                  this segment.
-      enhance_prompt: A boolean indicating whether to automatically enhance
-                      the input prompt. Defaults to `True`.
-      use_last_frame: A boolean flag to use the last frame of the previous
-                      segment as a starting point. Defaults to `False`.
-      include_video_segment: A boolean flag to include this segment in the
-                             final video. Defaults to `True`.
-      generate_video_frames: A boolean flag to indicate if individual
-                             frames should be generated. Defaults to `False`.
-      selected_video: An optional `VideoItem` if an existing video is to
-                      be used for this segment.
+      id: The ID of the operation this segment belongs to.
+      video_model: The video model to use for generation.
+      video_gen_task: The specific generation task (e.g., text-to-video).
+      prompt: The text prompt for generation.
+      seed_images: List of seed images for image-to-video generation.
+      duration_in_secs: Duration of the generated video in seconds.
+      aspect_ratio: Aspect ratio of the generated video.
+      frames_per_sec: Frames per second for the generated video.
+      person_generation: Policy for person generation (e.g., "allow_adult").
+      output_resolution: Resolution of the output video.
+      sample_count: Number of videos to generate.
+      seed: Random seed for generation.
+      negative_prompt: Negative prompt to guide generation.
+      generate_audio: Whether to generate audio.
+      enhance_prompt: Whether to enhance the prompt before generation.
+      regenerate_video_segment: Flag to force regeneration of the segment.
+      cut_video: Flag to indicate if the video should be cut.
+      start_seconds: Start time in seconds for cutting.
+      start_frame: Start frame for cutting.
+      end_seconds: End time in seconds for cutting.
+      end_frame: End frame for cutting.
+      selected_videos_for_extension: List of videos selected for extension.
   """
 
-  scene_id: str
-  segment_number: int
+  id: str
+  video_model: str
+  video_gen_task: str
   prompt: str | None = None
-  seed_image: Image | None = None
-  regenerate_video_segment: bool = False
+  seed_images: list[Image] = []
   duration_in_secs: int | None = 8
   aspect_ratio: str | None = "16:9"
   frames_per_sec: int | None = 24
@@ -204,18 +201,15 @@ class VideoSegmentRequest(BaseModel):
   sample_count: int | None = 1
   seed: int | None = None
   negative_prompt: str | None = None
-  transition: VideoTransition | None = None
-  enhance_prompt: bool | None = True
-  use_last_frame: bool | None = False
-  include_video_segment: bool | None = True
-  generate_video_frames: bool | None = False
-  selected_video: VideoItem | None = None
   generate_audio: bool | None = False
+  enhance_prompt: bool | None = True
+  regenerate_video_segment: bool = False
+  cut_video: bool = False
   start_seconds: int | None = 0
   start_frame: int | None = 0
   end_seconds: int | None = 7
   end_frame: int | None = 23
-  cut_video: bool = False
+  selected_videos_for_extension: list[VideoItem] | None = None
 
 
 class VideoGenerationRequest(BaseModel):
@@ -226,15 +220,40 @@ class VideoGenerationRequest(BaseModel):
   creative direction for the video.
 
   Attributes:
-      video_segments: A list of `VideoSegmentRequest` objects, defining
+      video_segments: A list of `VideoSegmentGenerationOperation` objects, defining
                       each part of the video.
-      creative_direction: An optional `VideoCreativeDirectionRequest`
-                          object specifying overall video creative settings.
-                          Currently, this might be empty.
   """
 
-  video_segments: list[VideoSegmentRequest]
-  creative_direction: VideoCreativeDirectionRequest | None = None
+  video_segments: list[VideoSegmentGenerationOperation]
+
+
+class VideoSegmentMergeOperation(BaseModel):
+  """
+  Represents a video segment to be included in a merge operation.
+
+  Attributes:
+      id: The ID of the operation.
+      transition: The transition to apply after this segment.
+      include_video_segment: Whether to include this segment in the merge.
+      selected_video_for_merge: The specific video item selected for merging.
+  """
+
+  id: str
+  transition: VideoTransition | None = None
+  include_video_segment: bool
+  selected_video_for_merge: VideoItem
+
+
+class VideoMergeRequest(BaseModel):
+  """
+  Represents a request to merge multiple video segments into a single video.
+
+  Attributes:
+      video_segments: A list of `VideoSegmentMergeOperation` objects defining
+                      the sequence and transitions for the merge.
+  """
+
+  video_segments: list[VideoSegmentMergeOperation]
 
 
 class LogoOverlayOptions(BaseModel):

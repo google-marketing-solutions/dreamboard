@@ -24,14 +24,13 @@ import logging
 from typing import Annotated
 import os
 import utils
-
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
-from models import request_models
 from models.image.image_gen_models import Image
 from models.video import video_request_models
-from models.video.video_gen_models import VideoGenerationResponse
+from models.video import video_gen_models
 from services.video.frame_extractor_service import FrameExtractorService
 from services.video.video_generator import VideoGenerator
 
@@ -55,45 +54,9 @@ def video_health_check():
   Endpoint to perform a health check for the Dreamboard video service.
 
   Returns:
-      A JSON response indicating the status of the health check.
+      dict: A dictionary indicating the status of the health check.
   """
   return {"status": "Success!"}
-
-
-@video_gen_router.post("/get_default_video_prompt")
-def get_default_video_prompt(
-    scene_segments: list[request_models.SceneSegmentRequest],
-):
-  """
-  Retrieves a default template for video generation prompts.
-
-  Args:
-      scene_segments: A list of `SceneSegmentRequest` objects (currently
-                      unused in this implementation).
-
-  Returns:
-      An empty string as a placeholder for a default video prompt.
-
-  Raises:
-      HTTPException (500): If an unexpected error occurs.
-  """
-  try:
-    # TODO: Implement actual default video prompt generation logic here.
-    return ""
-  except Exception as ex:
-    logging.error(
-        "Dreamboard - VIDEO_GEN_ROUTES-get_default_video_prompt: - ERROR: %s",
-        str(ex),
-    )
-    if os.getenv("USE_AUTH_MIDDLEWARE"):
-      error_response = {
-          "status_code": 500,
-          "error_message": str(ex),
-      }
-      # Workaround to send the actual error message to NodeJS middleware request handler
-      return JSONResponse(content=error_response)
-    else:
-      raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
 @video_gen_router.post("/generate_videos_from_scenes/{story_id}")
@@ -101,21 +64,22 @@ def generate_videos_from_scenes(
     story_id: str,
     video_generation: video_request_models.VideoGenerationRequest,
     video_generator: VideoServiceDep,
-) -> list[VideoGenerationResponse]:
+) -> list[video_gen_models.VideoGenerationResponse]:
   """
   Generates one or more videos using the Veo platform based on scenes.
 
   Args:
-      story_id: The unique identifier for the story.
-      video_generation: A `VideoGenerationRequest` object containing all
-                        parameters required for video creation.
+      story_id (str): The unique identifier for the story.
+      video_generation (video_request_models.VideoGenerationRequest): A
+          `VideoGenerationRequest` object containing all parameters required for
+          video creation.
 
   Returns:
-      A list of `VideoGenerationResponse` objects detailing the results
-      of the video generation process.
+      list[video_gen_models.VideoGenerationResponse]: A list of objects detailing the results
+      of the video generation process for each scene.
 
   Raises:
-      HTTPException (500): If an error occurs during video generation.
+      HTTPException: If an error occurs during video generation (returns 500).
   """
   try:
     logging.info(
@@ -150,23 +114,23 @@ def generate_videos_from_scenes(
 @video_gen_router.post("/merge_videos/{story_id}")
 def merge_videos(
     story_id: str,
-    video_generation: video_request_models.VideoGenerationRequest,
+    video_merge: video_request_models.VideoMergeRequest,
     video_generator: VideoServiceDep,
-) -> VideoGenerationResponse:
+) -> video_gen_models.VideoMergeResponse:
   """
-  Merges a list of previously generated videos into a single video.
+  Merges multiple video segments into a single video.
 
   Args:
-      story_id: The unique identifier for the story.
-      video_generation: A `VideoGenerationRequest` object specifying the
-                        videos to merge and merge parameters.
+      story_id (str): The unique identifier for the story.
+      video_merge (video_request_models.VideoMergeRequest): A request object
+          containing the video segments to be merged.
 
   Returns:
-      A `VideoGenerationResponse` object for the merged video.
+      video_gen_models.VideoMergeResponse: An object containing details of the
+      merged video.
 
   Raises:
-      HTTPException (500): If there are no videos to merge or another
-                           error occurs.
+      HTTPException: If an error occurs during the process (returns 500).
   """
   try:
     logging.info(
@@ -176,11 +140,9 @@ def merge_videos(
         ),
         story_id,
     )
-    video_gen_response = video_generator.merge_videos(
-        story_id, video_generation
-    )
-    if video_gen_response:
-      return video_gen_response
+    video_merge_response = video_generator.merge_videos(story_id, video_merge)
+    if video_merge_response:
+      return video_merge_response
     else:
       # Handle the case where the merge operation returns no video.
       return Response(
@@ -207,21 +169,22 @@ def apply_text_overlay(
     story_id: str,
     text_overlay_request: video_request_models.TextOverlayRequest,
     video_generator: VideoServiceDep,
-) -> VideoGenerationResponse:
+) -> video_gen_models.VideoGenerationResponse:
   """
   Applies one or more text overlays to a specified video.
 
   Args:
-      story_id: The unique identifier for the story.
-      text_overlay_request: A request object containing the video path and
-                            a list of text overlays to apply.
+      story_id (str): The unique identifier for the story.
+      text_overlay_request (video_request_models.TextOverlayRequest): A request
+          object containing the video path and a list of text overlays to
+          apply.
 
   Returns:
-      A `VideoGenerationResponse` object for the new video with the text
-      overlays applied.
+      VideoGenerationResponse: An object containing details of the new video
+      with text overlays applied.
 
   Raises:
-      HTTPException (500): If an error occurs during the process.
+      HTTPException: If an error occurs during the process (returns 500).
   """
   try:
     logging.info(
@@ -254,6 +217,21 @@ def apply_text_overlay(
 
 @video_gen_router.post("/extract_frames")
 def extract_frames(request: video_request_models.FrameExtractionRequest):
+  """
+  Extracts frames from a video at a specific timestamp.
+
+  Args:
+      request (video_request_models.FrameExtractionRequest): A
+          `FrameExtractionRequest` object containing details about the video,
+          timestamp, and number of frames to extract.
+
+  Returns:
+      dict: A dictionary containing a success message and a list of extracted
+      frame objects (including URIs and metadata).
+
+  Raises:
+      HTTPException: If an error occurs during frame extraction (returns 500).
+  """
   try:
 
     frame_extractor = FrameExtractorService()
@@ -274,6 +252,7 @@ def extract_frames(request: video_request_models.FrameExtractionRequest):
       image_name = utils.get_file_name_from_uri(gcs_uri)
       gcs_fuse_path = f"{gcs_fuse}/{scene_folder}/{image_name}"
       image = Image(
+          id=uuid.uuid4(),
           name=image_name,
           gcs_uri=gcs_uri,
           signed_uri=signed_uri,
@@ -310,18 +289,21 @@ def overlay_logo(
     story_id: str,
     logo_overlay_request: video_request_models.LogoOverlayRequest,
     video_generator: VideoServiceDep,
-) -> VideoGenerationResponse:
+) -> video_gen_models.VideoGenerationResponse:
   """
   Applies a logo overlay to a specified video.
+
   Args:
-      story_id: The unique identifier for the story.
-      logo_overlay_request: A request object containing the video path and
-                            a logo overlay to apply.
+      story_id (str): The unique identifier for the story.
+      logo_overlay_request (video_request_models.LogoOverlayRequest): A request
+          object containing the video path and a logo overlay to apply.
+
   Returns:
-      A `VideoGenerationResponse` object for the new video with the logo
-      overlay applied.
+      VideoGenerationResponse: An object containing details of the new video
+      with the logo overlay applied.
+
   Raises:
-      HTTPException (500): If an error occurs during the process.
+      HTTPException: If an error occurs during the process (returns 500).
   """
   try:
     logging.info(

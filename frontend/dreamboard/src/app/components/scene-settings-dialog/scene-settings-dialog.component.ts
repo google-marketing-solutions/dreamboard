@@ -31,6 +31,7 @@ import {
   MatDialogTitle,
   MatDialogContent,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -74,7 +75,11 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
     sceneDescription: new FormControl('', []),
   });
 
-  constructor() {}
+  /**
+   * Initializes the component with the dialog reference.
+   * @param {MatDialogRef<SceneSettingsDialogComponent>} dialogRef - The reference to the dialog.
+   */
+  constructor(public dialogRef: MatDialogRef<SceneSettingsDialogComponent>) {}
 
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
@@ -84,16 +89,22 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
    */
   ngAfterViewInit(): void {
     this.sceneSettingsForm.controls['sceneDescription'].setValue(
-      this.scene.description
+      this.scene.description,
     );
   }
 
+  /**
+   * Handles the step change event in the stepper.
+   * It ensures that settings from the previous step are saved to the scene object
+   * and initializes the form for the selected step.
+   * @param {StepperSelectionEvent} event - The event object containing the selected index.
+   */
   onStepChange(event: StepperSelectionEvent): void {
     // If moving to image settings index === 0 save video settings
-    if(event.selectedIndex === 0) {
+    if (event.selectedIndex === 0) {
       this.updateSceneVideoSettings(true);
     }
-    if(event.selectedIndex === 1) {
+    if (event.selectedIndex === 1) {
       this.updateSceneImageSettings(true);
     }
   }
@@ -131,6 +142,7 @@ export class SceneSettingsDialogComponent implements AfterViewInit {
   save(): void {
     this.updateSceneImageSettings(false);
     this.updateSceneVideoSettings(false);
+    this.dialogRef.close('closed!');
   }
 
   /**

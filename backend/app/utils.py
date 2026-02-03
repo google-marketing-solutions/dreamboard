@@ -173,6 +173,12 @@ def get_scene_folder_path_from_uri(uri: str):
 
 # Images
 
+def get_images_bucket():
+  """
+  Docstring for get_images_bucket
+  """
+  return f"gs://{os.getenv("GCS_BUCKET")}"
+
 
 def get_images_local_base_path(story_id: str):
   """
@@ -590,3 +596,19 @@ def backfill_missing_fields(stories: dict) -> None:
           "image",
           image_generation_settings.get("referenceImages", []),
       )
+
+def find_element_by_id(id: str, elements: list[any]):
+    """"""
+    for element in elements:
+      if str(element.id) == id:
+        return element
+
+    return None
+
+def find_element_by_name(name: str, elements: list[any]):
+    """"""
+    for element in elements:
+      if element.name == name:
+        return element
+
+    return None

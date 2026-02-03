@@ -32,6 +32,7 @@ class Image:
   generation or as an input reference.
 
   Attributes:
+      id: A unique identifier for the image.
       name: An optional name for the image.
       gcs_uri: The Google Cloud Storage (GCS) URI where the image is stored.
       mime_type: The MIME type of the image (e.g., 'image/jpeg', 'image/png').
@@ -40,6 +41,7 @@ class Image:
       image_bytes: The raw bytes of the image, if available in memory.
   """
 
+  id: str
   name: str
   gcs_uri: str
   mime_type: str
@@ -111,9 +113,7 @@ class ImageGenerationResponse:
   editing request to the Imagen API.
 
   Attributes:
-      scene_ids: A string identifier for the overall generation batch.
-      segment_number: An integer indicating the specific segment or part
-                      of a larger generation process.
+      scene_id: The ID of the scene.
       done: A boolean flag indicating if the operation is complete.
       operation_name: The name of the asynchronous operation (e.g., for
                       polling its status).
@@ -121,9 +121,27 @@ class ImageGenerationResponse:
       images: A list of `Image` objects representing the generated images.
   """
 
-  scene_ids: str
-  segment_number: int
+  scene_id: str
   done: bool
   operation_name: str
   execution_message: str
+  images: list[Image]
+
+
+@dataclass
+class GenericImageGenerationResponse:
+  """
+  Represents the structured response received after an image generation or
+  editing request to the Imagen API.
+
+  Attributes:
+      id: The ID of the generation.
+      done: A boolean flag indicating if the operation is complete.
+      execution_message: Any message or status detail about the execution.
+      images: A list of `Image` objects representing the generated images.
+  """
+
+  id: str
+  done: bool  # to comply with the expected frontend object
+  execution_message: str  # to comply with the expected frontend object
   images: list[Image]

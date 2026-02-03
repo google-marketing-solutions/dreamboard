@@ -33,21 +33,28 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { VideoScene } from '../../models/scene-models';
+import { Character, VideoScene } from '../../models/scene-models';
 import {
   VideoGenerationRequest,
-  VideoSegmentRequest,
+  VideoSegmentGenerationOperation,
+  VideoMergeRequest,
+  VideoSegmentMergeOperation,
   VideoGenerationResponse,
+  VideoMergeResponse,
   VideoItem,
   Video,
 } from '../../models/video-gen-models';
 import { ExportStory } from '../../models/story-models';
 import {
+  Image,
   ImageItem,
   ImageSceneRequest,
-  ImageGenerationRequest,
+  ImageRequest,
   ImageCreativeDirection,
   ImageGenerationResponse,
+  GEMINI_3_PRO_IMAGE_MODEL_NAME,
+  ImageGenerationOperation,
+  ImageGenerationRequest,
 } from '../../models/image-gen-models';
 import { openSnackBar } from '../../utils';
 import { validateScenes } from '../../scene-utils';
@@ -83,7 +90,7 @@ export class SceneBuilderComponent {
     private videoGenerationService: VideoGenerationService,
     private imageGenerationService: ImageGenerationService,
     private componentsCommunicationService: ComponentsCommunicationService,
-    private storiesStorageService: StoriesStorageService
+    private storiesStorageService: StoriesStorageService,
   ) {
     componentsCommunicationService.storyExportedSource$.subscribe(
       (exportStory: ExportStory) => {
@@ -91,7 +98,18 @@ export class SceneBuilderComponent {
         this.exportingScenes = true;
         if (exportStory.replaceExistingStoryOnExport) {
           if (exportStory.generateInitialImageForScenes) {
-            this.generateImagesFromScenes(true, exportStory.story.scenes);
+            if (exportStory.useGeminiEditorModel) {
+              // Use Gemini Editor model (Nano Banana) when extracting characters
+              // This is better for consistency using reference images
+              this.generateImagesFromScenesGeminiEditor(
+                true,
+                exportStory.story.scenes,
+              );
+            } else {
+              // Use Imagen model when reference images are not provided
+              // overall image quality is better
+              this.generateImagesFromScenes(true, exportStory.story.scenes);
+            }
           } else {
             openSnackBar(this._snackBar, 'Scenes exported successfully!', 5);
             this.exportingScenes = false;
@@ -99,7 +117,7 @@ export class SceneBuilderComponent {
         } else {
           // TODO (ae) remove?
         }
-      }
+      },
     );
   }
 
@@ -107,22 +125,28 @@ export class SceneBuilderComponent {
    * Opens a dialog for editing the settings of a specific video scene.
    * This dialog allows users to configure image and video generation parameters for the scene.
    * @param {VideoScene} scene - The video scene object to be edited.
+   * @param {string} sceneId - The unique identifier of the scene.
    * @returns {void}
    */
   openSceneSettingsDialog(scene: VideoScene, sceneId: string) {
     const dialogRef = this.sceneSettingsDialog.open(
       SceneSettingsDialogComponent,
       {
-        minWidth: '1200px',
+        minWidth: '98%',
+        minHeight: '98vh',
         data: {
           storyId: this.story.id,
           sceneId: sceneId,
           scene: scene,
-            scenes: this.story.scenes,
+          scenes: this.story.scenes,
         },
         disableClose: true, // Prevents closing on Escape key and backdrop click
-      }
+      },
     );
+    dialogRef.afterClosed().subscribe((data: any) => {
+      // To close the dialog always with the selected image
+      console.log(data);
+    });
   }
 
   /**
@@ -142,7 +166,7 @@ export class SceneBuilderComponent {
           storyId: this.story.id,
           scene: this.story.scenes[transitionIndex],
         },
-      }
+      },
     );
   }
 
@@ -160,6 +184,11 @@ export class SceneBuilderComponent {
     this.story.scenes.push(newScene);
   }
 
+  /**
+   * Navigates the user to the "Create Story" tab (index 0).
+   * This is typically used when the user wants to start a new story from scratch.
+   * @returns {void}
+   */
   createStory() {
     // On Create Story send them to the Stories tab
     this.componentsCommunicationService.tabChanged(0);
@@ -216,7 +245,7 @@ export class SceneBuilderComponent {
     const foundScenes: VideoScene[] = this.story.scenes.filter(
       (scene: VideoScene) => {
         return scene.id === sceneId;
-      }
+      },
     );
     if (foundScenes.length > 0) {
       const scene = foundScenes[0];
@@ -241,7 +270,7 @@ export class SceneBuilderComponent {
         this._snackBar,
         `A video prompt is required for the following scenes since a reference image was not selected. Scenes: ${validations[
           'invalidTextToVideoScenes'
-        ].join(', ')}. Please add a prompt or select an image and try again.`
+        ].join(', ')}. Please add a prompt or select an image and try again.`,
       );
       return;
     }
@@ -250,7 +279,19 @@ export class SceneBuilderComponent {
       openSnackBar(
         this._snackBar,
         `There are not videos to generate since the 'Regenerate video in bulk generation' option was disabled for all videos.
-        Please enable the option and try again.`
+        Please enable the option and try again.`,
+      );
+      return;
+    }
+    // Validate that asset selection is correct for video model and video gen task
+    if (validations['invalidAssetSelection'].length > 0) {
+      openSnackBar(
+        this._snackBar,
+        `The asset selection (images/videos) for video generation is not correct for scenes ${validations[
+          'invalidAssetSelection'
+        ].join(
+          ', ',
+        )}. Please correct the selection for each scene and try again.`,
       );
       return;
     }
@@ -259,13 +300,10 @@ export class SceneBuilderComponent {
       this._snackBar,
       `Generating videos for the following scenes: ${validations[
         'sceneVideosToGenerate'
-      ].join(', ')}. This might take some time...`
+      ].join(', ')}. This might take some time...`,
     );
 
-    const videoGeneration = this.buildVideoGenerationParams(
-      'GENERATE',
-      this.story.scenes
-    );
+    const videoGeneration = this.buildVideoGenerationRequest(this.story.scenes);
     this.videoGenerationService
       .generateVideosFromScenes(this.story.id, videoGeneration)
       .subscribe(
@@ -273,12 +311,12 @@ export class SceneBuilderComponent {
           // Find scenes in responses to update generated videos
           const executionStatus = updateScenesWithGeneratedVideos(
             resps,
-            this.story.scenes
+            this.story.scenes,
           );
           openSnackBar(
             this._snackBar,
             executionStatus['execution_message'],
-            20
+            20,
           );
         },
         (error: any) => {
@@ -291,12 +329,18 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
+  /**
+   * Saves the current story to the storage service.
+   * It retrieves the current user from local storage and sends the story data
+   * to the backend. Displays snackbar messages to indicate success or failure.
+   * @returns {void}
+   */
   saveStory() {
     openSnackBar(this._snackBar, `Saving story...`);
 
@@ -316,9 +360,9 @@ export class SceneBuilderComponent {
         console.error(errorMessage);
         openSnackBar(
           this._snackBar,
-          `ERROR: ${errorMessage}. Please try again.`
+          `ERROR: ${errorMessage}. Please try again.`,
         );
-      }
+      },
     );
   }
 
@@ -339,8 +383,8 @@ export class SceneBuilderComponent {
         `The following scenes do not have a selected video to merge: ${validations[
           'scenesWithNoGeneratedVideo'
         ].join(
-          ', '
-        )}. Please generate and select a video for all scenes and try again.`
+          ', ',
+        )}. Please generate and select a video for all scenes and try again.`,
       );
       return;
     }
@@ -349,7 +393,7 @@ export class SceneBuilderComponent {
       openSnackBar(
         this._snackBar,
         `There are not videos to merge since the 'Include video segment in final video' option was disabled for all videos.
-        Please enable the option and try again.`
+        Please enable the option and try again.`,
       );
       return;
     }
@@ -360,8 +404,8 @@ export class SceneBuilderComponent {
         `The following scenes contain invalid video cut settings: ${validations[
           'invalidScenesCutVideoParams'
         ].join(
-          ', '
-        )}. Please edit the scene, correct the errors highlighted in red and try again.`
+          ', ',
+        )}. Please edit the scene, correct the errors highlighted in red and try again.`,
       );
       return;
     }
@@ -369,19 +413,16 @@ export class SceneBuilderComponent {
     openSnackBar(
       this._snackBar,
       `Merging videos for Scenes: ${validations['sceneVideosToMerge'].join(
-        ', '
-      )}. This might take some time...`
+        ', ',
+      )}. This might take some time...`,
     );
 
-    const videoGeneration = this.buildVideoGenerationParams(
-      'MERGE',
-      this.story.scenes
-    );
+    const videoMergeRequest = this.buildVideoMergeRequest(this.story.scenes);
 
     this.videoGenerationService
-      .mergeVideos(this.story.id, videoGeneration)
+      .mergeVideos(this.story.id, videoMergeRequest)
       .subscribe(
-        (response: VideoGenerationResponse) => {
+        (response: VideoMergeResponse) => {
           if (response && response.videos.length > 0) {
             openSnackBar(this._snackBar, response.execution_message, 10);
             const finalVideoResponse = response.videos[0];
@@ -393,7 +434,6 @@ export class SceneBuilderComponent {
               gcsFusePath: finalVideoResponse.gcs_fuse_path,
               mimeType: finalVideoResponse.mime_type,
               duration: finalVideoResponse.duration,
-              frameUris: [], // TODO (ae) include later
             };
             this.story.generatedVideos = [video];
             // Trigger component communication to share story with generated video on Post Video Production
@@ -411,15 +451,15 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
   /**
    * Initiates the bulk image generation process for the provided video scenes.
-   * It constructs an `ImageGenerationRequest` and sends it to the `ImageGenerationService`.
+   * It constructs an `ImageRequest` and sends it to the `ImageGenerationService`.
    * Updates the scenes with generated images upon successful response.
    * @param {boolean} isExport - True if this generation is part of an export process,
    * which affects snackbar messages and scene replacement.
@@ -441,7 +481,7 @@ export class SceneBuilderComponent {
           // Find scene in responses to update generated images
           const executionStatus = updateScenesWithGeneratedImages(
             images,
-            this.story.scenes
+            this.story.scenes,
           );
         },
         (error: any) => {
@@ -454,86 +494,122 @@ export class SceneBuilderComponent {
           console.error(errorMessage);
           openSnackBar(
             this._snackBar,
-            `ERROR: ${errorMessage}. Please try again.`
+            `ERROR: ${errorMessage}. Please try again.`,
           );
-        }
+        },
       );
   }
 
   /**
-   * Constructs a `VideoGenerationRequest` object based on the provided action
-   * and a list of video scenes. This method filters scenes based on the action
-   * ('GENERATE' or 'MERGE') and populates the request with relevant video segment data,
-   * including selected images and videos.
-   * @param {string} action - The action to perform ('GENERATE' for new videos, 'MERGE' for combining existing ones).
+   * Initiates the image generation process using the Gemini Editor model for the provided video scenes.
+   * It constructs an `ImageGenerationRequest` and sends it to the `ImageGenerationService`.
+   * Updates the scenes with generated images upon successful response.
+   * @param {boolean} isExport - True if this generation is part of an export process.
+   * @param {VideoScene[]} videoScenes - The array of video scenes for which to generate images.
+   * @returns {void}
+   */
+  generateImagesFromScenesGeminiEditor(
+    isExport: boolean,
+    videoScenes: VideoScene[],
+  ): void {
+    const imageGeneration =
+      this.buildImageGenerationParamsGeminiEditor(videoScenes);
+
+    this.imageGenerationService
+      .generateImagesFromScenesGeminiEditor(this.story.id, imageGeneration)
+      .subscribe(
+        (imageGenResponses: ImageGenerationResponse[]) => {
+          if (isExport) {
+            openSnackBar(this._snackBar, `Scenes exported successfully!`, 15);
+            this.story.scenes = videoScenes;
+            this.exportingScenes = false;
+          }
+          // Find scene in responses to update generated images
+          const executionStatus = updateScenesWithGeneratedImages(
+            imageGenResponses,
+            this.story.scenes,
+          );
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`,
+          );
+        },
+      );
+  }
+
+  /**
+   * Constructs a `VideoGenerationRequest` object based on a list of video scenes.
+   * This method iterates through the scenes and creates video generation operations
+   * for scenes marked for regeneration. It populates the request with relevant parameters
+   * such as prompts, duration, aspect ratio, and seed images.
    * @param {VideoScene[]} scenes - The array of `VideoScene` objects to build the request from.
    * @returns {VideoGenerationRequest} The constructed video generation request.
    */
-  buildVideoGenerationParams(
-    action: string,
-    scenes: VideoScene[]
-  ): VideoGenerationRequest {
-    const videoSegments: VideoSegmentRequest[] = [];
+  buildVideoGenerationRequest(scenes: VideoScene[]): VideoGenerationRequest {
+    const videoSegments: VideoSegmentGenerationOperation[] = [];
+
     scenes.forEach((scene: VideoScene) => {
-      // Do not include video segments that meet these conditions
-      if (action === 'GENERATE') {
-        if (!scene.videoGenerationSettings.regenerateVideo) {
-          return false;
-        }
-      } else if (action === 'MERGE') {
-        if (!scene.videoGenerationSettings.includeVideoSegment) {
-          return false;
-        }
-      }
-      // Add selected image
-      let seedImage: ImageItem | undefined = undefined;
-      if (scene.imageGenerationSettings.selectedImageForVideo) {
-        seedImage = {
-          name: scene.imageGenerationSettings.selectedImageForVideo.name,
-          gcs_uri: scene.imageGenerationSettings.selectedImageForVideo.gcsUri,
-          signed_uri:
-            scene.imageGenerationSettings.selectedImageForVideo.signedUri,
-          gcs_fuse_path:
-            scene.imageGenerationSettings.selectedImageForVideo.gcsFusePath,
-          mime_type:
-            scene.imageGenerationSettings.selectedImageForVideo.mimeType,
-        };
-      }
-      // Add selected video
-      let selectedVideo: VideoItem | undefined = undefined;
-      if (scene.videoGenerationSettings.selectedVideo) {
-        selectedVideo = {
-          id: scene.videoGenerationSettings.selectedVideo.id,
-          name: scene.videoGenerationSettings.selectedVideo.name,
-          gcs_uri: scene.videoGenerationSettings.selectedVideo.gcsUri,
-          signed_uri: scene.videoGenerationSettings.selectedVideo.signedUri,
-          gcs_fuse_path:
-            scene.videoGenerationSettings.selectedVideo?.gcsFusePath,
-          mime_type: scene.videoGenerationSettings.selectedVideo.mimeType,
-          duration: scene.videoGenerationSettings.selectedVideo.duration,
-          frames_uris: [],
-        };
+      // Skip this video since it was not selected to regenerate by the user
+      if (!scene.videoGenerationSettings.regenerateVideo) {
+        return false;
       }
 
-      const videoSegment: VideoSegmentRequest = {
-        scene_id: scene.id,
-        segment_number: scene.number,
+      const seedImages =
+        scene.imageGenerationSettings.selectedImagesForVideo.map(
+          (img: Image) => {
+            const seedImage: ImageItem = {
+              id: img.id,
+              name: img.name,
+              signed_uri: img.signedUri,
+              gcs_uri: img.gcsUri,
+              mime_type: img.mimeType,
+              gcs_fuse_path: '', // Empty here, this is generated in the backend
+            };
+            return seedImage;
+          },
+        );
+
+      const selectedVideosForExtension =
+        scene.videoGenerationSettings.selectedVideosForExtension.map(
+          (video: Video) => {
+            const selectedVideoForExtension: VideoItem = {
+              id: video.id,
+              name: video.name,
+              gcs_uri: video.gcsUri,
+              signed_uri: video.signedUri,
+              gcs_fuse_path: video.gcsFusePath,
+              mime_type: video.mimeType,
+              duration: video.duration,
+            };
+            return selectedVideoForExtension;
+          },
+        );
+
+      const videoSegment: VideoSegmentGenerationOperation = {
+        id: scene.id,
+        video_model: scene.videoGenerationSettings.videoModel,
+        video_gen_task: scene.videoGenerationSettings.videoGenTask,
         prompt: scene.videoGenerationSettings.prompt,
-        seed_image: seedImage, // Can be null for text to video generation
+        seed_images: seedImages, // Empty array for text to video generation
         duration_in_secs: scene.videoGenerationSettings.durationInSecs,
         aspect_ratio: scene.videoGenerationSettings.aspectRatio,
         frames_per_sec: scene.videoGenerationSettings.framesPerSec!,
         person_generation: scene.videoGenerationSettings.personGeneration,
+        output_resolution: scene.videoGenerationSettings.outputResolution,
         sample_count: scene.videoGenerationSettings.sampleCount,
         /*seed: scene.videoSettings.seed,*/
         negative_prompt: scene.videoGenerationSettings.negativePrompt,
-        transition: scene.videoGenerationSettings.transition,
         generate_audio: scene.videoGenerationSettings.generateAudio,
         enhance_prompt: scene.videoGenerationSettings.enhancePrompt,
-        use_last_frame: false, // TODO (ae) implement this later
-        include_video_segment:
-          scene.videoGenerationSettings.includeVideoSegment,
-        generate_video_frames: false,
         regenerate_video_segment: scene.videoGenerationSettings.regenerateVideo,
         cut_video: scene.videoGenerationSettings.cutVideo,
         // Conditionally add cut properties if cutVideo is true
@@ -543,32 +619,86 @@ export class SceneBuilderComponent {
           end_seconds: scene.videoGenerationSettings.endSeconds,
           end_frame: scene.videoGenerationSettings.endFrame,
         }),
-        selected_video: selectedVideo,
+        selected_videos_for_extension: selectedVideosForExtension,
       };
       videoSegments.push(videoSegment);
 
       return true;
     });
 
-    const videoGeneration: VideoGenerationRequest = {
+    const videoGenerationRequest: VideoGenerationRequest = {
       video_segments: videoSegments,
-      creative_direction: undefined, // for now
     };
 
-    return videoGeneration;
+    return videoGenerationRequest;
   }
 
   /**
-   * Constructs an `ImageGenerationRequest` object based on a provided list of video scenes.
+   * Constructs a `VideoMergeRequest` object based on a list of video scenes.
+   * This method iterates through the scenes and creates video merge operations
+   * for scenes marked for inclusion. It includes details like the selected video for merging
+   * and the transition type.
+   * @param {VideoScene[]} scenes - The array of `VideoScene` objects to build the request from.
+   * @returns {VideoMergeRequest} The constructed video merge request object.
+   */
+  buildVideoMergeRequest(scenes: VideoScene[]): VideoMergeRequest {
+    const videoSegments: VideoSegmentMergeOperation[] = [];
+
+    scenes.forEach((scene: VideoScene) => {
+      // Skip this video since it was not included by the user for the merge operation
+      if (!scene.videoGenerationSettings.includeVideoSegment) {
+        return false;
+      }
+
+      // Add selected video for merge operation
+      let selectedVideoForMerge: VideoItem | undefined = undefined;
+      if (scene.videoGenerationSettings.selectedVideoForMerge) {
+        selectedVideoForMerge = {
+          id: scene.videoGenerationSettings.selectedVideoForMerge.id,
+          name: scene.videoGenerationSettings.selectedVideoForMerge.name,
+          gcs_uri: scene.videoGenerationSettings.selectedVideoForMerge.gcsUri,
+          signed_uri:
+            scene.videoGenerationSettings.selectedVideoForMerge.signedUri,
+          gcs_fuse_path:
+            scene.videoGenerationSettings.selectedVideoForMerge.gcsFusePath,
+          mime_type:
+            scene.videoGenerationSettings.selectedVideoForMerge.mimeType,
+          duration:
+            scene.videoGenerationSettings.selectedVideoForMerge.duration,
+        };
+      }
+
+      const videoSegment: VideoSegmentMergeOperation = {
+        id: scene.id,
+        transition: scene.videoGenerationSettings.transition,
+        include_video_segment:
+          scene.videoGenerationSettings.includeVideoSegment,
+        selected_video_for_merge: selectedVideoForMerge,
+      };
+
+      videoSegments.push(videoSegment);
+
+      return true;
+    });
+
+    const videoMergeRequest: VideoMergeRequest = {
+      video_segments: videoSegments,
+    };
+
+    return videoMergeRequest;
+  }
+
+  /**
+   * Constructs an `ImageRequest` object based on a provided list of video scenes.
    * This request is used to send to the image generation API, containing the image prompt
    * and creative direction settings for each scene.
    * @param {VideoScene[]} scenes - The array of `VideoScene` objects to build the request from.
-   * @returns {ImageGenerationRequest} The constructed image generation request.
+   * @returns {ImageRequest} The constructed image generation request.
    */
-  buildImageGenerationParams(scenes: VideoScene[]): ImageGenerationRequest {
+  buildImageGenerationParams(scenes: VideoScene[]): ImageRequest {
     const imageScenes = scenes.map((scene: VideoScene) => {
       return {
-        scene_num: scene.number,
+        id: scene.id,
         img_prompt: scene.imageGenerationSettings.prompt,
         creative_dir: {
           number_of_images: scene.imageGenerationSettings.numImages,
@@ -586,10 +716,77 @@ export class SceneBuilderComponent {
       } as ImageSceneRequest;
     });
 
-    const imageGeneration: ImageGenerationRequest = {
+    const imageGeneration: ImageRequest = {
       scenes: imageScenes,
     };
 
     return imageGeneration;
+  }
+
+  /**
+   * Constructs an `ImageGenerationRequest` object for the Gemini Editor model based on a provided list of video scenes.
+   * This request is used to send to the image generation API, containing the image prompt,
+   * reference images (characters), and other generation settings for each scene.
+   * @param {VideoScene[]} scenes - The array of `VideoScene` objects to build the request from.
+   * @returns {ImageGenerationRequest} The constructed image generation request.
+   */
+  buildImageGenerationParamsGeminiEditor(
+    scenes: VideoScene[],
+  ): ImageGenerationRequest {
+    const imageGenOperations = scenes.map((scene: VideoScene) => {
+      let charactersInfo: string = '';
+      const refImages = scene.characters
+        .map((character: Character) => {
+          let imageItem: ImageItem | undefined = undefined;
+          // Check for characters without images
+          if (character.image) {
+            imageItem = {
+              id: character.image.id,
+              name: character.image.name,
+              signed_uri: character.image.signedUri,
+              gcs_uri: character.image.gcsUri,
+              gcs_fuse_path: '',
+              mime_type: character.image.mimeType,
+            };
+          }
+          charactersInfo += `
+            Character Name: ${character.name}
+            Character Description: ${character.description}
+          `;
+          return imageItem;
+        })
+        .filter((refImage) => refImage !== undefined);
+
+      let prompt = scene.imageGenerationSettings.prompt;
+      // Inject image prompt instruction only if refImages > 0
+      // This context helps the model to identify which character is which image
+      if (refImages.length > 0) {
+        const promptInjection: string = `\nUse the following character descriptions to match the correct
+        character with the provided images\n`;
+        prompt = `${prompt} ${promptInjection} ${charactersInfo}`;
+      } else {
+        // If not, just use characters info to provide more text context to the model
+        prompt = `${prompt}  ${charactersInfo}`;
+      }
+
+      const imageGenOperation: ImageGenerationOperation = {
+        id: scene.id,
+        image_model: GEMINI_3_PRO_IMAGE_MODEL_NAME,
+        image_gen_task: 'text-to-image', // default, users can regenerate images and change it in image library
+        prompt: prompt,
+        aspect_ratio: '16:9', // default, users can regenerate images and change it in image library
+        resolution: '4K', // default, users can regenerate images and change it in image library
+        response_modalities: ['IMAGE'],
+        reference_images: refImages,
+      };
+
+      return imageGenOperation;
+    });
+
+    const imageGenerationRequest: ImageGenerationRequest = {
+      image_gen_operations: imageGenOperations,
+    };
+
+    return imageGenerationRequest;
   }
 }

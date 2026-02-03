@@ -24,5 +24,5 @@ table {
 
 .mat-column-description {
   flex: 0 0 40%;
-  width: 35%; /* Redundant but good for clarity */
+  width: 33%; /* Redundant but good for clarity */
 }

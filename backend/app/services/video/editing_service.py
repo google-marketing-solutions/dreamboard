@@ -179,7 +179,7 @@ class EditingService:
 
   def cut_video_segment(
       self,
-      video: video_request_models.VideoSegmentRequest,
+      video: video_request_models.VideoSegmentGenerationOperation,
       video_cut_spec: dict,
   ) -> str:
     """

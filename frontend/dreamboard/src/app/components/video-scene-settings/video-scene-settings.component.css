@@ -25,8 +25,8 @@
   margin: 32px 0px;
 
   .videos {
-    width: 500px;
-    height: 400px;
+    width: 450px;
+    height: 350px;
     background-color: white;
     border: 1px dotted gray;
     margin: auto 8px;
@@ -85,6 +85,19 @@
   }
 }
 
+.item-container-small {
+  display: flex;
+  justify-content: flex-start;
+
+  mat-form-field {
+    width: 30%;
+  }
+
+  button {
+    margin-left: 12px;
+  }
+}
+
 mat-form-field {
   margin-right: 8px;
 }
@@ -107,7 +120,8 @@ p {
 form {
   margin-top: 32px;
 
-  .selected-video {
+  .selected-video-for-merge {
+    margin-top: 40px;
     width: 30%;
   }
 }
@@ -127,5 +141,114 @@ a:hover {
   p {
     font-size: 12px;
     margin-bottom: 15px;
+  }
+}
+
+.assets-selection-container {
+  .assets-from-library {
+    display: flex;
+    justify-content: flex-start;
+    img {
+      max-width: 150px;
+      max-height: 150px;
+      margin: 10px 10px 20px 0px;
+    }
+    video {
+      margin: 10px 0px;
+      max-width: 250px;
+      max-height: 250px;
+    }
+  }
+
+  .max-allowed-warning {
+    margin: 10px 0px;
+    padding: 5px;
+    width: 35%;
+    background-color: rgb(242, 243, 163);
+    span {
+      font-size: 12px;
+    }
+
+    mat-icon {
+      vertical-align: middle;
+    }
+  }
+
+  .image-to-video,
+  .reference-to-video {
+    display: flex;
+    justify-content: flex-start;
+    margin: 10px 0px 30px 0px;
+
+    .uploader-item {
+      border: 1px solid #e1e0e0;
+      text-align: center;
+      padding: 5px;
+      border-radius: 20px;
+      margin-right: 16px;
+      span {
+        font-size: 12px;
+      }
+    }
+
+    button {
+      margin: 20px 12px 0px 12px;
+    }
+
+    span {
+      margin-top: 30px;
+    }
+  }
+}
+
+.library-button-container {
+  margin: 5px 0px 15px 0px;
+}
+
+.asset-item {
+  display: flex;
+  justify-content: flex-start;
+
+  mat-icon {
+    margin: 20px 0px;
+    color: #ba005c;
+    font-size: 16px;
+  }
+}
+
+.selected-assets-for-video {
+  img {
+    margin: 20px 10px 20px 0px;
+    max-width: 250px;
+    max-height: 250px;
+  }
+  video {
+    margin: 10px 10px 20px 0px;
+    max-width: 250px;
+    max-height: 250px;
+  }
+  .assets-list {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .delete-all-assets-container {
+    button {
+      font-size: 10px;
+
+      mat-icon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+.info {
+  span {
+    font-size: 12px;
+  }
+  mat-icon {
+    font-size: 16px;
+    vertical-align: middle;;
   }
 }

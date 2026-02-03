@@ -34,6 +34,7 @@
 import { SceneValidations } from './models/scene-models';
 import { VideoStory } from './models/story-models';
 import { VideoScene } from './models/scene-models';
+import { invalidNumberOfAssetsForVideoGenTask } from './video-utils';
 
 /**
  * Checks if a video has been successfully generated and selected for a given scene.
@@ -44,7 +45,7 @@ import { VideoScene } from './models/scene-models';
 export function isVideoGenerated(scene: VideoScene): boolean {
   return (
     scene.videoGenerationSettings.generatedVideos.length > 0 &&
-    scene.videoGenerationSettings.selectedVideo !== undefined
+    scene.videoGenerationSettings.selectedVideoForMerge !== undefined
   );
 }
 
@@ -55,6 +56,7 @@ export function validateScenes(story: VideoStory): SceneValidations {
     invalidScenesCutVideoParams: [],
     sceneVideosToGenerate: [],
     sceneVideosToMerge: [],
+    invalidAssetSelection: [],
   };
   story.scenes.forEach(async (scene: VideoScene) => {
     // Check if videos are generated and one is selected for merge
@@ -66,7 +68,7 @@ export function validateScenes(story: VideoStory): SceneValidations {
     }
     // Check prompt required
     if (
-      !scene.imageGenerationSettings.selectedImageForVideo &&
+      scene.imageGenerationSettings.selectedImagesForVideo?.length === 0 &&
       !scene.videoGenerationSettings.prompt
     ) {
       // Prompt is required for Text to Video
@@ -74,12 +76,12 @@ export function validateScenes(story: VideoStory): SceneValidations {
     }
     // Check valid cut params for merge operation (invalidScenesCutVideoParams)
     if (
-      scene.videoGenerationSettings.selectedVideo &&
+      scene.videoGenerationSettings.selectedVideoForMerge &&
       scene.videoGenerationSettings.cutVideo
     ) {
-      if (scene.videoGenerationSettings.selectedVideo) {
+      if (scene.videoGenerationSettings.selectedVideoForMerge) {
         const videoDuration =
-          scene.videoGenerationSettings.selectedVideo.duration;
+          scene.videoGenerationSettings.selectedVideoForMerge.duration;
         const cutStartSeconds = scene.videoGenerationSettings.startSeconds;
         const cutEndSeconds = scene.videoGenerationSettings.endSeconds;
         const cutStartFrame = scene.videoGenerationSettings.startFrame;
@@ -140,6 +142,16 @@ export function validateScenes(story: VideoStory): SceneValidations {
           }
         }
       }
+    }
+
+    // Check valid asset selection (images/videos) for video model + video gen task
+    const invalidAssetSelection = invalidNumberOfAssetsForVideoGenTask(
+      scene.videoGenerationSettings.videoModel,
+      scene.videoGenerationSettings.videoGenTask,
+      scene,
+    );
+    if (invalidAssetSelection) {
+      validations['invalidAssetSelection'].push(scene.number);
     }
 
     // Check scenes whose video will be generated

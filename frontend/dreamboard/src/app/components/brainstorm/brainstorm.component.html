@@ -8,6 +8,16 @@
         </h2>
 
         <mat-form-field>
+          <mat-label>Number of Stories</mat-label>
+          <input
+            matInput
+            type="number"
+            formControlName="numStories"
+            min="1"
+            max="3"
+          />
+        </mat-form-field>
+        <mat-form-field>
           <mat-label>Creative Brief or Idea</mat-label>
           <textarea
             matInput
@@ -43,20 +53,23 @@
             formControlName="videoFormat"
             (selectionChange)="onVideoFormatChange($event)"
           >
-            @for (videoFormat of videoFormats; track videoFormat; let i =
-            $index) {
-            <mat-option [value]="videoFormat.value" [id]="i.toString()">{{
-              videoFormat.displayName
-            }}</mat-option>
+            @for (
+              videoFormat of videoFormats;
+              track videoFormat;
+              let i = $index
+            ) {
+              <mat-option [value]="videoFormat.value" [id]="i.toString()">{{
+                videoFormat.displayName
+              }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
 
-        @if (storiesSettingsForm.get('videoFormat')?.value === 'other') {
-        <mat-form-field>
-          <mat-label>Number of Scenes</mat-label>
-          <input matInput type="number" formControlName="numScenes" min="1" />
-        </mat-form-field>
+        @if (storiesSettingsForm.get("videoFormat")?.value === "other") {
+          <mat-form-field>
+            <mat-label>Number of Scenes</mat-label>
+            <input matInput type="number" formControlName="numScenes" min="1" />
+          </mat-form-field>
         }
 
         <!-- File Uploaders for Creative Brief and Brand Guidelines-->
@@ -79,9 +92,9 @@
           ></app-file-uploader>
         </div>
 
-        <div class="generate-images-check">
-          <mat-checkbox formControlName="generateInitialImageForScenes"
-            >Generate initial scene images on story selection</mat-checkbox
+        <div class="">
+          <mat-checkbox formControlName="extractCharacters"
+            >Automatically identify characters and generate images</mat-checkbox
           >
         </div>
         <div class="generate-button">
@@ -94,11 +107,11 @@
           </button>
         </div>
       </div>
-      <div class="stories">
-        <app-stories
+      <div class="recommended-stories">
+        <app-recommended-stories
           [stories]="stories"
           (onSelectStoryEvent)="onSelectStoryEvent($event)"
-        ></app-stories>
+        ></app-recommended-stories>
       </div>
     </div>
   </form>
