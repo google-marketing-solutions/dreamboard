@@ -48,12 +48,23 @@ deploy_frontend_cloud_run_service() {
     echo
 }
 
-GOOGLE_CLOUD_PROJECT=$1
-BUCKET_NAME=$2
-SERVICE_ACCOUNT=$3
-LOCATION=$4
-BACKEND_CLOUD_RUN_SERVICE_URL=$5
-CLIENT_ID=$6
+
+if ! [ -z "${1}" ]; then
+    GOOGLE_CLOUD_PROJECT=$1
+    BUCKET_NAME=$2
+    SERVICE_ACCOUNT=$3
+    LOCATION=$4
+    BACKEND_CLOUD_RUN_SERVICE_URL=$5
+    CLIENT_ID=$6
+else
+    GOOGLE_CLOUD_PROJECT="$(gcloud config get-value project)"
+    BUCKET_NAME=$GOOGLE_CLOUD_PROJECT"-dreamboard"
+    SERVICE_ACCOUNT="dreamboard-sa@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com"
+    LOCATION='us-central1'
+    read -p "Enter the backend Cloud Run service URL: " BACKEND_CLOUD_RUN_SERVICE_URL
+    read -p "Enter the credentials Client ID: " CLIENT_ID
+fi
+
 
 echo "${bold}DreamBoard Frontend will be deployed in the Google Cloud project: ${text_green}${GOOGLE_CLOUD_PROJECT}${bold}${reset}"
 echo
