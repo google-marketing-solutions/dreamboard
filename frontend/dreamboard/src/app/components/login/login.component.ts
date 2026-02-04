@@ -76,22 +76,22 @@ export class LoginComponent {
     this.router.navigate(['/storyboard']);
   }
 
-//   onLogInAsGuest() {
-//     confirmAction(
-//       this.confirmDialog,
-//       '450px',
-//       `Logging in as guest will generate a random user id and all stories will be saved under this user.
-//       If you log out, you will lose your changes.
-//       Do you want to proceed?`,
-//       '',
-//       this.logInAsGuest.bind(this)
-//     );
-//   }
+  onLogInAsGuest() {
+    confirmAction(
+      this.confirmDialog,
+      '450px',
+      `Logging in as guest will generate a random user id and all stories will be saved under this user.
+      If you log out, you will lose your changes.
+      Do you want to proceed?`,
+      '',
+      this.logInAsGuest.bind(this)
+    );
+  }
 
-//   logInAsGuest() {
-//     const user = uuidv4();
-//     localStorage.setItem('user', user);
-//     this.componentsCommunicationService.userLoggedIn(true);
-//     this.router.navigate(['/storyboard']);
-//   }
+  logInAsGuest() {
+    const user = uuidv4();
+    localStorage.setItem('user', user);
+    this.componentsCommunicationService.userLoggedIn(true);
+    this.router.navigate(['/storyboard']);
+  }
 }
