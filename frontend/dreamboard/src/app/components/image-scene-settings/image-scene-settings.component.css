@@ -132,3 +132,48 @@ a:hover {
   text-decoration: none;
   cursor: pointer;
 }
+
+.nano-banana-fields {
+  margin-top: 24px;
+}
+
+.controls-label {
+  display: block;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 8px;
+}
+
+.radio-settings-field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+
+  mat-radio-group {
+    display: flex;
+    gap: 16px;
+  }
+}
+
+.slider-container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  max-width: 50%;
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+
+    mat-slider {
+      flex: 1;
+      margin-left: 20px;
+    }
+
+    .slider-input {
+      width: 100px;
+    }
+  }
+}

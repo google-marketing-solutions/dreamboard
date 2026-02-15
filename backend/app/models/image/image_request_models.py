@@ -68,6 +68,7 @@ class ImageGenerationOperation(BaseModel):
   resolution: str = "1K"  # "1K", "2K", "4K"
   response_modalities: list[str] = ["IMAGE"]
   reference_images: list[image_gen_models.Image] | None = None
+  use_grounding: bool = False
 
 
 class ImageGenerationRequest(BaseModel):

@@ -474,6 +474,8 @@ def update_signed_uris_in_story(story_data: Dict) -> Dict:
     # Update image URIs
     image_generation_settings = scene.get("imageGenerationSettings", {})
     _update_list(image_generation_settings.get("generatedImages", []))
+    _update_list(image_generation_settings.get("nbGeneratedImages", []))
+
     selected_image = image_generation_settings.get("selectedImageForVideo", {})
     if selected_image.get("gcsUri"):
       selected_image["signedUri"] = get_signed_uri_from_gcs_uri(
@@ -586,6 +588,14 @@ def backfill_missing_fields(stories: dict) -> None:
           "image",
           image_generation_settings.get("generatedImages", []),
       )
+
+      # Backfill Nano Banana images
+      _backfill_fields_list(
+          story["id"],
+          "image",
+          image_generation_settings.get("nbGeneratedImages", []),
+      )
+
       selected_image = image_generation_settings.get(
           "selectedImageForVideo", {}
       )

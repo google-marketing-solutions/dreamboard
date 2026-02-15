@@ -308,17 +308,22 @@ class ImageAPIService:
     for this_retry in range(retries):
       try:
         # Call Nano Banana API
+        config_params = {
+            "response_modalities": image_gen_operation.response_modalities,
+            "image_config": types.ImageConfig(
+                aspect_ratio=image_gen_operation.aspect_ratio,
+                image_size=image_gen_operation.resolution,
+            ),
+        }
+
+        # Add grounding if requested
+        if image_gen_operation.use_grounding:
+            config_params["tools"] = [{"google_search": {}}]
+
         response = client.models.generate_content(
             model=image_gen_operation.image_model,
             contents=contents,
-            config=types.GenerateContentConfig(
-                response_modalities=image_gen_operation.response_modalities,
-                image_config=types.ImageConfig(
-                    aspect_ratio=image_gen_operation.aspect_ratio,
-                    image_size=image_gen_operation.resolution,
-                ),
-                tools=[{"google_search": {}}],
-            ),
+            config=types.GenerateContentConfig(**config_params),
         )
         break
       except ResourceExhausted as ex:
@@ -330,6 +335,10 @@ class ImageAPIService:
         )
         wait = 10 * 2**this_retry
         time.sleep(wait)
+      except Exception as ex:
+        error = str(ex)
+        logging.error(f"Unexpected error in Gemini Nano Banana call: {ex}")
+        break
 
     if not response:
       return image_gen_models.GenericImageGenerationResponse(
@@ -344,27 +353,47 @@ class ImageAPIService:
 
     # Process generated images
     images: list[image_gen_models.Image] = []
-    for part in response.parts:
-      if part.text is not None:
-        print(part.text)
-      elif image := part.as_image():
-        # Since automatic storage is not supported, upload it to GCS
-        format = image.mime_type.split("/")[1]
-        image_name = f"{int(time.time())}.{format}"  # unique image name
-        final_output_gcs_uri = f"{output_gcs_uri}/{image_name}"
-        blob = storage_service.upload_from_bytes(
-            final_output_gcs_uri, image.image_bytes, image.mime_type
-        )
-        gcs_uri = f"{utils.get_images_bucket()}/{blob.name}"
-        img = image_gen_models.Image(
-            id=uuid.uuid4(),
-            name=image_name,
-            gcs_uri=gcs_uri,
-            signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
-            gcs_fuse_path="",
-            mime_type=image.mime_type,
-        )
-        images.append(img)
+
+    response_texts = []
+
+    if response and response.parts:
+      for part in response.parts:
+        if part.text is not None:
+          response_texts.append(part.text)
+        elif image := part.as_image():
+          # Since automatic storage is not supported, upload it to GCS
+          format = image.mime_type.split("/")[1]
+          image_name = f"{int(time.time())}.{format}"  # unique image name
+          final_output_gcs_uri = f"{output_gcs_uri}/{image_name}"
+          blob = storage_service.upload_from_bytes(
+              final_output_gcs_uri, image.image_bytes, image.mime_type
+          )
+          gcs_uri = f"{utils.get_images_bucket()}/{blob.name}"
+          img = image_gen_models.Image(
+              id=uuid.uuid4(),
+              name=image_name,
+              gcs_uri=gcs_uri,
+              signed_uri=utils.get_signed_uri_from_gcs_uri(gcs_uri),
+              gcs_fuse_path="",
+              mime_type=image.mime_type,
+          )
+          images.append(img)
+
+    if response and response.candidates:
+      for i, candidate in enumerate(response.candidates):
+        finish_reason = candidate.finish_reason
+        if finish_reason:
+          logging.info(f"Candidate {i} finish reason: {finish_reason}")
+          if str(finish_reason) != "STOP":
+            response_texts.append(f"[Finish Reason: {finish_reason}]")
+
+        if candidate.safety_ratings:
+          for rating in candidate.safety_ratings:
+            # loose check for non-negligible safety issues
+            if str(rating.probability) not in ["NEGLIGIBLE", "LOW", "PROBABILITY_UNSPECIFIED"]:
+               msg = f"[Safety: {rating.category} - {rating.probability}]"
+               logging.warning(msg)
+               response_texts.append(msg)
 
     if images:
       return image_gen_models.GenericImageGenerationResponse(
@@ -374,9 +403,15 @@ class ImageAPIService:
           images=images,
       )
     else:
+      error_msg = "Images were not generated. "
+      if response_texts:
+        error_msg += f"Model response: {' '.join(response_texts)}"
+      else:
+        error_msg += "Please try again."
+
       return image_gen_models.GenericImageGenerationResponse(
           id=image_gen_operation.id,
           done=False,
-          execution_message="Images were not generated. Please try again.",
+          execution_message=error_msg,
           images=[],
       )

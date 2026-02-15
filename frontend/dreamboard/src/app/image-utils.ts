@@ -46,6 +46,7 @@ export function getNewImageSettings(): ImageGenerationSettings {
     selectedImagesForVideo: [],
     referenceImages: [],
     generatedImages: [],
+    nbGeneratedImages: [],
   };
   return imageGenSettings;
 }
