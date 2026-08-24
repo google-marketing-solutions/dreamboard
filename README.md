@@ -12,6 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+# Disclaimer AI Use
+
+This solution uses AI to edit or generate assets for your ads. Due to certain regulatory requirements we will soon add a visible AI label to disclose the use of AI to edit or generate these assets. [Learn more] (https://blog.google/products/ads-commerce/google-ads-ai-transparency-labels) about Google’s efforts to expand AI transparency in Ads.
+
 # Disclaimer
 
 DreamBoard is NOT an officially supported Google product.
