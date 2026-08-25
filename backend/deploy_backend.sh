@@ -55,43 +55,92 @@ create_service_account() {
 }
 
 grant_sa_roles() {
-    echo "Granting roles to service account "$SERVICE_ACCOUNT_NAME"..."
-    # Service Account roles
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member serviceAccount:$SERVICE_ACCOUNT \
-        --role roles/storage.admin
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member serviceAccount:$SERVICE_ACCOUNT \
-        --role roles/aiplatform.user
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member serviceAccount:$SERVICE_ACCOUNT \
-        --role roles/run.invoker
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member serviceAccount:$SERVICE_ACCOUNT \
-        --role roles/logging.logWriter
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member serviceAccount:$SERVICE_ACCOUNT \
-        --role roles/iam.serviceAccountTokenCreator
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-       --member "serviceAccount:$SERVICE_ACCOUNT" \
-       --role roles/servicemanagement.serviceController
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-       --member "serviceAccount:$SERVICE_ACCOUNT" \
-       --role="roles/datastore.user"
-    # Compute service account permissions
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-        --role roles/storage.objectViewer
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-        --role roles/logging.logWriter
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-        --role roles/artifactregistry.writer
-    gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-        --member "serviceAccount:service-$PROJECT_NUMBER@gcp-sa-aiplatform.iam.gserviceaccount.com" \
-        --role roles/storage.admin
+    echo "Checking and granting roles to service account $SERVICE_ACCOUNT_NAME"
+    
+    local project_iam_policy
+    project_iam_policy=$(gcloud projects get-iam-policy "$GOOGLE_CLOUD_PROJECT" --format="json")
+
+    check_and_add() {
+        local member=$1
+        local role=$2
+
+
+        local has_role
+        has_role=$(echo "$project_iam_policy" | jq --arg role "$role" --arg member "$member" \
+            '.bindings[] | select(.role == $role) | .members[] | select(. == $member)' )
+
+          
+        if [ -n "$has_role" ]; then
+            echo "Role $role already granted to $member. Skipping."
+        else
+            echo "Granting $role to $member..."
+            gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+                --member "$member" \
+                --role "$role" \
+                --condition=None
+        fi
+    }
+
+    #Service Account role list
+    local sa_member="serviceAccount:$SERVICE_ACCOUNT"
+    check_and_add "$sa_member" "roles/storage.admin"
+    check_and_add "$sa_member" "roles/aiplatform.user"
+    check_and_add "$sa_member" "roles/run.invoker"
+    check_and_add "$sa_member" "roles/logging.logWriter"
+    check_and_add "$sa_member" "roles/iam.serviceAccountTokenCreator"
+    check_and_add "$sa_member" "roles/servicemanagement.serviceController"
+    check_and_add "$sa_member" "roles/datastore.user"
+
+    #Compute service account role list
+    local compute_sa="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+    check_and_add "$compute_sa" "roles/storage.objectViewer"
+    check_and_add "$compute_sa" "roles/logging.logWriter"
+    check_and_add "$compute_sa" "roles/artifactregistry.writer"
+
+    #Aiplatform service account role list
+    local ai_sa="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-aiplatform.iam.gserviceaccount.com"
+    check_and_add "$ai_sa" "roles/storage.admin"
 }
+
+# Old grant_sa_roles
+# grant_sa_roles() {
+#     echo "Granting roles to service account "$SERVICE_ACCOUNT_NAME"..."
+#     # Service Account roles
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member serviceAccount:$SERVICE_ACCOUNT \
+#         --role roles/storage.admin
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member serviceAccount:$SERVICE_ACCOUNT \
+#         --role roles/aiplatform.user
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member serviceAccount:$SERVICE_ACCOUNT \
+#         --role roles/run.invoker
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member serviceAccount:$SERVICE_ACCOUNT \
+#         --role roles/logging.logWriter
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member serviceAccount:$SERVICE_ACCOUNT \
+#         --role roles/iam.serviceAccountTokenCreator
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#        --member "serviceAccount:$SERVICE_ACCOUNT" \
+#        --role roles/servicemanagement.serviceController
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#        --member "serviceAccount:$SERVICE_ACCOUNT" \
+#        --role="roles/datastore.user"
+#     # Compute service account permissions
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+#         --role roles/storage.objectViewer
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+#         --role roles/logging.logWriter
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member "serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+#         --role roles/artifactregistry.writer
+#     gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+#         --member "serviceAccount:service-$PROJECT_NUMBER@gcp-sa-aiplatform.iam.gserviceaccount.com" \
+#         --role roles/storage.admin
+# }
 
 create_firestore_database() {
     echo "Checking for existing Firestore database '$FIRESTORE_DB'..."
