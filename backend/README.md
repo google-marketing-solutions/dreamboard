@@ -51,7 +51,7 @@ If you wish to change the name of items such as the service account name, servic
 
 Locally, this code can run with the following commands in a Linux-based CLI (change directory to backend directory first):
 
-- `cd /backend/app`
+- `cd /backend`
 - `uv add -r requirements.txt`
 - `gcloud auth application-default login`
 
