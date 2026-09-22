@@ -14,7 +14,7 @@ limitations under the License.
 
 # Disclaimer AI Use
 
-This solution uses AI to edit or generate assets for your ads. Due to certain regulatory requirements we will soon add a visible AI label to disclose the use of AI to edit or generate these assets. [Learn more] (https://blog.google/products/ads-commerce/google-ads-ai-transparency-labels) about Google’s efforts to expand AI transparency in Ads.
+Note: This solution uses AI to edit or generate assets for your ads. Whether your content requires labeling depends on the nature of your assets, where your ads serve, and specific legal obligations that apply to you. In some circumstances Google may automatically apply a label. Please consult with your legal team to determine if/when a label is required for your ads. You can add labels in Google’s Ads products using the AI label setting. [Learn more] (https://blog.google/products/ads-commerce/google-ads-ai-transparency-labels) about Google’s efforts to expand AI transparency in Ads.
 
 # Disclaimer
 
