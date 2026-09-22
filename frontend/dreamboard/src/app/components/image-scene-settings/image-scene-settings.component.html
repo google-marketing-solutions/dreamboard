@@ -44,241 +44,453 @@
     <!-- AI image generation collapsible -->
     <mat-accordion>
       <mat-expansion-panel expanded="false">
-        <mat-expansion-panel-header>
-          <mat-panel-title
-            ><mat-icon>auto_fix_high</mat-icon> Image Generation Using AI
+          <mat-panel-title>
+            <mat-icon>auto_fix_high</mat-icon> Image Generation Using AI
           </mat-panel-title>
           <mat-panel-description>
-            Use Imagen to generate a seed image to ground the video generation
+            Generate a seed image to ground the video generation
+            using Imagen or edit an image using Nano Banana
           </mat-panel-description>
         </mat-expansion-panel-header>
-        <!-- Image generation settings fields -->
-        <div class="image-generation-settings-fields">
-          <p class="p-small">
-            <strong>Note: </strong> To use a reference image with Imagen models,
-            attach its number (e.g., [1], [2]) to every instance of the
-            corresponding object in your prompt. <br />
 
-            For example:
-            <i
-              >"Place the <strong>bottle [1]</strong> on a close-up wood table
-              top with a blurred background. The
-              <strong>bottle [1]</strong> should be the main focus."</i
-            >
-          </p>
-          <div>
-            <button
-              class="add-reference-button"
-              mat-button
-              (click)="addReference()"
-              [disabled]="disableAddReferenceButton()"
-            >
-              Add Reference
-              <mat-icon>add</mat-icon>
-            </button>
-          </div>
-          @if (referenceImageCards.length > 0) {
-            <mat-form-field>
-              <mat-label>Reference Type</mat-label>
-              <mat-select
-                formControlName="referenceType"
-                (selectionChange)="onReferenceTypeChanged($event)"
-              >
-                @for (
+        <!-- Image generation settings fields -->
+        <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
+          <mat-tab label="Imagen">
+            <div class="image-generation-settings-fields">
+              <p class="p-small">
+                <strong>Note: </strong> To use a reference image with Imagen
+                models, attach its number (e.g., [1], [2]) to every instance
+                of the corresponding object in your prompt. <br />
+
+                For example:
+                <i>
+                  "Place the <strong>bottle [1]</strong> on a close-up wood table
+                  top with a blurred background. The
+                  <strong>bottle [1]</strong> should be the main focus."
+                </i>
+              </p>
+              <div>
+                <button
+                  class="add-reference-button"
+                  mat-button
+                  (click)="addReference()"
+                  [disabled]="disableAddReferenceButton()">
+                  Add Reference
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+              @if (referenceImageCards.length > 0) {
+              <mat-form-field>
+                <mat-label>Reference Type</mat-label>
+                <mat-select
+                  formControlName="referenceType"
+                  (selectionChange)="onReferenceTypeChanged($event)"
+                >
+                  @for (
                   imageReferenceType of imageReferenceTypes;
                   track imageReferenceType
-                ) {
+                  ) {
                   <mat-option [value]="imageReferenceType.value">{{
                     imageReferenceType.displayName
-                  }}</mat-option>
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              }
+              <div class="reference-images-container">
+                @for (
+                referenceImageCard of referenceImageCards;
+                track referenceImageCard;
+                let i = $index
+                ) {
+                <mat-card appearance="outlined" [id]="referenceImageCard.id">
+                  <mat-card-header>
+                    <mat-icon
+                      class="delete-button"
+                      (click)="removeReferenceImage($event)">
+                        delete
+                    </mat-icon>
+                    <mat-card-title>Reference Image [{{ i + 1 }}]</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <span></span>
+                    <app-file-uploader
+                      (fileUploadedEvent)="addUploadedFile($event)"
+                      [storyId]="this.storyId"
+                      [sceneId]="scene.id"
+                      [referenceImageId]="referenceImageCard.id"
+                      [fileType]="getFileType('referenceImage')"
+                      [fileItems]="getFileItemsByType(referenceImageCard.id, 'ReferenceImage')"
+                    >
+                    </app-file-uploader>
+                    <mat-form-field>
+                      <mat-label>Description (optional)</mat-label>
+                      <textarea
+                        [id]="'desc@' + referenceImageCard.id"
+                        matInput
+                        placeholder=""
+                        rows="1"
+                        formControlName="imageReferenceDescription"></textarea>
+                    </mat-form-field>
+                  </mat-card-content>
+                </mat-card>
                 }
-              </mat-select>
-            </mat-form-field>
-          }
-          <div class="reference-images-container">
-            @for (
-              referenceImageCard of referenceImageCards;
-              track referenceImageCard;
-              let i = $index
-            ) {
-              <mat-card appearance="outlined" [id]="referenceImageCard.id">
-                <mat-card-header>
-                  <mat-icon
-                    class="delete-button"
-                    (click)="removeReferenceImage($event)"
-                    >delete</mat-icon
+              </div>
+
+              <div class="item-container">
+                <mat-form-field class="large-textarea">
+                  <mat-label>Image Prompt</mat-label>
+                  <textarea
+                    matInput
+                    placeholder=""
+                    rows="5"
+                    formControlName="prompt"></textarea>
+                </mat-form-field>
+                <div class="item-buttons">
+                  <button
+                    mat-flat-button
+                    aria-label="Rewrite Image Prompt"
+                    (click)="rewriteImagePrompt()"
                   >
-                  <mat-card-title>Reference Image [{{ i + 1 }}]</mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <span></span>
-                  <app-file-uploader
-                    (fileUploadedEvent)="addUploadedFile($event)"
-                    [storyId]="this.storyId"
-                    [sceneId]="scene.id"
-                    [referenceImageId]="referenceImageCard.id"
-                    [fileType]="getFileType('referenceImage')"
-                    [fileItems]="
-                      getFileItemsByType(
-                        referenceImageCard.id,
-                        'ReferenceImage'
-                      )
-                    "
-                  ></app-file-uploader>
-                  <mat-form-field>
-                    <mat-label>Description (optional)</mat-label>
-                    <textarea
-                      [id]="'desc@' + referenceImageCard.id"
-                      matInput
-                      placeholder=""
-                      rows="1"
-                      formControlName="imageReferenceDescription"
-                    ></textarea>
-                  </mat-form-field>
-                </mat-card-content>
-              </mat-card>
-            }
-          </div>
+                    <mat-icon>auto_fix_high</mat-icon>
+                    Rewrite
+                  </button>
+                  <mat-checkbox formControlName="withSceneDescription">
+                    With Scene Description
+                  </mat-checkbox>
+                </div>
+              </div>
 
-          <div class="item-container">
-            <mat-form-field class="large-textarea">
-              <mat-label>Image Prompt</mat-label>
-              <textarea
-                matInput
-                placeholder=""
-                rows="5"
-                formControlName="prompt"
-              ></textarea>
-            </mat-form-field>
-            <div class="item-buttons">
-              <button
-                mat-flat-button
-                aria-label="Rewrite Image Prompt"
-                (click)="rewriteImagePrompt()"
-              >
-                <mat-icon>auto_fix_high</mat-icon>
-                Rewrite
-              </button>
-              <mat-checkbox formControlName="withSceneDescription"
-                >With Scene Description</mat-checkbox
-              >
+              <mat-form-field>
+                <mat-label>Num of Images</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="numImages"
+                  min="1"
+                  max="4"
+                />
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Aspect Ratio</mat-label>
+                <mat-select formControlName="aspectRatio">
+                  @for (aspectRatio of aspectRatios; track aspectRatio) {
+                  <mat-option [value]="aspectRatio.value">{{
+                    aspectRatio.displayName
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Output Mime Type</mat-label>
+                <mat-select formControlName="outputMimeType">
+                  @for (outputMimeType of outputMimeTypes; track outputMimeType) {
+                  <mat-option [value]="outputMimeType.value">{{
+                    outputMimeType.displayName
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Compression Quality</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="compressionQuality"
+                />
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Language</mat-label>
+                <mat-select formControlName="language">
+                  @for (language of languages; track language) {
+                  <mat-option [value]="language.value">{{
+                    language.displayName
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Safety Filter Level</mat-label>
+                <mat-select formControlName="safetyFilterLevel">
+                  @for (
+                  safetyFilterLevel of safetyFilterLevels;
+                  track safetyFilterLevel
+                  ) {
+                  <mat-option [value]="safetyFilterLevel.value">{{
+                    safetyFilterLevel.displayName
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Person Generation</mat-label>
+                <mat-select formControlName="personGeneration">
+                  @for (
+                  personGenerationOption of personGenerationOptions;
+                  track personGenerationOption
+                  ) {
+                  <mat-option [value]="personGenerationOption.value">{{
+                    personGenerationOption.displayName
+                    }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!--mat-form-field>
+                <mat-label>Seed</mat-label>
+                <input matInput type="number" formControlName="seed" />
+              </mat-form-field-->
+
+              <mat-form-field class="mid-textarea">
+                <mat-label>Negative Prompt</mat-label>
+                <textarea
+                  matInput
+                  placeholder=""
+                  rows="3"
+                  formControlName="negativePrompt"
+                >
+                </textarea>
+              </mat-form-field>
+
+              <div class="generate-button">
+                <button
+                  mat-flat-button
+                  aria-label="Generate Image"
+                  (click)="generateImage()"
+                  [disabled]="disableGenerateImageButton()"
+                >
+                  <mat-icon>image</mat-icon>
+                  Generate Image
+                </button>
+              </div>
             </div>
-          </div>
+          </mat-tab>
+          <mat-tab label="Nano Banana">
+            <div class="image-generation-settings-fields nano-banana-fields">
+              <div>
+                <button
+                  class="add-reference-button"
+                  mat-button
+                  (click)="addReferenceNanoBanana()"
+                  [disabled]="disableAddReferenceBananaButton()"
+                >
+                  Add Reference
+                  <mat-icon>add</mat-icon>
+                </button>
+                <span
+                  class="p-small"
+                  style="margin-left: 10px; opacity: 0.7;"
+                >
+                  (Up to 14 references)
+                </span>
+              </div>
 
-          <mat-form-field>
-            <mat-label>Num of Images</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="numImages"
-              min="1"
-              max="4"
-            />
-          </mat-form-field>
+              <div class="reference-images-container">
+                @for (
+                referenceImageCard of referenceImageCardsNanoBanana;
+                track referenceImageCard;
+                let i = $index
+                ) {
+                <mat-card appearance="outlined" [id]="referenceImageCard.id">
+                  <mat-card-header>
+                    <mat-icon
+                      class="delete-button"
+                      (click)="removeReferenceImageNanoBanana($event)"
+                    >
+                      delete
+                    </mat-icon>
+                    <mat-card-title>Reference Image [{{ i + 1 }}]</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <app-file-uploader
+                      (fileUploadedEvent)="addUploadedFile($event)"
+                      [storyId]="this.storyId"
+                      [sceneId]="scene.id"
+                      [referenceImageId]="referenceImageCard.id"
+                      [fileType]="getFileType('referenceImage')"
+                      [fileItems]="getFileItemsByType(referenceImageCard.id, 'UserProvidedImage')"
+                    >
+                    </app-file-uploader>
+                  </mat-card-content>
+                </mat-card>
+                }
+              </div>
 
-          <mat-form-field>
-            <mat-label>Aspect Ratio</mat-label>
-            <mat-select formControlName="aspectRatio">
-              @for (aspectRatio of aspectRatios; track aspectRatio) {
-                <mat-option [value]="aspectRatio.value">{{
-                  aspectRatio.displayName
-                }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+              <div class="item-container">
+                <mat-form-field class="large-textarea">
+                  <mat-label>Image Prompt</mat-label>
+                  <textarea
+                    matInput
+                    placeholder=""
+                    rows="5"
+                    formControlName="nbPrompt"
+                  >
+                  </textarea>
+                </mat-form-field>
+                <div class="item-buttons">
+                  <button
+                    mat-flat-button
+                    aria-label="Rewrite Image Prompt"
+                    (click)="rewriteNanoBananaPrompt()"
+                  >
+                    <mat-icon>auto_fix_high</mat-icon>
+                    Rewrite
+                  </button>
+                  <mat-checkbox
+                    formControlName="nbWithSceneDescription"
+                  >
+                    With Scene Description
+                  </mat-checkbox>
+                </div>
+              </div>
+              <div class="item-container">
+                <mat-form-field class="large-textarea">
+                  <mat-label>System Instructions</mat-label>
+                  <textarea
+                    matInput
+                    placeholder=""
+                    rows="5"
+                    formControlName="nbSystemInstructions"
+                  >
+                  </textarea>
+                </mat-form-field>
+              </div>
 
-          <mat-form-field>
-            <mat-label>Output Mime Type</mat-label>
-            <mat-select formControlName="outputMimeType">
-              @for (outputMimeType of outputMimeTypes; track outputMimeType) {
-                <mat-option [value]="outputMimeType.value">{{
-                  outputMimeType.displayName
-                }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+              <mat-form-field>
+                <mat-label>Output Resolution</mat-label>
+                <mat-select formControlName="nbOutputResolution">
+                  <mat-option value="1K">1K</mat-option>
+                  <mat-option value="2K">2K</mat-option>
+                  <mat-option value="4K">4K</mat-option>
+                </mat-select>
+              </mat-form-field>
 
-          <mat-form-field>
-            <mat-label>Compression Quality</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="compressionQuality"
-            />
-          </mat-form-field>
+              <mat-form-field>
+                <mat-label>Aspect Ratio</mat-label>
+                <mat-select formControlName="nbAspectRatio">
+                  <mat-option value="1:1">1:1</mat-option>
+                  <mat-option value="3:2">3:2</mat-option>
+                  <mat-option value="2:3">2:3</mat-option>
+                  <mat-option value="3:4">3:4</mat-option>
+                  <mat-option value="4:3">4:3</mat-option>
+                  <mat-option value="4:5">4:5</mat-option>
+                  <mat-option value="5:4">5:4</mat-option>
+                  <mat-option value="9:16">9:16</mat-option>
+                  <mat-option value="16:9">16:9</mat-option>
+                  <mat-option value="21:9">21:9</mat-option>
+                </mat-select>
+              </mat-form-field>
 
-          <mat-form-field>
-            <mat-label>Language</mat-label>
-            <mat-select formControlName="language">
-              @for (language of languages; track language) {
-                <mat-option [value]="language.value">{{
-                  language.displayName
-                }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+              <mat-form-field>
+                <mat-label>Output format</mat-label>
+                <mat-select formControlName="nbOutputFormat">
+                  <mat-option value="png">png</mat-option>
+                  <mat-option value="jpeg">jpeg</mat-option>
+                </mat-select>
+              </mat-form-field>
 
-          <mat-form-field>
-            <mat-label>Safety Filter Level</mat-label>
-            <mat-select formControlName="safetyFilterLevel">
-              @for (
-                safetyFilterLevel of safetyFilterLevels;
-                track safetyFilterLevel
-              ) {
-                <mat-option [value]="safetyFilterLevel.value">{{
-                  safetyFilterLevel.displayName
-                }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+              <div class="radio-settings-field">
+                <mat-label class="controls-label">Grounding</mat-label>
+                <mat-radio-group formControlName="nbGrounding">
+                  <mat-radio-button value="Yes">Yes</mat-radio-button>
+                  <mat-radio-button value="No">No</mat-radio-button>
+                </mat-radio-group>
+              </div>
 
-          <mat-form-field>
-            <mat-label>Person Generation</mat-label>
-            <mat-select formControlName="personGeneration">
-              @for (
-                personGenerationOption of personGenerationOptions;
-                track personGenerationOption
-              ) {
-                <mat-option [value]="personGenerationOption.value">{{
-                  personGenerationOption.displayName
-                }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+              <div class="slider-container">
+                <mat-label class="controls-label">Temperature</mat-label>
+                <div class="slider-row">
+                  <mat-slider min="0" max="2" step="0.1">
+                    <input matSliderThumb formControlName="nbTemperature"
+                      [value]="imageSettingsForm.get('nbTemperature')?.value"
+                      (valueChange)="imageSettingsForm.get('nbTemperature')?.setValue($event)" />
+                  </mat-slider>
+                  <mat-form-field class="slider-input">
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="nbTemperature"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      (input)="clampValue('nbTemperature', 0, 2)"
+                      (blur)="clampValue('nbTemperature', 0, 2, true)"
+                    />
+                  </mat-form-field>
+                </div>
+              </div>
 
-          <!--mat-form-field>
-          <mat-label>Seed</mat-label>
-          <input matInput type="number" formControlName="seed" />
-        </mat-form-field-->
+              <div class="slider-container">
+                <mat-label class="controls-label">Output token limit</mat-label>
+                <div class="slider-row">
+                  <mat-slider min="0" max="32768" step="1">
+                    <input matSliderThumb formControlName="nbOutputTokenLimit"
+                      [value]="imageSettingsForm.get('nbOutputTokenLimit')?.value"
+                      (valueChange)="imageSettingsForm.get('nbOutputTokenLimit')?.setValue($event)" />
+                  </mat-slider>
+                  <mat-form-field class="slider-input">
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="nbOutputTokenLimit"
+                      min="0"
+                      max="32768"
+                      (input)="clampValue('nbOutputTokenLimit', 0, 32768)"
+                      (blur)="clampValue('nbOutputTokenLimit', 0, 32768, true)"
+                    />
+                  </mat-form-field>
+                </div>
+              </div>
 
-          <mat-form-field class="mid-textarea">
-            <mat-label>Negative Prompt</mat-label>
-            <textarea
-              matInput
-              placeholder=""
-              rows="3"
-              formControlName="negativePrompt"
-            ></textarea>
-          </mat-form-field>
+              <div class="slider-container">
+                <mat-label class="controls-label">Top-P</mat-label>
+                <div class="slider-row">
+                  <mat-slider min="0" max="1" step="0.01">
+                    <input
+                      matSliderThumb
+                      formControlName="nbTopP"
+                      [value]="imageSettingsForm.get('nbTopP')?.value"
+                      (valueChange)="imageSettingsForm.get('nbTopP')?.setValue($event)"
+                    />
+                  </mat-slider>
+                  <mat-form-field class="slider-input">
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="nbTopP"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      (input)="clampValue('nbTopP', 0, 1)"
+                      (blur)="clampValue('nbTopP', 0, 1, true)"
+                    />
+                  </mat-form-field>
+                </div>
+              </div>
 
-          <div class="generate-button">
-            <button
-              mat-flat-button
-              aria-label="Generate Image"
-              (click)="generateImage()"
-              [disabled]="disableGenerateImageButton()"
-            >
-              <mat-icon>image</mat-icon>
-              Generate Image
-            </button>
-          </div>
-        </div>
+              <div class="generate-button">
+                <button
+                  mat-flat-button
+                  aria-label="Generate Image"
+                  (click)="generateNanoBananaImage()"
+                  [disabled]="disableGenerateNanoBananaImageButton()"
+                >
+                  <mat-icon>image</mat-icon>
+                  Generate Image
+                </button>
+              </div>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
       </mat-expansion-panel>
-      <app-frame-extraction
-        [scenes]="scenes"
-        [storyId]="storyId"
-        (framesExtracted)="onFramesExtracted($event)"
-      ></app-frame-extraction>
+      <app-frame-extraction [scenes]="scenes" [storyId]="storyId"
+        (framesExtracted)="onFramesExtracted($event)"></app-frame-extraction>
     </mat-accordion>
   </form>
 </div>

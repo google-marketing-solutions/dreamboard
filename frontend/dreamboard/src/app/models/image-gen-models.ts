@@ -55,8 +55,19 @@ export interface ImageGenerationSettings {
   selectedImagesForVideo: Image[]; // Images used to generate the video
   referenceImages?: ImageReference[]; // Image used to generate new images with AI, if selected, can also be used to generate the video
   generatedImages: Image[]; // Contains AI generated images and reference images
+  nbGeneratedImages: Image[]; // Contains Nano Banana AI generated images
   useReferenceImageForImage?: boolean;
   editMode?: string;
+  nbPrompt?: string;
+  nbWithSceneDescription?: boolean;
+  nbSystemInstructions?: string;
+  nbOutputResolution?: string;
+  nbAspectRatio?: string;
+  nbOutputFormat?: string;
+  nbGrounding?: string;
+  nbTemperature?: number;
+  nbOutputTokenLimit?: number;
+  nbTopP?: number;
 }
 
 /** Models for backend interactions */
@@ -154,6 +165,7 @@ export interface ImageGenerationOperation {
   resolution: string; // "1K", "2K", "4K"
   response_modalities: string[]; // ["IMAGE", "TEXT"]
   reference_images: ImageItem[];
+  use_grounding?: boolean;
 }
 
 export interface ImageGenerationRequest {
