@@ -1,0 +1,200 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'gke/terraform/**'
+      - '.github/workflows/**'
+
+jobs:
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.9'
+
+      - name: Terraform Format Check
+        working-directory: ./gke/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: ./gke/terraform
+        run: terraform validate
+
+      - name: TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        working-directory: ./gke/terraform
+        run: |
+          tflint --init
+          tflint
+
+  backend-checks:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install -e .
+          pip install pytest pylint black isort
+
+      - name: Code Format Check
+        working-directory: ./backend
+        run: |
+          black --check app/
+          isort --check-only app/
+
+      - name: Linting
+        working-directory: ./backend
+        run: |
+          pylint app/ --exit-zero || true
+
+      - name: Type Checking
+        working-directory: ./backend
+        run: |
+          pip install mypy
+          mypy app/ --ignore-missing-imports || true
+
+  frontend-checks:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/dreamboard/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./frontend/dreamboard
+        run: npm ci
+
+      - name: Linting
+        working-directory: ./frontend/dreamboard
+        run: npm run lint --if-present || true
+
+      - name: Build
+        working-directory: ./frontend/dreamboard
+        run: npm run build
+
+  docker-build-test:
+    name: Test Docker Builds
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - dockerfile: backend/Dockerfile
+            context: backend
+            name: Backend
+          - dockerfile: frontend/dreamboard/Dockerfile
+            context: frontend/dreamboard
+            name: Frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build ${{ matrix.name }} Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  terraform-plan:
+    name: Terraform Plan Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.9'
+
+      - name: Terraform Init
+        working-directory: ./gke/terraform
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+
+      - name: Terraform Plan
+        working-directory: ./gke/terraform
+        id: plan
+        run: |
+          terraform plan \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=southamerica-east1" \
+            -var="cloudrun_image_backend=placeholder:latest" \
+            -var="cloudrun_image_frontend=placeholder:latest" \
+            -var="oauth_client_id=${{ secrets.OAUTH_CLIENT_ID }}" \
+            -no-color \
+            -out=tfplan 2>&1 | tee plan.txt
+        continue-on-error: true
+
+      - name: Comment Plan on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('./gke/terraform/plan.txt', 'utf8');
+
+            const comment = `## Terraform Plan Preview
+
+            \`\`\`terraform
+            ${planOutput.substring(0, 3000)}
+            \`\`\`
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
