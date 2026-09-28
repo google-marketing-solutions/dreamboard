@@ -43,3 +43,9 @@ variable "backend_url" {
   type        = string
   default     = ""
 }
+
+variable "alert_email" {
+  description = "Email address for receiving monitoring alerts"
+  type        = string
+  sensitive   = true
+}
