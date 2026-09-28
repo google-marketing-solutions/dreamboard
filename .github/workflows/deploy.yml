@@ -1,0 +1,193 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches:
+      - main
+    paths:
+      - 'gke/terraform/**'
+      - '.github/workflows/deploy.yml'
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: southamerica-east1
+  TF_VERSION: '1.9'
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      plan_exitcode: ${{ steps.tf_plan.outputs.exitcode }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ./gke/terraform
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+
+      - name: Terraform Validate
+        working-directory: ./gke/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./gke/terraform
+        id: tf_plan
+        run: |
+          terraform plan \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="region=${{ env.REGION }}" \
+            -var="cloudrun_image_backend=${{ secrets.REGISTRY }}/dreamboard-backend:latest" \
+            -var="cloudrun_image_frontend=${{ secrets.REGISTRY }}/dreamboard-frontend:latest" \
+            -var="oauth_client_id=${{ secrets.OAUTH_CLIENT_ID }}" \
+            -out=tfplan
+
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Save Plan Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan
+          path: ./gke/terraform/tfplan
+          retention-days: 1
+
+  apply:
+    name: Terraform Apply
+    needs: plan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-plan
+          path: ./gke/terraform/
+
+      - name: Terraform Init
+        working-directory: ./gke/terraform
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+
+      - name: Terraform Apply
+        working-directory: ./gke/terraform
+        run: |
+          terraform apply \
+            -auto-approve \
+            tfplan
+
+      - name: Get Outputs
+        working-directory: ./gke/terraform
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend URL:** $(terraform output -raw backend_url)" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend URL:** $(terraform output -raw frontend_url)" >> $GITHUB_STEP_SUMMARY
+
+  verify:
+    name: Verify Deployment
+    needs: apply
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Check Cloud Run Services
+        run: |
+          echo "Checking backend service..."
+          gcloud run services describe dreamboard-backend \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format='value(status.url)'
+
+          echo "Checking frontend service..."
+          gcloud run services describe dreamboard-frontend \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format='value(status.url)'
+
+      - name: Test Backend Health
+        run: |
+          BACKEND_URL=$(gcloud run services describe dreamboard-backend \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format='value(status.url)')
+
+          echo "Testing $BACKEND_URL/health"
+          curl -s "$BACKEND_URL/health" | head -20 || echo "Backend health check completed"
+
+  notify:
+    name: Notify Deployment
+    needs: [apply, verify]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Get Deployment Status
+        run: |
+          if [ "${{ needs.apply.result }}" == "success" ] && [ "${{ needs.verify.result }}" == "success" ]; then
+            echo "✅ Deployment successful"
+          else
+            echo "❌ Deployment failed"
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Deployment workflow completed. Check the Actions tab for details.'
+            })

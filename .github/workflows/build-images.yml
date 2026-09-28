@@ -1,0 +1,110 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/build-images.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: southamerica-east1
+  REGISTRY: southamerica-east1-docker.pkg.dev
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Build and push backend image
+        run: |
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/dreamboard-docker-repo/dreamboard-backend:latest"
+          IMAGE_TAG_SHA="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/dreamboard-docker-repo/dreamboard-backend:${{ github.sha }}"
+
+          cd backend
+          gcloud builds submit \
+            --region=${{ env.REGION }} \
+            --tag "$IMAGE_TAG" \
+            --tag "$IMAGE_TAG_SHA"
+
+          echo "BACKEND_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Build and push frontend image
+        run: |
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/dreamboard-docker-repo/dreamboard-frontend:latest"
+          IMAGE_TAG_SHA="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/dreamboard-docker-repo/dreamboard-frontend:${{ github.sha }}"
+
+          cd frontend/dreamboard
+          gcloud builds submit \
+            --region=${{ env.REGION }} \
+            --tag "$IMAGE_TAG" \
+            --tag "$IMAGE_TAG_SHA"
+
+          echo "FRONTEND_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+  notify-deployment:
+    name: Notify Deployment Pipeline
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger deployment workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'main'
+            }).catch(() => console.log('Deploy workflow not yet available'))
