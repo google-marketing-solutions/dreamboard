@@ -1,0 +1,7 @@
+# Bulk Video Creator backend: the backend core (backend/app) plus its own deps.
+# Versions tested locally: google-api-python-client 2.184.0, requests 2.32.4,
+# python-dotenv 1.1.1.
+-r ../../backend/requirements.txt
+google-api-python-client>=2.184.0,<3
+requests>=2.32.4,<3
+python-dotenv>=1.1.1,<2
