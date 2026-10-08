@@ -72,7 +72,7 @@ def _internal_error(operation: str) -> responses.JSONResponse:
 
 @bulk_router.get("/bulk_health_check")
 def bulk_health_check() -> dict[str, str]:
-  """Health check of the bulk service."""
+  """Returns the health status of the bulk service."""
   return {"status": "Success!"}
 
 

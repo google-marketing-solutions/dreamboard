@@ -33,6 +33,7 @@ dotenv.load_dotenv()
 # pylint: disable=wrong-import-position
 import fastapi
 from fastapi.middleware import cors
+import uvicorn
 
 from bulk_app import routes
 # pylint: enable=wrong-import-position
@@ -91,8 +92,10 @@ if _cors_origins:
 app.include_router(routes.bulk_router, prefix=API_PREFIX)
 
 
-if __name__ == "__main__":
-  import uvicorn
-
-  # Local testing only listens on localhost.
+def main() -> None:
+  """Runs the app locally with uvicorn, listening only on localhost."""
   uvicorn.run(app, host="127.0.0.1", port=int(os.getenv("BULK_PORT", "8000")))
+
+
+if __name__ == "__main__":
+  main()

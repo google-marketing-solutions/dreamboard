@@ -49,9 +49,9 @@ if str(CORE_PATH) not in sys.path:
 from models.image import image_gen_models
 from models.video import video_gen_models
 from models.video import video_request_models
-from services import storage_service as core_storage_service
+from services import storage_service
 from services.video import veo_api_service
-import utils as core_utils
+import utils
 # pylint: enable=wrong-import-position
 
 # Core types that the rest of the bulk uses through this adapter.
@@ -84,17 +84,17 @@ __all__ = [
 
 def get_bucket() -> storage.Bucket:
   """Returns the google.cloud.storage Bucket configured in the core."""
-  return core_storage_service.storage_service.bucket
+  return storage_service.storage_service.bucket
 
 
 def get_signed_uri(gcs_uri: str) -> str:
   """Returns the core's signed (or mTLS in dev) URL for a gs:// URI."""
-  return core_utils.get_signed_uri_from_gcs_uri(gcs_uri)
+  return utils.get_signed_uri_from_gcs_uri(gcs_uri)
 
 
 def execute_tasks_in_parallel(tasks: list[Callable[[], Any]]) -> list[Any]:
   """Runs callables in the core's thread pool and returns their results."""
-  return core_utils.execute_tasks_in_parallel(tasks)
+  return utils.execute_tasks_in_parallel(tasks)
 
 
 def get_video_model() -> str:

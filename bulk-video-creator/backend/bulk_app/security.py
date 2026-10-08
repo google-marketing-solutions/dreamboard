@@ -53,7 +53,7 @@ _IMAGE_SIGNATURES = (
 
 
 class UnsafeUrlError(ValueError):
-  """Raised when a URL is malformed or points to a forbidden destination."""
+  """A URL is malformed or points to a forbidden destination."""
 
 
 def validate_sheet_url(sheet_url: str) -> str:
@@ -93,7 +93,7 @@ def validate_sheet_url(sheet_url: str) -> str:
 
 
 def get_max_image_bytes() -> int:
-  """Max size of a downloaded seed image (env BULK_MAX_IMAGE_BYTES)."""
+  """Returns the max seed image size in bytes (env BULK_MAX_IMAGE_BYTES)."""
   try:
     value = int(os.getenv("BULK_MAX_IMAGE_BYTES", str(DEFAULT_MAX_IMAGE_BYTES)))
   except ValueError:
@@ -102,7 +102,7 @@ def get_max_image_bytes() -> int:
 
 
 def _is_forbidden_ip(ip_text: str) -> bool:
-  """True for loopback, private, link-local (metadata server), etc."""
+  """Returns whether an IP is loopback, private, link-local, etc."""
   ip = ipaddress.ip_address(ip_text.split("%", 1)[0])
   if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
     ip = ip.ipv4_mapped
@@ -181,9 +181,9 @@ def download_image(url: str) -> tuple[bytes, str, str]:
       ValueError: If the content is too large or not a supported image.
       requests.RequestException: On network errors.
   """
-  # TODO(ezkap): DNS rebinding between validation and connection is
-  # still possible. For stronger isolation, run the service with a VPC egress
-  # firewall that blocks private ranges, or pin the resolved IP.
+  # Note: DNS rebinding between validation and connection is still possible.
+  # For stronger isolation, run the service with a VPC egress firewall that
+  # blocks private ranges (see the README's Security section).
   max_bytes = get_max_image_bytes()
   current_url = url.strip()
 

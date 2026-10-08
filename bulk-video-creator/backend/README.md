@@ -151,3 +151,12 @@ account email printed at the end.
   call can trigger paid Veo generations.
 - `.env` files and virtualenvs are excluded from the Cloud Build upload
   (`build.gcloudignore`) and the core `.env` is removed from the image.
+- DNS rebinding between the IP check and the download is still possible.
+  For stronger isolation, run the service with a VPC egress firewall that
+  blocks private ranges.
+
+## Known limitations
+
+- Every row uses the same fixed prompt (`DEFAULT_PROMPT` in
+  `bulk_app/services/video_generator.py`). Per-row prompts from the sheet
+  are not supported yet.

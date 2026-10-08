@@ -257,7 +257,7 @@ def test_download_blocks_redirect_to_metadata(monkeypatch):
   monkeypatch.setattr(
       security.requests,
       "get",
-      lambda *a, **k: _FakeResponse(
+      lambda *args, **kwargs: _FakeResponse(
           302,
           {"Location": "https://metadata.google.internal/computeMetadata/v1/"},
       ),
@@ -271,7 +271,7 @@ def test_download_rejects_non_image_and_oversize(monkeypatch):
   monkeypatch.setattr(
       security.requests,
       "get",
-      lambda *a, **k: _FakeResponse(body=b"<html></html>"),
+      lambda *args, **kwargs: _FakeResponse(body=b"<html></html>"),
   )
   with pytest.raises(ValueError):
     security.download_image("https://example.com/a.png")
@@ -280,7 +280,9 @@ def test_download_rejects_non_image_and_oversize(monkeypatch):
   monkeypatch.setattr(
       security.requests,
       "get",
-      lambda *a, **k: _FakeResponse(body=b"\x89PNG\r\n\x1a\n" + b"0" * 100),
+      lambda *args, **kwargs: _FakeResponse(
+          body=b"\x89PNG\r\n\x1a\n" + b"0" * 100
+      ),
   )
   with pytest.raises(ValueError):
     security.download_image("https://example.com/a.png")
@@ -290,7 +292,7 @@ def test_download_ok(monkeypatch):
   monkeypatch.setattr(socket, "getaddrinfo", _fake_resolver("142.250.0.1"))
   body = b"\xff\xd8\xff\xe0" + b"0" * 100
   monkeypatch.setattr(
-      security.requests, "get", lambda *a, **k: _FakeResponse(body=body)
+      security.requests, "get", lambda *args, **kwargs: _FakeResponse(body=body)
   )
   data, mime, path = security.download_image(
       "https://example.com/x/photo.jpeg?s=1"

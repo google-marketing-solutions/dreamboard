@@ -64,7 +64,7 @@ def quote_sheet_title(title: str) -> str:
 
 
 class GoogleSheetsService:
-  """Reads rows from and appends results to the first tab of a sheet."""
+  """Client that reads rows from and appends results to a sheet's first tab."""
 
   def __init__(self) -> None:
     credentials, _ = google.auth.default(scopes=SHEETS_SCOPES)
@@ -162,7 +162,9 @@ class GoogleSheetsService:
         .execute()
     )
     headers = (header_result.get("values") or [[]])[0]
-    column_indices = {str(h).strip(): i for i, h in enumerate(headers)}
+    column_indices = {
+        str(header).strip(): i for i, header in enumerate(headers)
+    }
 
     for start in range(0, len(row_updates), ROWS_PER_WRITE_BATCH):
       batch = row_updates[start : start + ROWS_PER_WRITE_BATCH]
@@ -183,7 +185,9 @@ class GoogleSheetsService:
       read = (
           self._sheets.spreadsheets()
           .values()
-          .batchGet(spreadsheetId=spreadsheet_id, ranges=[c[0] for c in cells])
+          .batchGet(
+              spreadsheetId=spreadsheet_id, ranges=[cell[0] for cell in cells]
+          )
           .execute()
       )
       existing = []

@@ -66,7 +66,7 @@ def get_bucket_name() -> str:
 
 
 def get_gcs_prefix() -> str:
-  """Root folder of all bulks in the bucket (env BULK_GCS_PREFIX).
+  """Returns the root folder of all bulks in the bucket (env BULK_GCS_PREFIX).
 
   Raises:
       RuntimeError: If the configured prefix is not a safe relative path.
@@ -178,7 +178,7 @@ def get_mime_type_from_filename(filename: str) -> str:
 
 
 def is_image_filename(filename: str) -> bool:
-  """True if the file name has a supported image extension."""
+  """Returns whether the file name has a supported image extension."""
   return get_mime_type_from_filename(filename) != "application/octet-stream"
 
 

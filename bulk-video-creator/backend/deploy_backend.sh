@@ -149,7 +149,7 @@ build_image() {
 
 deploy_cloud_run_service() {
   echo "Deploying Cloud Run service..."
-  # TODO(security): The service has no authentication of its own; it relies
+  # Security: the service has no authentication of its own; it relies
   # on Cloud Run IAM (--no-allow-unauthenticated). Keep it that way.
   gcloud run deploy "$CLOUD_RUN_SERVICE_NAME" \
     --project="$GOOGLE_CLOUD_PROJECT" \

@@ -44,7 +44,7 @@ STATUS_ERROR = "ERROR"
 
 
 def get_max_rows() -> int:
-  """Max data rows accepted per sheet (env BULK_MAX_ROWS)."""
+  """Returns the max data rows accepted per sheet (env BULK_MAX_ROWS)."""
   try:
     value = int(os.getenv("BULK_MAX_ROWS", str(DEFAULT_MAX_ROWS)))
   except ValueError:
@@ -53,11 +53,22 @@ def get_max_rows() -> int:
 
 
 class SheetToBulkHandler:
-  """Copies each sheet row (seed image + metadata) to GCS."""
+  """Loader that copies each sheet row (seed image + metadata) to GCS.
+
+  Attributes:
+      sheets_service: Client used to read the sheet and write results back.
+      bucket: GCS bucket configured in the core.
+  """
 
   def __init__(
       self, sheets_service: sheets.GoogleSheetsService | None = None
   ) -> None:
+    """Initializes the handler.
+
+    Args:
+        sheets_service: Sheets client to use. Defaults to a new
+            GoogleSheetsService with Application Default Credentials.
+    """
     self.sheets_service = sheets_service or sheets.GoogleSheetsService()
     self.bucket = core_adapter.get_bucket()
 
@@ -136,41 +147,19 @@ class SheetToBulkHandler:
       status = STATUS_SKIPPED
       logs.append("image_url is required but was not provided")
     else:
-      try:
-        data, mime_type, url_path = security.download_image(image_url)
-        filename = paths.safe_image_filename(url_path, mime_type)
-        image_uri = f"{images_path}{filename}"
-        blob = self._upload(image_uri, data, mime_type)
-        logs.append(
-            f"Image uploaded to {image_uri} (authenticated URL:"
-            f" {blob.public_url})"
-        )
-      except security.UnsafeUrlError as ex:
+      uploaded, log = self._upload_seed_image(images_path, image_url, row_index)
+      logs.append(log)
+      if not uploaded:
         status = STATUS_ERROR
-        logs.append(f"Image URL rejected: {ex}")
-        logger.warning("Row %d image URL rejected: %s", row_index, ex)
-      except Exception as ex:  # pylint: disable=broad-exception-caught
-        status = STATUS_ERROR
-        logs.append(f"Image download failed: {type(ex).__name__}")
-        logger.exception("Row %d image download/upload failed", row_index)
 
     image_metadata = str(row.get("image_metadata", "")).strip()
     if image_metadata:
-      try:
-        try:
-          metadata_obj = json.loads(image_metadata)
-        except json.JSONDecodeError:
-          metadata_obj = {"raw_metadata": image_metadata}
-        self._upload(
-            f"{images_path}image_metadata.json",
-            json.dumps(metadata_obj, indent=2),
-            "application/json",
-        )
-        logs.append("Image metadata uploaded")
-      except Exception as ex:  # pylint: disable=broad-exception-caught
+      uploaded, log = self._upload_image_metadata(
+          images_path, image_metadata, row_index
+      )
+      logs.append(log)
+      if not uploaded:
         status = STATUS_ERROR
-        logs.append(f"Metadata upload failed: {type(ex).__name__}")
-        logger.exception("Row %d metadata upload failed", row_index)
 
     row_metadata = {
         "row_id": row_id,
@@ -191,6 +180,67 @@ class SheetToBulkHandler:
     except Exception:  # pylint: disable=broad-exception-caught
       logger.exception("Row %d metadata.json upload failed", row_index)
     return status, logs
+
+  def _upload_seed_image(
+      self, images_path: str, image_url: str, row_index: int
+  ) -> tuple[bool, str]:
+    """Downloads a row's seed image and uploads it to the row folder.
+
+    Errors are logged and reported in the result instead of raised, so one
+    row cannot stop the others.
+
+    Args:
+        images_path: gs:// folder for the row's seed images.
+        image_url: The image URL written in the sheet (untrusted).
+        row_index: 1-based data row index, for logging.
+
+    Returns:
+        A tuple (whether the image was uploaded, log line for the sheet).
+    """
+    try:
+      data, mime_type, url_path = security.download_image(image_url)
+      filename = paths.safe_image_filename(url_path, mime_type)
+      image_uri = f"{images_path}{filename}"
+      blob = self._upload(image_uri, data, mime_type)
+    except security.UnsafeUrlError as ex:
+      logger.warning("Row %d image URL rejected: %s", row_index, ex)
+      return False, f"Image URL rejected: {ex}"
+    except Exception as ex:  # pylint: disable=broad-exception-caught
+      logger.exception("Row %d image download/upload failed", row_index)
+      return False, f"Image download failed: {type(ex).__name__}"
+    return True, (
+        f"Image uploaded to {image_uri} (authenticated URL: {blob.public_url})"
+    )
+
+  def _upload_image_metadata(
+      self, images_path: str, image_metadata: str, row_index: int
+  ) -> tuple[bool, str]:
+    """Uploads a row's image metadata as image_metadata.json.
+
+    Text that is not valid JSON is stored as {"raw_metadata": text}.
+
+    Args:
+        images_path: gs:// folder for the row's seed images.
+        image_metadata: The image_metadata cell of the row.
+        row_index: 1-based data row index, for logging.
+
+    Returns:
+        A tuple (whether the metadata was uploaded, log line for the sheet).
+    """
+    try:
+      metadata = json.loads(image_metadata)
+    except json.JSONDecodeError:
+      metadata = {"raw_metadata": image_metadata}
+    try:
+      self._upload(
+          f"{images_path}image_metadata.json",
+          json.dumps(metadata, indent=2),
+          "application/json",
+      )
+    except Exception as ex:  # pylint: disable=broad-exception-caught
+      logger.exception("Row %d metadata upload failed", row_index)
+      return False, f"Metadata upload failed: {type(ex).__name__}"
+    return True, "Image metadata uploaded"
 
   def _upload(
       self, gcs_uri: str, content: bytes | str, content_type: str

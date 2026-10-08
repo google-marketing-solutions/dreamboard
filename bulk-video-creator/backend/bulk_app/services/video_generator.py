@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 STATUS_GENERATED = "VIDEO_GENERATED"
 STATUS_ERROR = "ERROR"
 
-# TODO(ezkap): Get the prompt for each row from the sheet. For now
-# every row uses this fixed prompt.
+# Every row uses this fixed prompt; per-row prompts are not supported yet
+# (see the README's Known limitations section).
 DEFAULT_PROMPT = (
     "Animate the static photograph with extremely subtle, cinematic motion. "
     "The feeling is **serene** and **aspirational**. "
@@ -43,13 +43,26 @@ DEFAULT_PROMPT = (
 
 
 class BulkVideoGenerator:
-  """Generates videos for the rows of a bulk and reports back to the sheet."""
+  """Generator of one Veo video per bulk row, which reports to the sheet.
+
+  Attributes:
+      veo_api_service: Core Veo service used to generate each video.
+      sheets_service: Client used to write the results back to the sheet.
+      bucket: GCS bucket configured in the core.
+  """
 
   def __init__(
       self,
       veo_api_service: core_adapter.VeoAPIService | None = None,
       sheets_service: sheets.GoogleSheetsService | None = None,
   ) -> None:
+    """Initializes the generator.
+
+    Args:
+        veo_api_service: Veo service to use. Defaults to the core's.
+        sheets_service: Sheets client to use. Defaults to a new
+            GoogleSheetsService with Application Default Credentials.
+    """
     self.veo_api_service = veo_api_service or core_adapter.VeoAPIService()
     self.sheets_service = sheets_service or sheets.GoogleSheetsService()
     self.bucket = core_adapter.get_bucket()
