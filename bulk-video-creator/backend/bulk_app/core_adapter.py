@@ -27,26 +27,36 @@ The core reads PROJECT_ID, LOCATION and GCS_BUCKET when imported, so the
 environment must be loaded before importing this module (see main.py).
 """
 
+from collections.abc import Callable
 import os
 import pathlib
 import sys
+from typing import Any
 import uuid
+
+from google.cloud import storage
 
 # bulk-video-creator/backend/bulk_app/core_adapter.py -> <repo>
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _DEFAULT_CORE_PATH = _REPO_ROOT / "backend" / "app"
-CORE_PATH = pathlib.Path(os.getenv("DREAMBOARD_CORE_PATH", str(_DEFAULT_CORE_PATH)))
+CORE_PATH = pathlib.Path(
+    os.getenv("DREAMBOARD_CORE_PATH", str(_DEFAULT_CORE_PATH))
+)
 if str(CORE_PATH) not in sys.path:
   sys.path.insert(0, str(CORE_PATH))
 
 # pylint: disable=wrong-import-position
-import utils as core_utils  # noqa: E402
-from models.image.image_gen_models import Image  # noqa: E402
-from models.video import video_request_models  # noqa: E402
-from models.video.video_gen_models import VideoGenerationResponse  # noqa: E402
-from services import storage_service as core_storage_service  # noqa: E402
-from services.video.veo_api_service import VeoAPIService  # noqa: E402
+from models.image import image_gen_models
+from models.video import video_gen_models
+from models.video import video_request_models
+from services import storage_service as core_storage_service
+from services.video import veo_api_service
+import utils as core_utils
 # pylint: enable=wrong-import-position
+
+# Core types that the rest of the bulk uses through this adapter.
+VeoAPIService = veo_api_service.VeoAPIService
+VideoGenerationResponse = video_gen_models.VideoGenerationResponse
 
 DEFAULT_VIDEO_MODEL = video_request_models.VEO_3_1_MODEL_NAME
 DEFAULT_VIDEO_DURATION_SECS = 4
@@ -72,7 +82,7 @@ __all__ = [
 ]
 
 
-def get_bucket():
+def get_bucket() -> storage.Bucket:
   """Returns the google.cloud.storage Bucket configured in the core."""
   return core_storage_service.storage_service.bucket
 
@@ -82,13 +92,16 @@ def get_signed_uri(gcs_uri: str) -> str:
   return core_utils.get_signed_uri_from_gcs_uri(gcs_uri)
 
 
-def execute_tasks_in_parallel(tasks: list) -> list:
+def execute_tasks_in_parallel(tasks: list[Callable[[], Any]]) -> list[Any]:
   """Runs callables in the core's thread pool and returns their results."""
   return core_utils.execute_tasks_in_parallel(tasks)
 
 
 def get_video_model() -> str:
-  """Veo model for bulk videos (env BULK_VIDEO_MODEL).
+  """Returns the Veo model for bulk videos (env BULK_VIDEO_MODEL).
+
+  Returns:
+      The model name.
 
   Raises:
       ValueError: If the model is not supported by the core Veo service.
@@ -102,7 +115,10 @@ def get_video_model() -> str:
 
 
 def get_video_duration_secs() -> int:
-  """Duration of bulk videos (env BULK_VIDEO_DURATION_SECS: 4, 6 or 8).
+  """Returns the duration of bulk videos (env BULK_VIDEO_DURATION_SECS).
+
+  Returns:
+      The duration in seconds: 4, 6 or 8.
 
   Raises:
       ValueError: If the value is not one of the durations Veo 3.x accepts.
@@ -136,7 +152,7 @@ def build_image_to_video_segment(
   Returns:
       A VideoSegmentGenerationOperation for VeoAPIService.generate_video.
   """
-  seed_image = Image(
+  seed_image = image_gen_models.Image(
       id=str(uuid.uuid4()),
       name=seed_image_name,
       gcs_uri=seed_image_uri,
@@ -158,7 +174,15 @@ def failed_response(
     segment: video_request_models.VideoSegmentGenerationOperation | None,
     message: str,
 ) -> VideoGenerationResponse:
-  """Builds a core VideoGenerationResponse for a row that failed."""
+  """Builds a core VideoGenerationResponse for a row that failed.
+
+  Args:
+      segment: The request of the row, or None if it could not be built.
+      message: Error message to report for the row.
+
+  Returns:
+      A response with done=False and no videos.
+  """
   return VideoGenerationResponse(
       done=False,
       operation_name="",

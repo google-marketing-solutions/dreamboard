@@ -18,9 +18,9 @@ import socket
 
 import pytest
 
+from bulk_app import models
 from bulk_app import paths
 from bulk_app import security
-from bulk_app.models import BulkUploadSheetRequest
 
 SHEET_ID = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abcd"
 
@@ -37,9 +37,18 @@ def test_bulk_paths():
   bulk_id = f"20260101120000_{SHEET_ID}"
   base = f"gs://test-bucket/bulk-video-creator/{bulk_id}/"
   assert paths.get_bulk_base_path(bulk_id) == base
-  assert paths.get_row_images_path(bulk_id, "row_3") == f"{base}row_3/images_seeds/"
-  assert paths.get_row_video_output_path(bulk_id, "row_3") == f"{base}row_3/video_output/"
-  assert paths.get_row_metadata_path(bulk_id, "row_3") == f"{base}row_3/metadata.json"
+  assert (
+      paths.get_row_images_path(bulk_id, "row_3")
+      == f"{base}row_3/images_seeds/"
+  )
+  assert (
+      paths.get_row_video_output_path(bulk_id, "row_3")
+      == f"{base}row_3/video_output/"
+  )
+  assert (
+      paths.get_row_metadata_path(bulk_id, "row_3")
+      == f"{base}row_3/metadata.json"
+  )
 
 
 def test_missing_bucket_fails_closed(monkeypatch):
@@ -71,7 +80,9 @@ def test_row_index(row_id, index):
   assert paths.get_row_index_from_row_id(row_id) == index
 
 
-@pytest.mark.parametrize("row_id", ["row_", "row_x", "../row_1", "row_1/..", ""])
+@pytest.mark.parametrize(
+    "row_id", ["row_", "row_x", "../row_1", "row_1/..", ""]
+)
 def test_row_index_invalid(row_id):
   with pytest.raises(ValueError):
     paths.get_row_index_from_row_id(row_id)
@@ -93,7 +104,10 @@ def test_bulk_id_invalid(bulk_id):
 def test_mime_types():
   assert paths.get_mime_type_from_filename("a.JPG") == "image/jpeg"
   assert paths.get_mime_type_from_filename("a.webp") == "image/webp"
-  assert paths.get_mime_type_from_filename("image_metadata.json") == "application/octet-stream"
+  assert (
+      paths.get_mime_type_from_filename("image_metadata.json")
+      == "application/octet-stream"
+  )
   assert not paths.is_image_filename("image_metadata.json")
 
 
@@ -118,7 +132,7 @@ def test_safe_image_filename(url_path, mime, expected):
 def test_valid_sheet_url():
   url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit?gid=1#gid=1"
   assert security.validate_sheet_url(url) == SHEET_ID
-  assert BulkUploadSheetRequest(sheet_url=url).sheet_url == url
+  assert models.BulkUploadSheetRequest(sheet_url=url).sheet_url == url
 
 
 @pytest.mark.parametrize(
@@ -138,7 +152,7 @@ def test_invalid_sheet_url(url):
   with pytest.raises(ValueError):
     security.validate_sheet_url(url)
   with pytest.raises(ValueError):
-    BulkUploadSheetRequest(sheet_url=url)
+    models.BulkUploadSheetRequest(sheet_url=url)
 
 
 # ---------- image URL (SSRF) ----------
@@ -147,12 +161,20 @@ def test_invalid_sheet_url(url):
 def _fake_resolver(ip):
   def resolver(host, port, proto=0):  # pylint: disable=unused-argument
     return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
+
   return resolver
 
 
 @pytest.mark.parametrize(
     "ip",
-    ["127.0.0.1", "10.0.0.5", "192.168.1.1", "169.254.169.254", "0.0.0.0", "::1"],
+    [
+        "127.0.0.1",
+        "10.0.0.5",
+        "192.168.1.1",
+        "169.254.169.254",
+        "0.0.0.0",
+        "::1",
+    ],
 )
 def test_image_url_private_ip_blocked(monkeypatch, ip):
   monkeypatch.setattr(socket, "getaddrinfo", _fake_resolver(ip))
@@ -162,7 +184,10 @@ def test_image_url_private_ip_blocked(monkeypatch, ip):
 
 def test_image_url_public_ip_allowed(monkeypatch):
   monkeypatch.setattr(socket, "getaddrinfo", _fake_resolver("142.250.0.1"))
-  assert security.validate_public_https_url("https://example.com/a.png") == "example.com"
+  assert (
+      security.validate_public_https_url("https://example.com/a.png")
+      == "example.com"
+  )
 
 
 @pytest.mark.parametrize(
@@ -181,13 +206,22 @@ def test_image_url_bad_scheme_or_shape(url):
 
 
 def test_detect_image_mime_type():
-  assert security.detect_image_mime_type(b"\xff\xd8\xff\xe0rest") == "image/jpeg"
-  assert security.detect_image_mime_type(b"\x89PNG\r\n\x1a\nrest") == "image/png"
-  assert security.detect_image_mime_type(b"RIFF\x00\x00\x00\x00WEBPVP8") == "image/webp"
+  assert (
+      security.detect_image_mime_type(b"\xff\xd8\xff\xe0rest") == "image/jpeg"
+  )
+  assert (
+      security.detect_image_mime_type(b"\x89PNG\r\n\x1a\nrest") == "image/png"
+  )
+  assert (
+      security.detect_image_mime_type(b"RIFF\x00\x00\x00\x00WEBPVP8")
+      == "image/webp"
+  )
   assert security.detect_image_mime_type(b"<html>") is None
 
 
 class _FakeResponse:
+  """Minimal stand-in for a streamed requests.Response."""
+
   def __init__(self, status=200, headers=None, body=b""):
     self.status_code = status
     self.headers = headers or {}
@@ -207,12 +241,16 @@ class _FakeResponse:
 
   def iter_content(self, chunk_size):
     for i in range(0, len(self._body), chunk_size):
-      yield self._body[i:i + chunk_size]
+      yield self._body[i : i + chunk_size]
 
 
 def test_download_blocks_redirect_to_metadata(monkeypatch):
   def resolver(host, port, proto=0):  # pylint: disable=unused-argument
-    ip = "169.254.169.254" if host == "metadata.google.internal" else "142.250.0.1"
+    ip = (
+        "169.254.169.254"
+        if host == "metadata.google.internal"
+        else "142.250.0.1"
+    )
     return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
 
   monkeypatch.setattr(socket, "getaddrinfo", resolver)
@@ -220,7 +258,8 @@ def test_download_blocks_redirect_to_metadata(monkeypatch):
       security.requests,
       "get",
       lambda *a, **k: _FakeResponse(
-          302, {"Location": "https://metadata.google.internal/computeMetadata/v1/"}
+          302,
+          {"Location": "https://metadata.google.internal/computeMetadata/v1/"},
       ),
   )
   with pytest.raises(security.UnsafeUrlError):
@@ -230,7 +269,9 @@ def test_download_blocks_redirect_to_metadata(monkeypatch):
 def test_download_rejects_non_image_and_oversize(monkeypatch):
   monkeypatch.setattr(socket, "getaddrinfo", _fake_resolver("142.250.0.1"))
   monkeypatch.setattr(
-      security.requests, "get", lambda *a, **k: _FakeResponse(body=b"<html></html>")
+      security.requests,
+      "get",
+      lambda *a, **k: _FakeResponse(body=b"<html></html>"),
   )
   with pytest.raises(ValueError):
     security.download_image("https://example.com/a.png")
@@ -248,6 +289,10 @@ def test_download_rejects_non_image_and_oversize(monkeypatch):
 def test_download_ok(monkeypatch):
   monkeypatch.setattr(socket, "getaddrinfo", _fake_resolver("142.250.0.1"))
   body = b"\xff\xd8\xff\xe0" + b"0" * 100
-  monkeypatch.setattr(security.requests, "get", lambda *a, **k: _FakeResponse(body=body))
-  data, mime, path = security.download_image("https://example.com/x/photo.jpeg?s=1")
+  monkeypatch.setattr(
+      security.requests, "get", lambda *a, **k: _FakeResponse(body=body)
+  )
+  data, mime, path = security.download_image(
+      "https://example.com/x/photo.jpeg?s=1"
+  )
   assert data == body and mime == "image/jpeg" and path == "/x/photo.jpeg"

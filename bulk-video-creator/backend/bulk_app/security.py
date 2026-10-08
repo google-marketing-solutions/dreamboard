@@ -27,7 +27,7 @@ import logging
 import os
 import re
 import socket
-from urllib.parse import urljoin, urlparse
+from urllib import parse
 
 import requests
 
@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 
 MAX_URL_LENGTH = 2048
 SHEETS_HOST = "docs.google.com"
-SHEET_PATH_REGEX = re.compile(r"^/spreadsheets/d/([A-Za-z0-9_-]{10,100})(/.*)?$")
+SHEET_PATH_REGEX = re.compile(
+    r"^/spreadsheets/d/([A-Za-z0-9_-]{10,100})(/.*)?$"
+)
 
 DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024
 MAX_REDIRECTS = 3
@@ -61,6 +63,12 @@ def validate_sheet_url(sheet_url: str) -> str:
   is compared exactly (not as a substring), so hosts like
   'docs.google.com.attacker.example' are rejected.
 
+  Args:
+      sheet_url: The URL sent by the API client.
+
+  Returns:
+      The spreadsheet id.
+
   Raises:
       UnsafeUrlError: If the URL is not a valid Google Sheets URL.
   """
@@ -70,7 +78,7 @@ def validate_sheet_url(sheet_url: str) -> str:
   if len(sheet_url) > MAX_URL_LENGTH:
     raise UnsafeUrlError("Sheet URL is too long")
 
-  parsed = urlparse(sheet_url)
+  parsed = parse.urlparse(sheet_url)
   if parsed.scheme != "https":
     raise UnsafeUrlError("Sheet URL must use https")
   if parsed.username or parsed.password or parsed.port:
@@ -87,7 +95,7 @@ def validate_sheet_url(sheet_url: str) -> str:
 def get_max_image_bytes() -> int:
   """Max size of a downloaded seed image (env BULK_MAX_IMAGE_BYTES)."""
   try:
-    value = int(os.getenv("BULK_MAX_IMAGE_BYTES", DEFAULT_MAX_IMAGE_BYTES))
+    value = int(os.getenv("BULK_MAX_IMAGE_BYTES", str(DEFAULT_MAX_IMAGE_BYTES)))
   except ValueError:
     return DEFAULT_MAX_IMAGE_BYTES
   return value if value > 0 else DEFAULT_MAX_IMAGE_BYTES
@@ -107,6 +115,9 @@ def validate_public_https_url(url: str) -> str:
   Blocks requests to localhost, private networks and the GCE metadata
   server (169.254.169.254 / metadata.google.internal).
 
+  Args:
+      url: The URL to validate.
+
   Returns:
       The hostname of the URL.
 
@@ -118,7 +129,7 @@ def validate_public_https_url(url: str) -> str:
   if len(url) > MAX_URL_LENGTH:
     raise UnsafeUrlError("URL is too long")
 
-  parsed = urlparse(url.strip())
+  parsed = parse.urlparse(url.strip())
   if parsed.scheme != "https":
     raise UnsafeUrlError("Only https image URLs are allowed")
   if parsed.username or parsed.password:
@@ -159,18 +170,20 @@ def download_image(url: str) -> tuple[bytes, str, str]:
   * The body is streamed and capped at BULK_MAX_IMAGE_BYTES.
   * The content must be a JPEG, PNG, GIF or WEBP by magic bytes.
 
-  TODO(security): DNS rebinding between validation and connection is still
-  possible. For stronger isolation, run the service with a VPC egress
-  firewall that blocks private ranges, or pin the resolved IP.
+  Args:
+      url: The image URL written in the sheet (untrusted).
 
   Returns:
-      (image bytes, detected MIME type, final URL path).
+      A tuple (image bytes, detected MIME type, final URL path).
 
   Raises:
       UnsafeUrlError: If the URL or any redirect target is not allowed.
       ValueError: If the content is too large or not a supported image.
       requests.RequestException: On network errors.
   """
+  # TODO(ezkap): DNS rebinding between validation and connection is
+  # still possible. For stronger isolation, run the service with a VPC egress
+  # firewall that blocks private ranges, or pin the resolved IP.
   max_bytes = get_max_image_bytes()
   current_url = url.strip()
 
@@ -186,7 +199,7 @@ def download_image(url: str) -> tuple[bytes, str, str]:
         location = response.headers.get("Location", "")
         if not location:
           raise UnsafeUrlError("Redirect without Location header")
-        current_url = urljoin(current_url, location)
+        current_url = parse.urljoin(current_url, location)
         continue
 
       response.raise_for_status()
@@ -206,6 +219,6 @@ def download_image(url: str) -> tuple[bytes, str, str]:
     mime_type = detect_image_mime_type(data)
     if not mime_type:
       raise ValueError("Downloaded content is not a supported image type")
-    return data, mime_type, urlparse(current_url).path
+    return data, mime_type, parse.urlparse(current_url).path
 
   raise UnsafeUrlError("Too many redirects")

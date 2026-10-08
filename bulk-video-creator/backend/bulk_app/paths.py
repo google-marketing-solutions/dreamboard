@@ -110,13 +110,19 @@ def get_row_metadata_path(bulk_id: str, row_id: str) -> str:
 def blob_name_from_gcs_uri(gcs_uri: str) -> str:
   """Returns the blob name of a gs:// URI that belongs to the bulk bucket.
 
+  Args:
+      gcs_uri: A gs://{bucket}/{blob} URI.
+
+  Returns:
+      The blob name, without the gs://{bucket}/ prefix.
+
   Raises:
       ValueError: If the URI is not a gs:// URI of the configured bucket.
   """
   prefix = f"gs://{get_bucket_name()}/"
   if not gcs_uri.startswith(prefix):
     raise ValueError("GCS URI does not belong to the configured bucket")
-  return gcs_uri[len(prefix):]
+  return gcs_uri[len(prefix) :]
 
 
 def make_row_id(row_index: int) -> str:
@@ -126,6 +132,12 @@ def make_row_id(row_index: int) -> str:
 
 def get_row_index_from_row_id(row_id: str) -> int:
   """Returns N from 'row_N'.
+
+  Args:
+      row_id: A row id like 'row_3'.
+
+  Returns:
+      The 1-based row index.
 
   Raises:
       ValueError: If the row id is malformed.
@@ -144,6 +156,12 @@ def generate_bulk_id(spreadsheet_id: str) -> str:
 
 def get_spreadsheet_id_from_bulk_id(bulk_id: str) -> str:
   """Returns the spreadsheet id embedded in a bulk id.
+
+  Args:
+      bulk_id: A bulk id like '{YYYYMMDDHHmmss}_{spreadsheet_id}'.
+
+  Returns:
+      The spreadsheet id.
 
   Raises:
       ValueError: If the bulk id is malformed.

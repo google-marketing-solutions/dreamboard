@@ -23,8 +23,8 @@ import logging
 from typing import Any
 
 import google.auth
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+from google.auth.transport import requests as auth_requests
+from googleapiclient import discovery
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,14 @@ ROWS_PER_WRITE_BATCH = 5
 
 
 def column_letter(index: int) -> str:
-  """0 -> A, 25 -> Z, 26 -> AA."""
+  """Converts a 0-based column index to its A1 letter.
+
+  Args:
+      index: 0-based column index.
+
+  Returns:
+      The column letter: 0 -> A, 25 -> Z, 26 -> AA.
+  """
   letters = ""
   index += 1
   while index:
@@ -45,16 +52,23 @@ def column_letter(index: int) -> str:
 
 
 def quote_sheet_title(title: str) -> str:
-  """Quotes a sheet title for A1 notation ('My sheet'!A1)."""
+  """Quotes a sheet title for A1 notation ('My sheet'!A1).
+
+  Args:
+      title: The sheet (tab) title.
+
+  Returns:
+      The title in single quotes, with inner quotes escaped.
+  """
   return "'" + title.replace("'", "''") + "'"
 
 
 class GoogleSheetsService:
   """Reads rows from and appends results to the first tab of a sheet."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     credentials, _ = google.auth.default(scopes=SHEETS_SCOPES)
-    credentials.refresh(Request())
+    credentials.refresh(auth_requests.Request())
     if hasattr(credentials, "service_account_email"):
       logger.info("Sheets API using a service account identity")
     else:
@@ -62,11 +76,22 @@ class GoogleSheetsService:
           "Sheets API using user credentials; the user must have access to"
           " the sheet"
       )
-    self._sheets = build(
+    self._sheets = discovery.build(
         "sheets", "v4", credentials=credentials, cache_discovery=False
     )
 
   def _first_sheet_title(self, spreadsheet_id: str) -> str:
+    """Returns the title of the first tab of a spreadsheet.
+
+    Args:
+        spreadsheet_id: The spreadsheet id.
+
+    Returns:
+        The title of the first tab.
+
+    Raises:
+        ValueError: If the spreadsheet has no tabs.
+    """
     spreadsheet = (
         self._sheets.spreadsheets()
         .get(spreadsheetId=spreadsheet_id, fields="sheets.properties.title")
@@ -122,8 +147,9 @@ class GoogleSheetsService:
     Args:
         spreadsheet_id: The spreadsheet id.
         row_updates: Items like
-            {"row_index": 1, "updates": {"status": ("OK", "\\n")}}
-            where row_index is 1-based over data rows (header excluded).
+            {"row_index": 1, "updates": {"status": ("OK", separator)}}
+            where row_index is 1-based over data rows (header excluded) and
+            separator is the text placed between the old and new values.
     """
     if not row_updates:
       return
@@ -139,7 +165,7 @@ class GoogleSheetsService:
     column_indices = {str(h).strip(): i for i, h in enumerate(headers)}
 
     for start in range(0, len(row_updates), ROWS_PER_WRITE_BATCH):
-      batch = row_updates[start:start + ROWS_PER_WRITE_BATCH]
+      batch = row_updates[start : start + ROWS_PER_WRITE_BATCH]
       cells = []  # (a1 address, new value, separator)
       for item in batch:
         sheet_row = item["row_index"] + 1  # +1 for the header row.
@@ -147,7 +173,9 @@ class GoogleSheetsService:
           if column not in column_indices:
             logger.warning("Column %s not found in sheet, skipping", column)
             continue
-          address = f"{title}!{column_letter(column_indices[column])}{sheet_row}"
+          address = (
+              f"{title}!{column_letter(column_indices[column])}{sheet_row}"
+          )
           cells.append((address, value, separator))
       if not cells:
         continue

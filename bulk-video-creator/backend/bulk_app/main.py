@@ -21,19 +21,20 @@ Run locally from the `bulk-video-creator/backend/` folder:
 In the container: uvicorn bulk_app.main:app (see Dockerfile).
 """
 
+from collections.abc import Awaitable, Callable
 import logging
 import os
 
-from dotenv import load_dotenv
+import dotenv
 
 # The core reads its configuration when imported: load .env first.
-load_dotenv()
+dotenv.load_dotenv()
 
 # pylint: disable=wrong-import-position
-from fastapi import FastAPI  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+import fastapi
+from fastapi.middleware import cors
 
-from bulk_app.routes import bulk_router  # noqa: E402
+from bulk_app import routes
 # pylint: enable=wrong-import-position
 
 # The core attaches a Cloud Logging handler to the root logger when imported,
@@ -48,12 +49,23 @@ logging.getLogger().setLevel(logging.INFO)
 
 API_PREFIX = "/api"
 
-app = FastAPI(title="Bulk Video Creator")
+app = fastapi.FastAPI(title="Bulk Video Creator")
 
 
 @app.middleware("http")
-async def add_security_headers(request, call_next):
-  """Adds basic security headers to every response."""
+async def add_security_headers(
+    request: fastapi.Request,
+    call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]],
+) -> fastapi.Response:
+  """Adds basic security headers to every response.
+
+  Args:
+      request: The incoming request.
+      call_next: The next handler in the middleware chain.
+
+  Returns:
+      The response of the next handler, with the extra headers.
+  """
   response = await call_next(request)
   response.headers["X-Content-Type-Options"] = "nosniff"
   response.headers["X-Frame-Options"] = "DENY"
@@ -70,13 +82,13 @@ _cors_origins = [
 ]
 if _cors_origins:
   app.add_middleware(
-      CORSMiddleware,
+      cors.CORSMiddleware,
       allow_origins=_cors_origins,
       allow_methods=["GET", "POST"],
       allow_headers=["Content-Type", "Authorization"],
   )
 
-app.include_router(bulk_router, prefix=API_PREFIX)
+app.include_router(routes.bulk_router, prefix=API_PREFIX)
 
 
 if __name__ == "__main__":

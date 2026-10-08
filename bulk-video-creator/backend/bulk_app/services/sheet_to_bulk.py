@@ -18,15 +18,24 @@ import datetime
 import json
 import logging
 import os
+from typing import Any
+
+from google.cloud import storage
 
 from bulk_app import core_adapter
 from bulk_app import paths
 from bulk_app import security
-from bulk_app.services.sheets import GoogleSheetsService
+from bulk_app.services import sheets
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_COLUMNS = ("image_url", "image_metadata", "video_output", "status", "logs")
+REQUIRED_COLUMNS = (
+    "image_url",
+    "image_metadata",
+    "video_output",
+    "status",
+    "logs",
+)
 DEFAULT_MAX_ROWS = 100
 
 STATUS_READY = "READY_TO_GENERATE"
@@ -37,7 +46,7 @@ STATUS_ERROR = "ERROR"
 def get_max_rows() -> int:
   """Max data rows accepted per sheet (env BULK_MAX_ROWS)."""
   try:
-    value = int(os.getenv("BULK_MAX_ROWS", DEFAULT_MAX_ROWS))
+    value = int(os.getenv("BULK_MAX_ROWS", str(DEFAULT_MAX_ROWS)))
   except ValueError:
     return DEFAULT_MAX_ROWS
   return value if value > 0 else DEFAULT_MAX_ROWS
@@ -46,8 +55,10 @@ def get_max_rows() -> int:
 class SheetToBulkHandler:
   """Copies each sheet row (seed image + metadata) to GCS."""
 
-  def __init__(self, sheets_service: GoogleSheetsService | None = None):
-    self.sheets_service = sheets_service or GoogleSheetsService()
+  def __init__(
+      self, sheets_service: sheets.GoogleSheetsService | None = None
+  ) -> None:
+    self.sheets_service = sheets_service or sheets.GoogleSheetsService()
     self.bucket = core_adapter.get_bucket()
 
   def process_sheet_to_bulk(self, sheet_url: str) -> tuple[str, dict[str, int]]:
@@ -82,7 +93,9 @@ class SheetToBulkHandler:
       raise ValueError(f"Sheet is missing required columns: {missing}")
 
     bulk_id = paths.generate_bulk_id(spreadsheet_id)
-    logger.info("Processing sheet into bulk_id %s (%d rows)", bulk_id, len(rows))
+    logger.info(
+        "Processing sheet into bulk_id %s (%d rows)", bulk_id, len(rows)
+    )
 
     status_summary: dict[str, int] = {}
     row_updates = []
@@ -101,9 +114,18 @@ class SheetToBulkHandler:
     return bulk_id, status_summary
 
   def _process_row(
-      self, bulk_id: str, row_index: int, row: dict
+      self, bulk_id: str, row_index: int, row: dict[str, Any]
   ) -> tuple[str, list[str]]:
-    """Uploads one row to GCS. Returns (status, log lines)."""
+    """Uploads one row (seed image, image metadata, row metadata) to GCS.
+
+    Args:
+        bulk_id: The bulk id.
+        row_index: 1-based data row index.
+        row: The row values keyed by column header.
+
+    Returns:
+        A tuple (status, log lines) for the row.
+    """
     row_id = paths.make_row_id(row_index)
     status = STATUS_READY
     logs: list[str] = []
@@ -170,8 +192,19 @@ class SheetToBulkHandler:
       logger.exception("Row %d metadata.json upload failed", row_index)
     return status, logs
 
-  def _upload(self, gcs_uri: str, content: bytes | str, content_type: str):
-    """Uploads content to a gs:// URI of the bulk bucket. Returns the blob."""
+  def _upload(
+      self, gcs_uri: str, content: bytes | str, content_type: str
+  ) -> storage.Blob:
+    """Uploads content to a gs:// URI of the bulk bucket.
+
+    Args:
+        gcs_uri: Destination gs:// URI, inside the bulk bucket.
+        content: The content to upload.
+        content_type: MIME type of the content.
+
+    Returns:
+        The uploaded blob.
+    """
     blob = self.bucket.blob(paths.blob_name_from_gcs_uri(gcs_uri))
     blob.upload_from_string(content, content_type=content_type)
     return blob

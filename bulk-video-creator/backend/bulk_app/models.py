@@ -14,30 +14,31 @@
 
 """Pydantic models for the bulk API requests and responses."""
 
-from dataclasses import dataclass
+import dataclasses
+from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+import pydantic
 
 from bulk_app import security
 
 
-class BulkUploadSheetRequest(BaseModel):
+class BulkUploadSheetRequest(pydantic.BaseModel):
   """Request to load a Google Sheet into a bulk operation.
 
   Attributes:
       sheet_url: https://docs.google.com/spreadsheets/d/{id}/... URL.
   """
 
-  sheet_url: str = Field(max_length=security.MAX_URL_LENGTH)
+  sheet_url: str = pydantic.Field(max_length=security.MAX_URL_LENGTH)
 
-  @field_validator("sheet_url")
+  @pydantic.field_validator("sheet_url")
   @classmethod
   def _validate_sheet_url(cls, value: str) -> str:
     security.validate_sheet_url(value)
     return value.strip()
 
 
-class BulkUploadSheetResponse(BaseModel):
+class BulkUploadSheetResponse(pydantic.BaseModel):
   """Result of loading a sheet.
 
   Attributes:
@@ -48,22 +49,23 @@ class BulkUploadSheetResponse(BaseModel):
 
   bulk_id: str
   message: str
-  status_summary: dict[str, int] = Field(default_factory=dict)
+  status_summary: dict[str, int] = pydantic.Field(default_factory=dict)
 
 
-class BulkVideoGenerationResponse(BaseModel):
+class BulkVideoGenerationResponse(pydantic.BaseModel):
   """Result of generating the videos of a bulk operation.
 
   Attributes:
-      videos: One core VideoGenerationResponse per processed row.
+      videos: One core VideoGenerationResponse per processed row. Typed as
+          Any so this module does not import the backend core.
       status_summary: Rows per status (VIDEO_GENERATED, ERROR).
   """
 
-  videos: list
-  status_summary: dict[str, int] = Field(default_factory=dict)
+  videos: list[Any]
+  status_summary: dict[str, int] = pydantic.Field(default_factory=dict)
 
 
-@dataclass
+@dataclasses.dataclass
 class BulkVideoRequest:
   """A row ready to be sent to Veo.
 

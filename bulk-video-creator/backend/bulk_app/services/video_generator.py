@@ -20,17 +20,17 @@ import json
 import logging
 
 from bulk_app import core_adapter
+from bulk_app import models
 from bulk_app import paths
-from bulk_app.models import BulkVideoRequest
-from bulk_app.services.sheets import GoogleSheetsService
+from bulk_app.services import sheets
 
 logger = logging.getLogger(__name__)
 
 STATUS_GENERATED = "VIDEO_GENERATED"
 STATUS_ERROR = "ERROR"
 
-# TODO: Get the prompt for each row from the sheet. For now every row uses
-# this fixed prompt.
+# TODO(ezkap): Get the prompt for each row from the sheet. For now
+# every row uses this fixed prompt.
 DEFAULT_PROMPT = (
     "Animate the static photograph with extremely subtle, cinematic motion. "
     "The feeling is **serene** and **aspirational**. "
@@ -47,21 +47,23 @@ class BulkVideoGenerator:
 
   def __init__(
       self,
-      veo_api_service=None,
-      sheets_service: GoogleSheetsService | None = None,
-  ):
+      veo_api_service: core_adapter.VeoAPIService | None = None,
+      sheets_service: sheets.GoogleSheetsService | None = None,
+  ) -> None:
     self.veo_api_service = veo_api_service or core_adapter.VeoAPIService()
-    self.sheets_service = sheets_service or GoogleSheetsService()
+    self.sheets_service = sheets_service or sheets.GoogleSheetsService()
     self.bucket = core_adapter.get_bucket()
 
-  def generate_bulk_video_from_images_seed(self, bulk_id: str) -> tuple[list, dict[str, int]]:
+  def generate_bulk_video_from_images_seed(
+      self, bulk_id: str
+  ) -> tuple[list[core_adapter.VideoGenerationResponse], dict[str, int]]:
     """Generates one video per row that has a seed image.
 
     Args:
         bulk_id: A validated bulk id.
 
     Returns:
-        (one core VideoGenerationResponse per row, rows per status).
+        A tuple (one core VideoGenerationResponse per row, rows per status).
 
     Raises:
         ValueError: If the bulk does not exist or has no rows with images,
@@ -71,27 +73,36 @@ class BulkVideoGenerator:
     core_adapter.get_video_model()
     core_adapter.get_video_duration_secs()
 
-    requests = self._get_bulk_video_requests(bulk_id)
-    if not requests:
+    row_requests = self._get_bulk_video_requests(bulk_id)
+    if not row_requests:
       raise ValueError("No rows with seed images were found for this bulk_id")
 
     tasks = [
-        functools.partial(self._generate_row_video, bulk_id, request)
-        for request in requests
+        functools.partial(self._generate_row_video, bulk_id, row_request)
+        for row_request in row_requests
     ]
     responses = core_adapter.execute_tasks_in_parallel(tasks)
     status_summary = self._report_results(bulk_id, responses)
     return responses, status_summary
 
-  def _get_bulk_video_requests(self, bulk_id: str) -> list[BulkVideoRequest]:
-    """Finds the rows of a bulk and the first seed image of each."""
+  def _get_bulk_video_requests(
+      self, bulk_id: str
+  ) -> list[models.BulkVideoRequest]:
+    """Finds the rows of a bulk and the first seed image of each.
+
+    Args:
+        bulk_id: The bulk id.
+
+    Returns:
+        One request per row folder that has a seed image, sorted by row.
+    """
     prefix = paths.get_bulk_blob_prefix(bulk_id)
     iterator = self.bucket.list_blobs(prefix=prefix, delimiter="/")
     list(iterator)  # Consume pages so .prefixes is populated.
     row_prefixes = sorted(iterator.prefixes)
     logger.info("Found %d row folders for bulk %s", len(row_prefixes), bulk_id)
 
-    requests = []
+    row_requests = []
     for row_prefix in row_prefixes:
       row_id = row_prefix.rstrip("/").rsplit("/", 1)[-1]
       try:
@@ -113,32 +124,44 @@ class BulkVideoGenerator:
         logger.info("Row %s has no seed image, skipping", row_id)
         continue
 
-      requests.append(
-          BulkVideoRequest(
+      row_requests.append(
+          models.BulkVideoRequest(
               bulk_id=bulk_id,
               row_id=row_id,
               prompt=DEFAULT_PROMPT,
               seed_image_uri=f"gs://{self.bucket.name}/{image_blobs[0].name}",
           )
       )
-    return requests
+    return row_requests
 
-  def _generate_row_video(self, bulk_id: str, request: BulkVideoRequest):
-    """Generates the video of one row. Never raises: errors become a failed
-    response so one row cannot abort the whole bulk."""
+  def _generate_row_video(
+      self, bulk_id: str, row_request: models.BulkVideoRequest
+  ) -> core_adapter.VideoGenerationResponse:
+    """Generates the video of one row.
+
+    Never raises: errors become a failed response, so one row cannot abort
+    the whole bulk.
+
+    Args:
+        bulk_id: The bulk id.
+        row_request: The row to generate.
+
+    Returns:
+        The core response, with done=False if the generation failed.
+    """
     segment = None
     try:
-      image_name = request.seed_image_uri.rsplit("/", 1)[-1]
+      image_name = row_request.seed_image_uri.rsplit("/", 1)[-1]
       segment = core_adapter.build_image_to_video_segment(
-          row_id=request.row_id,
-          prompt=request.prompt,
-          seed_image_uri=request.seed_image_uri,
+          row_id=row_request.row_id,
+          prompt=row_request.prompt,
+          seed_image_uri=row_request.seed_image_uri,
           seed_image_name=image_name,
           seed_image_mime_type=paths.get_mime_type_from_filename(image_name),
       )
       response = self.veo_api_service.generate_video(
           bulk_id,
-          paths.get_row_video_output_path(bulk_id, request.row_id),
+          paths.get_row_video_output_path(bulk_id, row_request.row_id),
           segment,
       )
       if response is None:
@@ -147,13 +170,28 @@ class BulkVideoGenerator:
         )
       return response
     except Exception as ex:  # pylint: disable=broad-exception-caught
-      logger.exception("Video generation failed for row %s", request.row_id)
+      logger.exception("Video generation failed for row %s", row_request.row_id)
       return core_adapter.failed_response(
           segment, f"Video generation failed: {type(ex).__name__}"
       )
 
-  def _report_results(self, bulk_id: str, responses: list) -> dict[str, int]:
-    """Updates each row's metadata.json and appends results to the sheet."""
+  def _report_results(
+      self,
+      bulk_id: str,
+      responses: list[core_adapter.VideoGenerationResponse],
+  ) -> dict[str, int]:
+    """Updates each row's metadata.json and appends results to the sheet.
+
+    Errors while reporting are logged and do not fail the request, because
+    the videos are already generated.
+
+    Args:
+        bulk_id: The bulk id.
+        responses: One core response per generated row.
+
+    Returns:
+        The number of rows per status.
+    """
     status_summary: dict[str, int] = {}
     row_updates = []
 
@@ -178,7 +216,9 @@ class BulkVideoGenerator:
       status_summary[status] = status_summary.get(status, 0) + 1
 
       try:
-        self._update_row_metadata(bulk_id, row_id, status, logs, video_uri, public_url)
+        self._update_row_metadata(
+            bulk_id, row_id, status, logs, video_uri, public_url
+        )
       except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Could not update metadata.json for row %s", row_id)
 
@@ -209,8 +249,20 @@ class BulkVideoGenerator:
       video_uri: str | None,
       public_url: str | None,
   ) -> None:
+    """Merges the generation result into the row's metadata.json in GCS.
+
+    Args:
+        bulk_id: The bulk id.
+        row_id: The row id.
+        status: The new row status.
+        logs: Log lines for the row.
+        video_uri: gs:// URI of the generated video, if any.
+        public_url: Authenticated URL of the generated video, if any.
+    """
     blob = self.bucket.blob(
-        paths.blob_name_from_gcs_uri(paths.get_row_metadata_path(bulk_id, row_id))
+        paths.blob_name_from_gcs_uri(
+            paths.get_row_metadata_path(bulk_id, row_id)
+        )
     )
     existing = {}
     if blob.exists():
