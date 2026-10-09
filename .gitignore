@@ -3,6 +3,8 @@
 # Backend
 backend/app/venv
 backend/app/.env
+backend/.env
+*.log
 backend/**/__pycache__/
 backend/app/dreamboard_videos
 backend/database.db

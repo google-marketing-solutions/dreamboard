@@ -1,0 +1,21 @@
+# Builds the Bulk Video Creator backend image from the repository root and
+# pushes it to Artifact Registry. Normally run by deploy_backend.sh. Manual
+# usage (from the repo root):
+#
+#   gcloud builds submit --config bulk-video-creator/backend/cloudbuild.yaml \
+#     --ignore-file=bulk-video-creator/backend/build.gcloudignore \
+#     --substitutions=_REGION=us-central1,_REPOSITORY=bulk-video-creator .
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - bulk-video-creator/backend/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/bulk-video-creator-backend:latest
+      - .
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/bulk-video-creator-backend:latest
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: bulk-video-creator

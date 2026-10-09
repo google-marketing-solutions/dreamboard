@@ -1,0 +1,16 @@
+# Files excluded when uploading the repository to Cloud Build
+# (used by deploy_backend.sh / cloudbuild.yaml via --ignore-file).
+# Keeps secrets, virtualenvs and unrelated folders out of the build upload.
+.git
+.gitignore
+**/.env
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/node_modules/
+*.log
+frontend/
+gke/
+images/
+backend/app/dreamboard_videos/
