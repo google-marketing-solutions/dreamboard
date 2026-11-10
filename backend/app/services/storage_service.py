@@ -59,6 +59,10 @@ class StorageService:
         The GCS blob object.
     """
     bucket, path = uri.replace("gs://", "").split("/", 1)
+    if bucket != self.bucket_name:
+      raise ValueError(
+          f"gcs_uri bucket {bucket!r} is not the configured GCS_BUCKET"
+      )
     return self.storage_client.get_bucket(bucket).get_blob(path)
 
   def download_file_to_server(self, output_path: str, uri: str) -> str:

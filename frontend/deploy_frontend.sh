@@ -44,7 +44,7 @@ deploy_frontend_cloud_run_service() {
     --memory 8Gi \
     --cpu=2 \
     --no-allow-unauthenticated \
-    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,GCS_BUCKET=$BUCKET_NAME
+    --set-env-vars PROJECT_ID=$GOOGLE_CLOUD_PROJECT,GCS_BUCKET=$BUCKET_NAME,BACKEND_URL=$BACKEND_CLOUD_RUN_SERVICE_URL
     echo
 }
 

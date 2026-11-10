@@ -16,6 +16,9 @@ if (process.env.ENV === "dev") {
 }
 app.use(express.static(ANGULAR_APP_FOLDER));
 const PORT = process.env.PORT || 3000;
+const ALLOWED_BACKEND_ORIGIN = process.env.BACKEND_URL
+  ? new URL(process.env.BACKEND_URL).origin
+  : null;
 
 async function handleGetRequest(url, options) {
   const auth = new GoogleAuth();
@@ -55,7 +58,19 @@ app.get("/health_check", (req, res) => {
 });
 
 app.post("/api/handleRequest", async (req, res) => {
+  if (!ALLOWED_BACKEND_ORIGIN) {
+    return res.status(500).send({ detail: "BACKEND_URL is not configured." });
+  }
   try {
+    let urlOrigin;
+    try {
+      urlOrigin = new URL(req.body.url).origin;
+    } catch (_) {
+      urlOrigin = null;
+    }
+    if (urlOrigin !== ALLOWED_BACKEND_ORIGIN) {
+      return res.status(400).send({ detail: "URL is not allowed." });
+    }
     const response = await handleGetRequest(req.body.url, req.body.options);
     if (response && response.ok && response.data) {
       if (typeof response.data === "string") {
