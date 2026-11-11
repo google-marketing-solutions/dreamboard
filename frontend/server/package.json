@@ -18,6 +18,6 @@
     "express": "^5.1.0",
     "google-auth-library": "^10.2.1",
     "multer": "^2.0.2",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   }
 }
