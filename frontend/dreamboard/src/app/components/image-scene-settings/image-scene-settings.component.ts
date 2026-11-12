@@ -33,6 +33,8 @@ import {
   AfterViewInit,
   inject,
   ViewChild,
+  OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -49,6 +51,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatRadioModule } from '@angular/material/radio';
 import { Subscription } from 'rxjs';
 import { VideoScene } from '../../models/scene-models';
 import {
@@ -60,6 +65,11 @@ import {
   ImageGenerationResponse,
   ImageReferenceItem,
   ReferenceImageCard,
+  ImageGenerationOperation,
+  ImageGenerationRequest,
+  GEMINI_3_PRO_IMAGE_MODEL_NAME,
+  GenericImageGenerationResponse,
+  ImageItem,
 } from '../../models/image-gen-models';
 import { ImageGenerationService } from '../../services/image-generation.service';
 import { TextGenerationService } from '../../services/text-generation.service';
@@ -101,11 +111,14 @@ import { v4 as uuidv4 } from 'uuid';
     FileUploaderNewComponent,
     FrameExtractionComponent,
     AssetsSelectionTableComponent,
+    MatTabsModule,
+    MatSliderModule,
+    MatRadioModule,
   ],
   templateUrl: './image-scene-settings.component.html',
   styleUrl: './image-scene-settings.component.css',
 })
-export class ImageSceneSettingsComponent implements AfterViewInit {
+export class ImageSceneSettingsComponent implements AfterViewInit, OnChanges {
   @Input() scene!: VideoScene;
   @Input() storyId!: string;
   @Input() scenes!: VideoScene[];
@@ -123,6 +136,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     getPersonGenerationOptionsByModelName(IMAGE_MODEL_NAME);
   imageReferenceTypes = getImageReferenceTypes();
   referenceImageCards: ReferenceImageCard[] = [];
+  referenceImageCardsNanoBanana: ReferenceImageCard[] = [];
+  allImages: Image[] = []; // Cache for asset table to prevent infinite loops
   fileReader = new FileReader();
   uploadProgress: number = 0;
   uploadSub!: Subscription;
@@ -143,6 +158,16 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     referenceType: new FormControl('subject-SUBJECT_TYPE_DEFAULT', []),
     imageReferenceDescription: new FormControl('', []),
     withSceneDescription: new FormControl(true, []),
+    nbPrompt: new FormControl('', [Validators.required]),
+    nbWithSceneDescription: new FormControl(true, []),
+    nbSystemInstructions: new FormControl('', []),
+    nbOutputResolution: new FormControl('1K', []),
+    nbAspectRatio: new FormControl('4:3', []),
+    nbOutputFormat: new FormControl('jpeg', []),
+    nbGrounding: new FormControl('No', []),
+    nbTemperature: new FormControl(1, []),
+    nbOutputTokenLimit: new FormControl(32768, []),
+    nbTopP: new FormControl(0.95, []),
   });
 
   constructor(
@@ -158,6 +183,35 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     // viewChild is set after the view has been initialized
     this.initImageSettingsForm();
+    this.updateAllImages();
+  }
+
+  /**
+   * Lifecycle hook that is called when any data-bound property of a directive changes.
+   * Specifically watches for changes to the 'scene' input to re-initialize the form 
+   * and update the internal image cache.
+   * @param {SimpleChanges} changes - The object containing the changed properties.
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['scene']) {
+      this.updateAllImages();
+      this.initImageSettingsForm();
+    }
+  }
+
+  /**
+   * Synchronizes the `allImages` array by combining standard generated images 
+   * and Nano Banana generated images from the current scene settings.
+   * This serves as the centralized source for the asset selection table.
+   */
+  updateAllImages() {
+    if (this.scene && this.scene.imageGenerationSettings) {
+      const generatedImages = this.scene.imageGenerationSettings.generatedImages || [];
+      const nbGeneratedImages = this.scene.imageGenerationSettings.nbGeneratedImages || [];
+      this.allImages = [...generatedImages, ...nbGeneratedImages];
+    } else {
+      this.allImages = [];
+    }
   }
 
   /**
@@ -177,9 +231,8 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
    */
   getAssetsByType(type: string): Image[] {
     if (type === 'images') {
-      return this.scene.imageGenerationSettings.generatedImages;
+      return this.allImages;
     }
-
     return [];
   }
 
@@ -342,6 +395,36 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     this.imageSettingsForm.controls['negativePrompt'].setValue(
       this.scene.imageGenerationSettings.negativePrompt!,
     );
+    this.imageSettingsForm.controls['nbPrompt'].setValue(
+      this.scene.imageGenerationSettings.nbPrompt || '',
+    );
+    this.imageSettingsForm.controls['nbWithSceneDescription'].setValue(
+      this.scene.imageGenerationSettings.nbWithSceneDescription ?? true,
+    );
+    this.imageSettingsForm.controls['nbSystemInstructions'].setValue(
+      this.scene.imageGenerationSettings.nbSystemInstructions || '',
+    );
+    this.imageSettingsForm.controls['nbOutputResolution'].setValue(
+      this.scene.imageGenerationSettings.nbOutputResolution || '1K',
+    );
+    this.imageSettingsForm.controls['nbAspectRatio'].setValue(
+      this.scene.imageGenerationSettings.nbAspectRatio || '4:3',
+    );
+    this.imageSettingsForm.controls['nbOutputFormat'].setValue(
+      this.scene.imageGenerationSettings.nbOutputFormat || 'jpeg',
+    );
+    this.imageSettingsForm.controls['nbGrounding'].setValue(
+      this.scene.imageGenerationSettings.nbGrounding || 'No',
+    );
+    this.imageSettingsForm.controls['nbTemperature'].setValue(
+      this.scene.imageGenerationSettings.nbTemperature ?? 1,
+    );
+    this.imageSettingsForm.controls['nbOutputTokenLimit'].setValue(
+      this.scene.imageGenerationSettings.nbOutputTokenLimit ?? 32768,
+    );
+    this.imageSettingsForm.controls['nbTopP'].setValue(
+      this.scene.imageGenerationSettings.nbTopP ?? 0.95,
+    );
 
     // On edit
     if (this.scene.imageGenerationSettings.generatedImages.length > 0) {
@@ -383,6 +466,26 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       this.imageSettingsForm.get('personGeneration')?.value!;
     this.scene.imageGenerationSettings.negativePrompt =
       this.imageSettingsForm.get('negativePrompt')?.value!;
+    this.scene.imageGenerationSettings.nbPrompt =
+      this.imageSettingsForm.get('nbPrompt')?.value!;
+    this.scene.imageGenerationSettings.nbWithSceneDescription =
+      this.imageSettingsForm.get('nbWithSceneDescription')?.value!;
+    this.scene.imageGenerationSettings.nbSystemInstructions =
+      this.imageSettingsForm.get('nbSystemInstructions')?.value!;
+    this.scene.imageGenerationSettings.nbOutputResolution =
+      this.imageSettingsForm.get('nbOutputResolution')?.value!;
+    this.scene.imageGenerationSettings.nbAspectRatio =
+      this.imageSettingsForm.get('nbAspectRatio')?.value!;
+    this.scene.imageGenerationSettings.nbOutputFormat =
+      this.imageSettingsForm.get('nbOutputFormat')?.value!;
+    this.scene.imageGenerationSettings.nbGrounding =
+      this.imageSettingsForm.get('nbGrounding')?.value!;
+    this.scene.imageGenerationSettings.nbTemperature =
+      this.imageSettingsForm.get('nbTemperature')?.value!;
+    this.scene.imageGenerationSettings.nbOutputTokenLimit =
+      this.imageSettingsForm.get('nbOutputTokenLimit')?.value!;
+    this.scene.imageGenerationSettings.nbTopP =
+      this.imageSettingsForm.get('nbTopP')?.value!;
   }
 
   /**
@@ -432,6 +535,89 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     } else {
       console.log('Reference image not found. No image to remove.');
     }
+  }
+
+  /**
+     * Adds a new empty reference image card to the UI for Nano Banana.
+     * Enforces a maximum limit of 14 reference images.
+     * @returns {void}
+     */
+  addReferenceNanoBanana(): void {
+    if (this.referenceImageCardsNanoBanana.length >= 14) {
+      this._snackBar.open('Maximum of 14 reference images reached.', 'Close', { duration: 3000 });
+      return;
+    }
+    // Add empty object since we just need to show the cards in the ui
+    const id = uuidv4();
+    const card: ReferenceImageCard = {
+      id: id,
+    };
+    this.referenceImageCardsNanoBanana.push(card);
+  }
+
+  /**
+   * Removes a reference image card for Nano Banana from the UI and its corresponding data.
+   * @param {any} event - The DOM event from the remove action.
+   * @returns {void}
+   */
+  removeReferenceImageNanoBanana(event: any): void {
+    // Navigate DOM to find the ID of the specific card to remove
+    const cardId = event.target.parentElement.parentElement.id;
+
+    const cardsFoundIndex = this.getReferenceImageIndexById(
+      cardId,
+      this.referenceImageCardsNanoBanana,
+    );
+
+    if (cardsFoundIndex !== undefined) {
+      // Remove reference image card from UI
+      this.referenceImageCardsNanoBanana.splice(cardsFoundIndex, 1);
+    }
+
+    const referenceImagesFoundIndex = this.getReferenceImageIndexById(
+      cardId,
+      this.scene.imageGenerationSettings.referenceImages ?? [],
+    );
+
+    if (referenceImagesFoundIndex !== undefined) {
+      // Remove reference image data from the actual generation settings
+      this.scene.imageGenerationSettings.referenceImages!.splice(
+        referenceImagesFoundIndex,
+        1,
+      );
+    }
+  }
+  /**
+   * Determines whether the "Add Reference" button for Nano Banana should be disabled.
+   * @returns {boolean} `true` if limit (14) is reached or the last card is empty.
+   */
+  disableAddReferenceBananaButton(): boolean {
+    if (this.referenceImageCardsNanoBanana.length === 0) {
+      return false;
+    }
+
+    const lastAddedCard =
+      this.referenceImageCardsNanoBanana[this.referenceImageCardsNanoBanana.length - 1];
+
+    // Defensive check
+    if (!this.scene.imageGenerationSettings.referenceImages) {
+      return true;
+    }
+
+    const lastAddedRefImgIndex = this.getReferenceImageIndexById(
+      lastAddedCard.id,
+      this.scene.imageGenerationSettings.referenceImages,
+    );
+
+    // Disable if the most recently added card doesn't have an image uploaded yet
+    // or the limit of 14 is reached
+    if (
+      lastAddedRefImgIndex === undefined ||
+      this.referenceImageCardsNanoBanana.length >= 14
+    ) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -564,6 +750,100 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
       );
   }
 
+
+  /**
+   * Rewrites the image prompt for Nano Banana tab using the `TextGenerationService`.
+   * It sends the current Nano Banana prompt and scene description to the text generation API,
+   * and updates the form with the enhanced prompt upon success.
+   * Displays snackbar messages for feedback during the process.
+   * @returns {void}
+   */
+  rewriteNanoBananaPrompt(): void {
+    const currentPrompt = this.imageSettingsForm.get('nbPrompt')?.value!;
+    const sceneDescription = this.scene.description;
+    const withSceneDescription = this.imageSettingsForm.get(
+      'nbWithSceneDescription',
+    )?.value!;
+
+    openSnackBar(
+      this._snackBar,
+      `Generating enhanced image prompt for scene ${this.scene.number}...`,
+    );
+
+    this.textGenerationService
+      .rewriteImagePrompt(currentPrompt, sceneDescription, withSceneDescription)
+      .subscribe(
+        (enhancedPrompt: any) => {
+          // Find scene in responses to update generated videos
+          closeSnackBar(this._snackBar);
+          if (enhancedPrompt && enhancedPrompt.data) {
+            this.scene.imageGenerationSettings.nbPrompt = enhancedPrompt.data;
+            this.imageSettingsForm.get('nbPrompt')?.setValue(enhancedPrompt.data);
+          }
+        },
+        (error: any) => {
+          let errorMessage;
+          if (error.error.hasOwnProperty('detail')) {
+            errorMessage = error.error.detail;
+          } else {
+            errorMessage = error.error.message;
+          }
+          console.error(errorMessage);
+          openSnackBar(
+            this._snackBar,
+            `ERROR: ${errorMessage}. Please try again.`,
+          );
+        },
+      );
+  }
+
+  /**
+   * Clamps the value of a form control within a specified range.
+   * This is used to ensure user input in number fields stays within valid bounds.
+   * On input, it prevents values exceeding the maximum.
+   * On blur, it ensures the value is at least the minimum and not empty.
+   *
+   * @param {string} controlName - The name of the form control to clamp.
+   * @param {number} min - The minimum allowed value.
+   * @param {number} max - The maximum allowed value.
+   * @param {boolean} isBlur - Whether the clamping is triggered by a blur event.
+   * @returns {void}
+   */
+  clampValue(controlName: string, min: number, max: number, isBlur: boolean = false): void {
+    const control = this.imageSettingsForm.get(controlName);
+    if (!control) return;
+
+    const val = control.value;
+
+    // Handle empty or null values
+    if (val === null || val === '') {
+      if (isBlur) {
+        control.setValue(min); // Default to min on blur if empty
+      }
+      return; // Allow empty while typing
+    }
+
+    const numVal = Number(val);
+
+    if (isNaN(numVal)) {
+      if (isBlur) {
+        control.setValue(min);
+      }
+      return;
+    }
+
+    if (numVal < min) {
+      // Only clamp min on blur to allow typing numbers like "10" if min is "5" (typing "1" first)
+      // However, for 0-based ranges (min=0), clamping to 0 immediately is usually fine for positive inputs
+      // But if user types "-", it might be an issue. Assuming positive inputs for these fields.
+      if (isBlur || min === 0) {
+        control.setValue(min);
+      }
+    } else if (numVal > max) {
+      control.setValue(max);
+    }
+  }
+
   /**
    * Initiates the image generation process for the current scene.
    * It displays a loading snackbar, constructs an `ImageRequest` from the current scene's settings,
@@ -596,11 +876,12 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           );
           const lastGenImage =
             this.scene.imageGenerationSettings.generatedImages[
-              this.scene.imageGenerationSettings.generatedImages.length - 1
+            this.scene.imageGenerationSettings.generatedImages.length - 1
             ];
           // Refresh child component table with newly uploaded image
           // since @Input changes are not automatically triggered.
           const triggerDetectChanges = false;
+          this.updateAllImages();
           this.assetsSelectionTableComponent.refreshTable(triggerDetectChanges);
         },
         (error: any) => {
@@ -617,6 +898,101 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
           );
         },
       );
+  }
+
+  /**
+   * Generates an image using the Nano Banana model (Gemini Editor).
+   * Constructs the request payload from form values and calls the backend service.
+   */
+  generateNanoBananaImage(): void {
+    if (this.disableGenerateNanoBananaImageButton()) {
+      return;
+    }
+    openSnackBar(
+      this._snackBar,
+      `Generating image for scene ${this.scene.number} with Nano Banana...`,
+    );
+    const operation: ImageGenerationOperation = {
+      id: this.scene.id, // Use scene ID for operation ID to match Imagen folder structure
+      image_model: GEMINI_3_PRO_IMAGE_MODEL_NAME,
+      image_gen_task: 'text-to-image',
+      prompt: this.imageSettingsForm.get('nbPrompt')?.value!,
+      aspect_ratio: this.imageSettingsForm.get('nbAspectRatio')?.value || '4:3',
+      resolution: this.imageSettingsForm.get('nbOutputResolution')?.value || '1K',
+      response_modalities: ['IMAGE'],
+      reference_images: [],
+      use_grounding: this.imageSettingsForm.get('nbGrounding')?.value === 'Yes',
+    };
+    const request: ImageGenerationRequest = {
+      image_gen_operations: [operation],
+    };
+    this.imageGenerationService
+      .generateImagesFromScenesGeminiEditor(this.storyId, request)
+      .subscribe(
+        // (response: GenericImageGenerationResponse) => {
+        (responses: any) => {
+          // The backend returns a list of responses, even though we send one operation.
+          const response: GenericImageGenerationResponse = Array.isArray(responses) ? responses[0] : responses;
+
+          closeSnackBar(this._snackBar);
+          if (response.images && response.images.length > 0) {
+            // Map ImageItem (backend) to Image (frontend) to fix TS error
+            const newImages: Image[] = response.images.map((img: ImageItem) => ({
+              id: img.id,
+              name: img.name,
+              gcsUri: img.gcs_uri,
+              signedUri: img.signed_uri,
+              gcsFusePath: img.gcs_fuse_path,
+              mimeType: img.mime_type
+            }));
+            // Initialize array if it doesn't exist
+            if (!this.scene.imageGenerationSettings.nbGeneratedImages) {
+              this.scene.imageGenerationSettings.nbGeneratedImages = [];
+            }
+            // Push to separate Nano Banana array
+            this.scene.imageGenerationSettings.nbGeneratedImages.push(...newImages);
+            // Also push to main generatedImages if you want them to appear in the shared gallery
+            // this.scene.imageGenerationSettings.generatedImages.push(...newImages);
+            const lastImage = newImages[newImages.length - 1];
+            this.imageSettingsForm.controls['selectedImageId'].setValue(lastImage.id);
+            this.updateAllImages();
+            this.assetsSelectionTableComponent.refreshTable(false);
+            openSnackBar(
+              this._snackBar,
+              'Image generated successfully!',
+              3000
+            );
+          } else {
+            openSnackBar(
+              this._snackBar,
+              response.execution_message || 'No images returned from backend.',
+              5000 // Longer duration to read error
+            );
+          }
+        },
+        (error: any) => {
+          console.error('Error generating Nano Banana image:', error);
+          let errorMessage = 'Unknown error';
+          if (error.error && error.error.detail) {
+            errorMessage = error.error.detail;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          openSnackBar(
+            this._snackBar,
+            `Error: ${errorMessage}`,
+            5000
+          );
+        }
+      );
+  }
+
+  /**
+   * valid if prompt is present.
+   */
+  disableGenerateNanoBananaImageButton(): boolean {
+    const prompt = this.imageSettingsForm.get('nbPrompt')?.value;
+    return !prompt || prompt.trim() === '';
   }
 
   /**
@@ -815,7 +1191,7 @@ export class ImageSceneSettingsComponent implements AfterViewInit {
     // After adding new images, select the last one by default
     const lastImage =
       this.scene.imageGenerationSettings.generatedImages[
-        this.scene.imageGenerationSettings.generatedImages.length - 1
+      this.scene.imageGenerationSettings.generatedImages.length - 1
       ];
     if (lastImage) {
       // Refresh child component table with newly uploaded image

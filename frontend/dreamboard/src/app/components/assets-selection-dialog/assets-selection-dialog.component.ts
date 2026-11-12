@@ -63,6 +63,7 @@ export class AssetsSelectionDialogComponent {
   scene: VideoScene = this.data.scene;
   assetType: string = this.data.assetType;
   maxAllowedSelectedAssets: number = this.data.maxAllowedSelectedAssets;
+  allImages: Image[] = [];
   selectedAssets: Image[] | Video[] = [];
 
   title = this.assetType === 'images' ? 'Images Selection' : 'Videos Selection';
@@ -83,7 +84,13 @@ export class AssetsSelectionDialogComponent {
   /**
    * Lifecycle hook that is called after Angular has fully initialized a component's view.
    */
-  ngAfterViewInit(): void {}
+  ngAfterViewInit(): void {
+    if (this.assetType === 'images') {
+      const generatedImages = this.scene.imageGenerationSettings.generatedImages || [];
+      const nbGeneratedImages = this.scene.imageGenerationSettings.nbGeneratedImages || [];
+      this.allImages = [...generatedImages, ...nbGeneratedImages];
+    }
+  }
 
   /**
    * Retrieves the assets associated with the current scene based on the configured asset type.
@@ -91,7 +98,7 @@ export class AssetsSelectionDialogComponent {
    */
   getAssetsByType(): Image[] | Video[] {
     if (this.assetType === 'images') {
-      return this.scene.imageGenerationSettings.generatedImages;
+      return this.allImages;
     }
     if (this.assetType === 'videos') {
       return this.scene.videoGenerationSettings.generatedVideos;
